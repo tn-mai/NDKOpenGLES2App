@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <RootNamespace>OpenGLESApp2</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ProjectVersion>1.0</ProjectVersion>
+    <ProjectGuid>{fd358821-ef7e-47bf-adb1-c4e3c10739c2}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(AndroidTargetsPath)\Android.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(AndroidTargetsPath)\Android.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <AntPackage>
+      <AndroidAppLibName>$(RootNamespace)</AndroidAppLibName>
+    </AntPackage>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <AntPackage>
+      <AndroidAppLibName>$(RootNamespace)</AndroidAppLibName>
+    </AntPackage>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <AntPackage>
+      <AndroidAppLibName>$(RootNamespace)</AndroidAppLibName>
+    </AntPackage>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <AntPackage>
+      <AndroidAppLibName>$(RootNamespace)</AndroidAppLibName>
+    </AntPackage>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Content Include="assets\cubes.dae">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="assets\irradiance.ktx" />
+    <Content Include="assets\Shaders\applyhdr.frag" />
+    <Content Include="assets\Shaders\applyhdr.vert" />
+    <Content Include="assets\Shaders\bitmapfont.frag" />
+    <Content Include="assets\Shaders\bitmapfont.vert" />
+    <Content Include="assets\Shaders\default.frag" />
+    <Content Include="assets\Shaders\default.vert" />
+    <Content Include="assets\Shaders\default2D.frag" />
+    <Content Include="assets\Shaders\default2D.vert" />
+    <Content Include="assets\Shaders\gaussian3x3.frag" />
+    <Content Include="assets\Shaders\gaussian3x3.vert" />
+    <Content Include="assets\Shaders\hdrdiff.frag" />
+    <Content Include="assets\Shaders\hdrdiff.vert" />
+    <Content Include="assets\Shaders\reduce4.frag" />
+    <Content Include="assets\Shaders\reduce4.vert" />
+    <Content Include="assets\Shaders\ShaderPlain.frag" />
+    <Content Include="assets\Shaders\ShaderPlain.vert" />
+    <Content Include="assets\Shaders\shadow.frag" />
+    <Content Include="assets\Shaders\shadow.vert" />
+    <Content Include="assets\Shaders\bilinear4x4.frag" />
+    <Content Include="assets\Shaders\bilinear4x4.vert" />
+    <Content Include="assets\Shaders\skybox.frag" />
+    <Content Include="assets\Shaders\skybox.vert" />
+    <Content Include="assets\skybox_high.ktx" />
+    <Content Include="assets\skybox_low.ktx" />
+    <Content Include="assets\Sphere.dae">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="assets\Textures\ascii.ktx" />
+    <Content Include="assets\wood.ktx" />
+    <Content Include="res\values\strings.xml" />
+    <AntBuildXml Include="build.xml" />
+    <AndroidManifest Include="AndroidManifest.xml">
+      <SubType>Designer</SubType>
+    </AndroidManifest>
+    <AntProjectPropertiesFile Include="project.properties" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenGLESApp2.Android.NativeActivity\OpenGLESApp2.Android.NativeActivity.vcxproj">
+      <Project>{5f4fc41b-61f9-460c-bdd6-cb58f82c3b9c}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(AndroidTargetsPath)\Android.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties assets_4sphere_1dae__JSONSchema="http://json-schema.org/draft-04/schema" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

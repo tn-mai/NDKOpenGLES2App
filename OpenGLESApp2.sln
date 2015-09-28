@@ -1,0 +1,65 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "OpenGLESApp2", "OpenGLESApp2", "{D44C1DE1-E17B-412B-BFDE-E77A69B2DE14}"
+EndProject
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "OpenGLESApp2.Android.Packaging", "OpenGLESApp2\OpenGLESApp2.Android.Packaging\OpenGLESApp2.Android.Packaging.androidproj", "{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{50DAF5F6-EF1C-4A81-8D50-56820D016175}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenGLESApp2.Android.NativeActivity", "OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\OpenGLESApp2.Android.NativeActivity.vcxproj", "{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92} = {8EB7AF87-2163-4CF8-8E08-D301882B2B92}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libpng", "libpng\libpng.vcxproj", "{8EB7AF87-2163-4CF8-8E08-D301882B2B92}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|x86 = Debug|x86
+		Release|ARM = Release|ARM
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Debug|ARM.ActiveCfg = Debug|ARM
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Debug|ARM.Build.0 = Debug|ARM
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Debug|ARM.Deploy.0 = Debug|ARM
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Debug|x86.ActiveCfg = Debug|x86
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Debug|x86.Build.0 = Debug|x86
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Debug|x86.Deploy.0 = Debug|x86
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Release|ARM.ActiveCfg = Release|ARM
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Release|ARM.Build.0 = Release|ARM
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Release|ARM.Deploy.0 = Release|ARM
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Release|x86.ActiveCfg = Release|x86
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Release|x86.Build.0 = Release|x86
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}.Release|x86.Deploy.0 = Release|x86
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Debug|ARM.ActiveCfg = Debug|ARM
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Debug|ARM.Build.0 = Debug|ARM
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Debug|x86.ActiveCfg = Debug|x86
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Debug|x86.Build.0 = Debug|x86
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Release|ARM.ActiveCfg = Release|ARM
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Release|ARM.Build.0 = Release|ARM
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Release|x86.ActiveCfg = Release|x86
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C}.Release|x86.Build.0 = Release|x86
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Debug|ARM.ActiveCfg = Debug|ARM
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Debug|ARM.Build.0 = Debug|ARM
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Debug|x86.ActiveCfg = Debug|x86
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Debug|x86.Build.0 = Debug|x86
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Release|ARM.ActiveCfg = Release|ARM
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Release|ARM.Build.0 = Release|ARM
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Release|x86.ActiveCfg = Release|x86
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FD358821-EF7E-47BF-ADB1-C4E3C10739C2} = {D44C1DE1-E17B-412B-BFDE-E77A69B2DE14}
+		{50DAF5F6-EF1C-4A81-8D50-56820D016175} = {D44C1DE1-E17B-412B-BFDE-E77A69B2DE14}
+		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C} = {50DAF5F6-EF1C-4A81-8D50-56820D016175}
+		{8EB7AF87-2163-4CF8-8E08-D301882B2B92} = {50DAF5F6-EF1C-4A81-8D50-56820D016175}
+	EndGlobalSection
+EndGlobal
