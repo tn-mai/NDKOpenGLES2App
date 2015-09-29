@@ -286,8 +286,6 @@ void android_main(struct android_app* state) {
 	}
 
 	engine.animating = 1;
-	timespec ts;
-	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 	uint_fast64_t prevTime = get_time();
 
 	// ループはスタッフによる開始を待っています。
