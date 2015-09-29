@@ -21,7 +21,18 @@ namespace BPT = boost::property_tree;
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
 namespace {
-	template<typename T>
+  template<typename T, typename F>
+  std::vector<T> split(const std::string& str, char delim, F func) {
+	std::vector<T> v;
+	std::istringstream ss(str);
+	std::string item;
+	while (std::getline(ss, item, delim)) {
+	  v.push_back(func(item));
+	}
+	return v;
+  }
+  
+  template<typename T>
 	T degreeToRadian(T d) {
 		return d * boost::math::constants::pi<T>() / static_cast<T>(180);
 	}
@@ -436,17 +447,68 @@ void Renderer::Initialize()
 		GLint tmp; \
 		glGetIntegerv(s, &tmp); \
 		LOGI(#s": %d", tmp); }
+#define MAKE_TEX_ID_PAIR(s) { s, #s },
 
+	LOGI("GL_COMPRESSED_TEXTURE_FORMATS:");
 	GLint formatCount;
 	glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS, &formatCount);
 	std::vector<GLint> formatArray;
 	formatArray.resize(formatCount);
 	glGetIntegerv(GL_COMPRESSED_TEXTURE_FORMATS, &formatArray[0]);
-	for (int i = 0; i < formatCount; ++i) {
-		LOGI("tc[%02d]=%04x", i, formatArray[i]);
+	struct { uint16_t id; const char* const str; } texInfoList[] = {
+	  MAKE_TEX_ID_PAIR(GL_ETC1_RGB8_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE4_RGB8_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE4_RGBA8_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE4_R5_G6_B5_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE4_RGBA4_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE4_RGB5_A1_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE8_RGB8_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE8_RGBA8_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE8_R5_G6_B5_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE8_RGBA4_OES)
+	  MAKE_TEX_ID_PAIR(GL_PALETTE8_RGB5_A1_OES)
+	  MAKE_TEX_ID_PAIR(GL_DEPTH_COMPONENT24_OES)
+	  MAKE_TEX_ID_PAIR(GL_DEPTH_COMPONENT32_OES)
+	  MAKE_TEX_ID_PAIR(GL_TEXTURE_3D_OES)
+	  MAKE_TEX_ID_PAIR(GL_HALF_FLOAT_OES)
+	  MAKE_TEX_ID_PAIR(GL_3DC_X_AMD)
+	  MAKE_TEX_ID_PAIR(GL_3DC_XY_AMD)
+	  MAKE_TEX_ID_PAIR(GL_ATC_RGB_AMD)
+	  MAKE_TEX_ID_PAIR(GL_ATC_RGBA_EXPLICIT_ALPHA_AMD)
+	  MAKE_TEX_ID_PAIR(GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD)
+	  MAKE_TEX_ID_PAIR(GL_BGRA_EXT)
+	  MAKE_TEX_ID_PAIR(GL_UNSIGNED_INT_2_10_10_10_REV_EXT)
+	  MAKE_TEX_ID_PAIR(GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
+	  MAKE_TEX_ID_PAIR(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)
+	  MAKE_TEX_ID_PAIR(GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG)
+	  MAKE_TEX_ID_PAIR(GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG)
+	  MAKE_TEX_ID_PAIR(GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG)
+	  MAKE_TEX_ID_PAIR(GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG)
+	};
+	for (const auto id : formatArray) {
+	  bool isLogged = false;
+	  for (const auto* i = texInfoList; i != texInfoList + sizeof(texInfoList) / sizeof(texInfoList[0]); ++i) {
+		if (i->id == id) {
+		  LOGI("  0x%04x: %s", i->id, i->str);
+		  isLogged = true;
+		  break;
+		}
+	  }
+	  if (!isLogged) {
+		LOGI("  0x%04x: (Unknown format)", id);
+	  }
 	}
 	LOG_SHADER_INFO(GL_MAX_TEXTURE_IMAGE_UNITS);
 	LOG_SHADER_INFO(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+	LOGI("GL_EXTENTIONS:");
+	{
+	  const char* p = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
+	  const std::vector<std::string> v = split<std::string>(p, ' ', [](const std::string& s) { return s; });
+	  for (const auto& e : v) {
+		LOGI("  %s", e.c_str());
+	  }
+	}
+#undef MAKE_TEX_ID_PAIR
 #undef LOG_SHADER_INFO
 #endif
 
@@ -656,13 +718,13 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  Vector4F transformedCenter = mProjL * mViewL * frustumCenter;
 	  static float ms = 4.0f;// transformedCenter.w / frustumRadius;
 	  static float mss = 2.25f;
-	  const float mx = transformedCenter.x / transformedCenter.w;
-	  const float my = transformedCenter.y / transformedCenter.w;
+	  const float mx = -transformedCenter.x / transformedCenter.w * mss;
+	  const float my = -transformedCenter.y / transformedCenter.w * mss;
 	  const Matrix4x4 m = { {
 	    ms, 0, 0, 0,
 	    0, ms, 0, 0,
 	    0, 0,  1, 0,
-		-mx * mss, -my * mss, 0, 1,
+		mx, my, 0, 1,
 	  } };
 	  mCropL = m;
 	}
@@ -1185,16 +1247,6 @@ void Renderer::Swap()
 }
 
 namespace {
-	template<typename T, typename F>
-	std::vector<T> split(const std::string& str, char delim, F func) {
-		std::vector<T> v;
-		std::istringstream ss(str);
-		std::string item;
-		while (std::getline(ss, item, delim)) {
-			v.push_back(func(item));
-		}
-		return v;
-	}
 	BPT::ptree::const_iterator findElement(const BPT::ptree& pt, const std::string& element, const std::string& attr, const std::string& id) {
 		return std::find_if(
 			pt.begin(),
