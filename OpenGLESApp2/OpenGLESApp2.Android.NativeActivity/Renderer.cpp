@@ -21,6 +21,45 @@ namespace BPT = boost::property_tree;
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
 namespace {
+
+  PFNGLDELETEFENCESNVPROC glDeleteFencesNV;
+  PFNGLGENFENCESNVPROC glGenFencesNV;
+  PFNGLGETFENCEIVNVPROC glGetFenceivNV;
+  PFNGLISFENCENVPROC glIsFenceNV;
+  PFNGLFINISHFENCENVPROC glFinishFenceNV;
+  PFNGLSETFENCENVPROC glSetFenceNV;
+  PFNGLTESTFENCENVPROC glTestFenceNV;
+
+  void InitNVFenceExtention(bool hasNVfenceExtension)
+  {
+	if (hasNVfenceExtension) {
+	  glDeleteFencesNV = (PFNGLDELETEFENCESNVPROC)eglGetProcAddress("glDeleteFencesNV");
+	  glGenFencesNV = (PFNGLGENFENCESNVPROC)eglGetProcAddress("glGenFencesNV");
+	  glGetFenceivNV = (PFNGLGETFENCEIVNVPROC)eglGetProcAddress("glGetFenceivNV");
+	  glIsFenceNV = (PFNGLISFENCENVPROC)eglGetProcAddress("glIsFenceNV");
+	  glFinishFenceNV = (PFNGLFINISHFENCENVPROC)eglGetProcAddress("glFinishFenceNV");
+	  glSetFenceNV = (PFNGLSETFENCENVPROC)eglGetProcAddress("glSetFenceNV");
+	  glTestFenceNV = (PFNGLTESTFENCENVPROC)eglGetProcAddress("glTestFenceNV");
+	  LOGI("Enable GL_NV_fence");
+	} else {
+	  glDeleteFencesNV = [](GLsizei, const GLuint*) -> void {};
+	  glGenFencesNV = [](GLsizei, GLuint*) -> void {};
+	  glGetFenceivNV = [](GLuint, GLenum, GLint*) -> void {};
+	  glIsFenceNV = [](GLuint) -> GLboolean { return false; };
+	  glFinishFenceNV = [](GLuint) -> void {};
+	  glSetFenceNV = [](GLuint, GLenum) -> void {};
+	  glTestFenceNV = [](GLuint) -> GLboolean { return false; };
+	  LOGI("Disable GL_NV_fence");
+	}
+  }
+
+  uint64_t GetCurrentTime()
+  {
+	timespec tmp;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &tmp);
+	return tmp.tv_sec * (1000UL * 1000UL * 1000UL) + tmp.tv_nsec;
+  }
+
   template<typename T, typename F>
   std::vector<T> split(const std::string& str, char delim, F func) {
 	std::vector<T> v;
@@ -442,7 +481,6 @@ void Renderer::Initialize()
 	eglQuerySurface(display, surface, EGL_WIDTH, &width);
 	eglQuerySurface(display, surface, EGL_HEIGHT, &height);
 
-#if 1
 #define	LOG_SHADER_INFO(s) { \
 		GLint tmp; \
 		glGetIntegerv(s, &tmp); \
@@ -498,19 +536,26 @@ void Renderer::Initialize()
 		LOGI("  0x%04x: (Unknown format)", id);
 	  }
 	}
+
 	LOG_SHADER_INFO(GL_MAX_TEXTURE_IMAGE_UNITS);
 	LOG_SHADER_INFO(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS);
-	LOGI("GL_EXTENTIONS:");
+
+	bool hasNVfenceExtension = false;
 	{
+	  LOGI("GL_EXTENTIONS:");
 	  const char* p = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
 	  const std::vector<std::string> v = split<std::string>(p, ' ', [](const std::string& s) { return s; });
 	  for (const auto& e : v) {
 		LOGI("  %s", e.c_str());
+		if (e == "GL_NV_fence") {
+		  hasNVfenceExtension = true;
+		}
 	  }
 	}
 #undef MAKE_TEX_ID_PAIR
 #undef LOG_SHADER_INFO
-#endif
+
+	InitNVFenceExtention(hasNVfenceExtension);
 
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -693,6 +738,15 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  mProj = Perspective(60.0f, viewport[2], viewport[3], near, far);
 	}
 
+	// パフォーマンス計測準備.
+	static const int FENCE_ID_SHADOW_PATH = 0;
+	static const int FENCE_ID_SHADOW_FILTER_PATH = 1;
+	static const int FENCE_ID_COLOR_PATH = 2;
+	static const int FENCE_ID_HDR_PATH = 3;
+	static const int FENCE_ID_FINAL_PATH = 4;
+	GLuint fences[5];
+	glGenFencesNV(5, fences);
+
 	// shadow path.
 
 	static float fov = 60.0f;
@@ -729,6 +783,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  mCropL = m;
 	}
 	const Matrix4x4 mVPForShadow = mCropL * mProjL * mViewL;
+
 #if 1
 	{
 #if 1
@@ -806,7 +861,8 @@ void Renderer::Render(const Object* begin, const Object* end)
 		  const Mesh& mesh = meshList["Sphere"];
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
-		glFlush();
+
+		glSetFenceNV(fences[FENCE_ID_SHADOW_PATH], GL_ALL_COMPLETED_NV);
 	}
 
 	// fboMain ->(bilinear4x4)-> fboShadow0
@@ -859,7 +915,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 		const Mesh& mesh = meshList["board2D"];
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 
-		glFlush();
+		glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 #endif
@@ -1011,8 +1067,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
 		const Mesh& mesh = meshList["skybox"];
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-
-		glFlush();
+		glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
 	}
 #endif
 
@@ -1040,8 +1095,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	  const Mesh& mesh = meshList["board2D"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-
-	  glFlush();
 	}
 	// fboSub ->(hdrdiff)->fboHDR0
 	{
@@ -1060,8 +1113,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
 	  const Mesh& mesh = meshList["board2D"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-
-	  glFlush();
 	}
 	// fboHDR0 ->(reduce4)->fboHDR1
 	{
@@ -1081,7 +1132,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  const Mesh& mesh = meshList["board2D"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 
-	  glFlush();
+	  glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
 	}
 
 	// final path.
@@ -1124,24 +1175,44 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboHDR1"]->TextureId());
 	  const Mesh& mesh = meshList["board2D"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+
+	  glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
 	}
+
+	// パフォーマンス計測.
+	{
+	  uint64_t fenceTimes[6];
+	  fenceTimes[0] = GetCurrentTime();
+	  for (int i = 0; i < 5; ++i) {
+		glFinishFenceNV(fences[0]);
+		fenceTimes[i + 1] = GetCurrentTime();
+	  }
+	  static const char* const fenceNameList[] = {
+		"SHADOW:",
+		"FILTER:",
+		"COLOR :",
+		"HDR   :",
+		"FINAL :",
+	  };
+	  for (int i = 0; i < 5; ++i) {
+		std::string s(fenceNameList[i]);
+		s += boost::lexical_cast<std::string>(fenceTimes[i + 1] - fenceTimes[i]);
+		DrawFont(Position2F(16, 80 + 32 * i), s.c_str());
+	  }
+	  glDeleteFencesNV(5, fences);
+	}
+
 	{
 	  ++frames;
-	  timespec tmp;
-	  const int err = clock_gettime(CLOCK_MONOTONIC, &tmp);
-	  if (err < 0) {
-		LOGI("ERROR(%d) from; clock_gettime(CLOCK_MONOTONIC)", err);
-	  } else {
-		const uint64_t curTime = tmp.tv_sec * (1000UL * 1000UL * 1000UL) + tmp.tv_nsec;
-		if (curTime - startTime >= (1000UL * 1000UL * 1000UL)) {
-		  prevFrames = frames;
-		  startTime = curTime;
-		  frames = 0;
-		}
+	  const uint64_t curTime = GetCurrentTime();
+	  if (curTime - startTime >= (1000UL * 1000UL * 1000UL)) {
+		prevFrames = frames;
+		startTime = curTime;
+		frames = 0;
 	  }
 	  std::string s("FPS:");
 	  s += boost::lexical_cast<std::string>(prevFrames);
-	  DrawFont(Position2F(16, 56), s.c_str());
+	  DrawFont(Position2F(16, 48), s.c_str());
 	}
 #if 0
 	{
