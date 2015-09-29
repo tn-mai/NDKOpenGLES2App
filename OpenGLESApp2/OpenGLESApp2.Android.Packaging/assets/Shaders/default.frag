@@ -64,16 +64,16 @@ highp float ldexp(lowp vec2 v)
 lowp float ChebyshevUpperBound(mediump vec4 tex, highp float curDepth)
 {
   highp float Ex = tex.x + tex.y * (1.0 / 255.0);
-//  curDepth -= 0.005;
+  curDepth -= 2.0 / 65535.0;
   if (curDepth <= Ex) {
 	return 1.0;
   }
   highp float E_x2 = (tex.z + tex.w * (1.0 / 255.0));
   //highp float E_x2 = ldexp(tex.zw);
   highp float variance = max(E_x2 - (Ex * Ex), 0.002);
-  highp float mD = (curDepth - Ex) * 200.0;
+  highp float mD = (curDepth - Ex) * 400.0;
   highp float p = variance / (variance + mD * mD);
-  return clamp(2.0 * p - p * p, 0.5, 1.0);
+  return clamp(p, 0.4, 0.6) + 0.4;// clamp(2.0 * p - p * p, 0.5, 0.9) + 0.1;
 }
 
 void main(void)
