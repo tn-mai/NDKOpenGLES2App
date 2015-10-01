@@ -122,6 +122,20 @@ namespace {
 	GLuint LoadShader(android_app* state, GLenum shaderType, const char* path) {
 		GLuint shader = 0;
 		if (auto buf = LoadFile(state, path)) {
+			static const uint8_t defineList[] =
+			  "#version 100\n"
+			  "#define FBO_MAIN_WIDTH  512.0\n"
+			  "#define FBO_MAIN_HEIGHT 800.0\n"
+			  "#define FBO_SUB_WIDTH  128.0\n"
+			  "#define FBO_SUB_HEIGHT 128.0\n"
+			  "#define MAIN_RENDERING_PATH_WIDTH  480.0\n"
+			  "#define MAIN_RENDERING_PATH_HEIGHT 800.0\n"
+			  "#define SHADOWMAP_MAIN_WIDTH  512.0\n"
+			  "#define SHADOWMAP_MAIN_HEIGHT 512.0\n"
+			  "#define SHADOWMAP_SUB_WIDTH  (SHADOWMAP_MAIN_WIDTH / 4.0)\n"
+			  "#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT / 4.0)\n"
+			  ;
+			buf->insert(buf->begin(), defineList, defineList + sizeof(defineList) - 1);
 			shader = glCreateShader(shaderType);
 			if (!shader) {
 				return 0;

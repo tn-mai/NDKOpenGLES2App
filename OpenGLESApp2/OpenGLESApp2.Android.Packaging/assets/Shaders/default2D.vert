@@ -1,7 +1,3 @@
-#version 100
-
-precision mediump float;
-
 attribute mediump vec3 vPosition;
 attribute mediump vec4 vTexCoord01;
 

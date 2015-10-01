@@ -1,5 +1,3 @@
-#version 100
-
 uniform sampler2D texSource[4]; // 0:main color, 1:1/4 color, 2:1/16 hdr factor, 3:1/64 hdr factor.
 
 varying mediump vec4 texCoord; // xy for main. zw for other.

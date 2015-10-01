@@ -1,5 +1,3 @@
-#version 100
-
 attribute highp   vec3 vPosition;
 
 uniform mat4 matView;

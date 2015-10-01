@@ -1,5 +1,3 @@
-#version 100
-
 uniform samplerCube texDiffuse;
 
 varying mediump vec3 texCoord;

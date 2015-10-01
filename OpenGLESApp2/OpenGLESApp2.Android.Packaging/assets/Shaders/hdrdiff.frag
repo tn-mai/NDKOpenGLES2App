@@ -1,5 +1,3 @@
-#version 100
-
 uniform sampler2D texDiffuse;
 
 varying mediump vec2 texCoord;

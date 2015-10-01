@@ -1,5 +1,3 @@
-#version 100
-
 uniform mediump vec3 eyePos;
 
 uniform lowp vec3 lightColor;

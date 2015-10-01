@@ -1,5 +1,3 @@
-#version 100
-
 attribute highp   vec3 vPosition;
 attribute mediump vec4 vTexCoord01;
 

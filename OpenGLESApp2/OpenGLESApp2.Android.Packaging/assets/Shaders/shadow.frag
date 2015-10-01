@@ -1,5 +1,3 @@
-#version 100
-
 varying mediump vec3 depth3;
 
 void main()

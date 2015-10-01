@@ -1,7 +1,3 @@
-#version 100
-
-precision mediump float;
-
 uniform sampler2D texDiffuse;
 
 varying mediump vec4 texCoord;
