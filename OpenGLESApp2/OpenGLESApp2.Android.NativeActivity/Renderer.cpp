@@ -53,11 +53,30 @@ namespace {
 	}
   }
 
-  uint64_t GetCurrentTime()
+  int64_t GetCurrentTime(android_app* s)
   {
+#if 1
 	timespec tmp;
-	clock_gettime(CLOCK_MONOTONIC_RAW, &tmp);
+	clock_gettime(CLOCK_MONOTONIC, &tmp);
 	return tmp.tv_sec * (1000UL * 1000UL * 1000UL) + tmp.tv_nsec;
+#elif 0
+	struct timeval tmp;
+	gettimeofday(&tmp, nullptr);
+	return tmp.tv_sec * 1000UL * 1000UL * 1000UL + tmp.tv_usec * 1000UL;
+#else
+	static bool once = true;
+	static jclass javaClassRef;
+	static jmethodID javaMethodRef;
+	static JNIEnv* env;
+	if (once) {
+	  s->activity->vm->AttachCurrentThread(&env, nullptr);
+	  jclass c = env->FindClass("java/lang/System");
+	  javaClassRef = (jclass)env->NewGlobalRef(c);
+	  javaMethodRef = env->GetStaticMethodID(javaClassRef, "nanoTime", "()J");
+	  once = false;
+	}
+	return env->CallStaticLongMethod(javaClassRef, javaMethodRef);
+#endif
   }
 
   template<typename T, typename F>
@@ -1181,30 +1200,44 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	// パフォーマンス計測.
 	{
-	  uint64_t fenceTimes[6];
-	  fenceTimes[0] = GetCurrentTime();
+
+	  int64_t fenceTimes[6];
+	  fenceTimes[0] = GetCurrentTime(state);
 	  for (int i = 0; i < 5; ++i) {
-		glFinishFenceNV(fences[0]);
-		fenceTimes[i + 1] = GetCurrentTime();
+		glFinishFenceNV(fences[i]);
+		fenceTimes[i + 1] = GetCurrentTime(state);
 	  }
+	  int64_t diffTimes[6];
+	  for (int i = 0; i < 5; ++i) {
+		diffTimes[i] = std::max<int64_t>(fenceTimes[i + 1] - fenceTimes[i], 0);
+	  }
+	  diffTimes[5] = std::accumulate(diffTimes, diffTimes + 5, static_cast<int64_t>(0));
 	  static const char* const fenceNameList[] = {
 		"SHADOW:",
 		"FILTER:",
 		"COLOR :",
 		"HDR   :",
 		"FINAL :",
+		"TOTAL :",
 	  };
-	  for (int i = 0; i < 5; ++i) {
+	  static const float targetTime = 1000000000.0f / 30.0f;
+	  for (int i = 0; i < 6; ++i) {
 		std::string s(fenceNameList[i]);
-		s += boost::lexical_cast<std::string>(fenceTimes[i + 1] - fenceTimes[i]);
-		DrawFont(Position2F(16, 80 + 32 * i), s.c_str());
+		const int percentage = (static_cast<float>(diffTimes[i]) * 1000.0f) / targetTime;// totalTime;
+		s += '0' + percentage / 1000;
+		s += '0' + (percentage % 1000) / 100;
+		s += '0' + (percentage % 100) / 10;
+		s += '.';
+		s += '0' + percentage % 10;
+//		s += boost::lexical_cast<std::string>(diffTimes[i]);
+		DrawFont(Position2F(16, 64 + 16 * i), s.c_str());
 	  }
 	  glDeleteFencesNV(5, fences);
 	}
 
 	{
 	  ++frames;
-	  const uint64_t curTime = GetCurrentTime();
+	  const int64_t curTime = GetCurrentTime(state);
 	  if (curTime - startTime >= (1000UL * 1000UL * 1000UL)) {
 		prevFrames = frames;
 		startTime = curTime;
@@ -1212,7 +1245,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  }
 	  std::string s("FPS:");
 	  s += boost::lexical_cast<std::string>(prevFrames);
-	  DrawFont(Position2F(16, 48), s.c_str());
+	  DrawFont(Position2F(16, 40), s.c_str());
 	}
 #if 0
 	{
