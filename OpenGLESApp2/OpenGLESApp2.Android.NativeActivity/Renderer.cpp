@@ -695,11 +695,11 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   const Mesh& mesh = meshList["ascii"];
   float x = pos.x;
   for (const char* p = str; *p; ++p) {
-	Matrix4x4 mMV = Matrix4x4::Unit();
+	Matrix4x4 mMV = Matrix4x4::FromScale(0.5f, 0.5f, 1.0f);
 	mMV = mV * Matrix4x4::Translation(x, pos.y, 0) * mMV;
 	glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mMV.f);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset + *p * 6 * sizeof(GLushort)));
-	x += 16.0f;
+	x += 8.0f;
   }
   glEnable(GL_CULL_FACE);
 }
