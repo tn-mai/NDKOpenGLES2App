@@ -134,6 +134,8 @@ namespace {
 			  "#define SHADOWMAP_MAIN_HEIGHT 512.0\n"
 			  "#define SHADOWMAP_SUB_WIDTH  (SHADOWMAP_MAIN_WIDTH / 4.0)\n"
 			  "#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT / 4.0)\n"
+			  "#define SCALE_BONE_WEIGHT(w) ((w) * (1.0 / 255.0))\n"
+			  "#define SCALE_TEXCOORD(c) ((c) * (1.0 / 65535.0))\n"
 			  ;
 			shader = glCreateShader(shaderType);
 			if (!shader) {

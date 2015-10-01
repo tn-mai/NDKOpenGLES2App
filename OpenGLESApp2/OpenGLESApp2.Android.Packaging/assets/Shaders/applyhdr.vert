@@ -8,7 +8,7 @@ varying mediump vec4 texCoord; // xy for main. zw for other.
 void main()
 {
   const mediump vec2 scaleMain = vec2(MAIN_RENDERING_PATH_WIDTH / FBO_MAIN_WIDTH, MAIN_RENDERING_PATH_HEIGHT / FBO_MAIN_HEIGHT);
-  texCoord.zw = vTexCoord01.xy * (1.0 / 65535.0);
+  texCoord.zw = SCALE_TEXCOORD(vTexCoord01.xy);
   texCoord.xy = texCoord.zw * scaleMain;
   gl_Position = matProjection * vec4(vPosition, 1);
 }

@@ -29,7 +29,7 @@ void main()
   int b1 = int(bid.y);
   int b2 = int(bid.z);
   int b3 = int(bid.w);
-  vec4 w = vWeight * (1.0 / 255.0); // weight must be normalized, because it has 0-255.
+  vec4 w = SCALE_BONE_WEIGHT(vWeight); // weight must be normalized, because it has 0-255.
   vec4 v0 = boneMatrices[b0 + 0] * w.x + boneMatrices[b1 + 0] * w.y + boneMatrices[b2 + 0] * w.z + boneMatrices[b3 + 0] * w.w;
   vec4 v1 = boneMatrices[b0 + 1] * w.x + boneMatrices[b1 + 1] * w.y + boneMatrices[b2 + 1] * w.z + boneMatrices[b3 + 1] * w.w;
   vec4 v2 = boneMatrices[b0 + 2] * w.x + boneMatrices[b1 + 2] * w.y + boneMatrices[b2 + 2] * w.z + boneMatrices[b3 + 2] * w.w;
@@ -49,6 +49,6 @@ void main()
   // note: In the orthonormal matrix, inverse(M) equals transpose(M), thus transpose(inverse(M)) equals transpose(transpose(M)). That result equals M.
   pos = (m * vec4(vPosition, 1)).xyz;
   normal = normalize(mat3(m) * vNormal);
-  texCoord = vTexCoord01 * (1.0 / 65535.0);
+  texCoord = SCALE_TEXCOORD(vTexCoord01);
   gl_Position = (matProjection * matView * m) * vec4(vPosition, 1);
 }

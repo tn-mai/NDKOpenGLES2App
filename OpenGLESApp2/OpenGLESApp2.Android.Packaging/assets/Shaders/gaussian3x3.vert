@@ -7,6 +7,6 @@ varying vec2 texCoord;
 
 void main()
 {
-  texCoord = vTexCoord01.xy * (1.0 / 65535.0);
+  texCoord = SCALE_TEXCOORD(vTexCoord01.xy);
   gl_Position = matProjection * vec4(vPosition, 1);
 }
