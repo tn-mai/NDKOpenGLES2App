@@ -1,6 +1,6 @@
 uniform sampler2D texDiffuse;
 
-varying mediump vec2 texCoord;
+varying mediump vec4 texCoord[2];
 
 #if 1
 // HDTV with BT.709
@@ -27,18 +27,16 @@ mediump vec4 HDRFactor(lowp vec4 tex)
 
 void main()
 {
-  const mediump vec2 scale = vec2(1.0 / MAIN_RENDERING_PATH_WIDTH / 4.0, 1.0 / MAIN_RENDERING_PATH_HEIGHT / 4.0);
-
-  lowp vec4 tex0 = texture2D(texDiffuse, texCoord + vec2(-1.0, -1.0) * scale);
+  lowp vec4 tex0 = texture2D(texDiffuse, texCoord[0].xy);
   HDRFactor(gl_FragColor, tex0, =, lum_0, lum2_0);
 
-  lowp vec4 tex1 = texture2D(texDiffuse, texCoord + vec2( 1.0, -1.0) * scale);
+  lowp vec4 tex1 = texture2D(texDiffuse, texCoord[0].zw);
   HDRFactor(gl_FragColor, tex1, +=, lum_1, lum2_1);
 
-  lowp vec4 tex2 = texture2D(texDiffuse, texCoord + vec2(-1.0,  1.0) * scale);
+  lowp vec4 tex2 = texture2D(texDiffuse, texCoord[1].xy);
   HDRFactor(gl_FragColor, tex2, +=, lum_2, lum2_2);
 
-  lowp vec4 tex3 = texture2D(texDiffuse, texCoord + vec2( 1.0,  1.0) * scale);
+  lowp vec4 tex3 = texture2D(texDiffuse, texCoord[1].zw);
   HDRFactor(gl_FragColor, tex3, +=, lum_3, lum2_3);
 
   gl_FragColor *= 1.0 / 4.0;
