@@ -64,7 +64,7 @@ highp float ldexp(lowp vec2 v)
 lowp float ChebyshevUpperBound(mediump vec4 tex, highp float curDepth)
 {
   highp float Ex = tex.x + tex.y * (1.0 / 255.0);
-  curDepth -= 2.0 / 65535.0;
+  curDepth -= 8.0 / 65535.0;
   if (curDepth <= Ex) {
 	return 1.0;
   }
