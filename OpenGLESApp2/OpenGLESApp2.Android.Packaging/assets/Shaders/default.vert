@@ -42,7 +42,8 @@ void main()
   m[3] = vec4(v0.w, v1.w, v2.w, 1);
 
   posForShadow = matLightForShadow * m * vec4(vPosition, 1);
-  //posForShadow.xy = 0.5 * posForShadow.xy + 0.5;
+  posForShadow.z = posForShadow.z * 0.5 + 0.5;
+  //posForShadow.xy = 0.5 * (posForShadow.xy + posForShadow.w);
 
   // Strictly, we may use 'transpose(inverse(M))' matrix.
   // But in most case, the matrix is orthonormal(when not include the scale factor).

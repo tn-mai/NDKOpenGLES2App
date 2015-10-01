@@ -229,6 +229,16 @@ namespace {
 		return m;
 	}
 
+	Matrix4x4 Olthographic(float width, float height, float near, float far)
+	{
+	  Matrix4x4 m;
+	  m.SetVector(0, Vector4F(2.0f / width,             0,                           0, 0));
+	  m.SetVector(1, Vector4F(           0, 2.0f / height,                           0, 0));
+	  m.SetVector(2, Vector4F(           0,             0,        -2.0f / (far - near), 0));
+	  m.SetVector(3, Vector4F(           0,             0, -(far + near) / (far - near), 1));
+	  return m;
+	}
+
 	Matrix4x4 LookAt(const Vector3F& eyePos, const Vector3F& targetPos, const Vector3F& upVector)
 	{
 		const Vector3F ezVector = (eyePos - targetPos).Normalize();
@@ -748,13 +758,14 @@ void Renderer::Render(const Object* begin, const Object* end)
 	}
 
 	// 射影行列を設定.
+	static float fov = 60.0f;
 	static const float near = 0.1f;
 	static const float far = 500.0f;
 	Matrix4x4 mProj;
 	{
 	  int32_t viewport[4];
 	  glGetIntegerv(GL_VIEWPORT, viewport);
-	  mProj = Perspective(60.0f, viewport[2], viewport[3], near, far);
+	  mProj = Perspective(fov, viewport[2], viewport[3], near, far);
 	}
 
 	// パフォーマンス計測準備.
@@ -768,10 +779,12 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	// shadow path.
 
-	static float fov = 60.0f;
 	static Vector3F viewPos(50, 50, 50);
+	static const float shadowNear = 10.0f;
+	static const float shadowFar = 100.0f; // 精度を確保するため短めにしておく.
 	const Matrix4x4 mViewL = LookAt(viewPos, Vector3F(0, 0, 0), Vector3F(0, 1, 0));
-	const Matrix4x4 mProjL = Perspective(fov, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, 0.1f, 500);
+//	const Matrix4x4 mProjL = Perspective(fov, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
+	const Matrix4x4 mProjL = Olthographic(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
 	Matrix4x4 mCropL;
 	{
 	  // sqrt(480*480+800*800)/480=1.94365063
@@ -789,15 +802,15 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  const Vector3F vEye = (at - eye).Normalize();
 	  const Vector3F frustumCenter = eye + (vEye * distance);
 	  Vector4F transformedCenter = mProjL * mViewL * frustumCenter;
-	  static float ms = 4.0f;// transformedCenter.w / frustumRadius;
+	  static float ms = 10.0f;// 4.0f;// transformedCenter.w / frustumRadius;
 	  static float mss = 2.25f;
 	  const float mx = -transformedCenter.x / transformedCenter.w * mss;
 	  const float my = -transformedCenter.y / transformedCenter.w * mss;
 	  const Matrix4x4 m = { {
-	    ms, 0, 0, 0,
-	    0, ms, 0, 0,
-	    0, 0,  1, 0,
-		mx, my, 0, 1,
+	    ms,  0,  0,  0,
+	     0, ms,  0,  0,
+	     0,  0,  1,  0,
+		mx, my,  0,  1,
 	  } };
 	  mCropL = m;
 	}

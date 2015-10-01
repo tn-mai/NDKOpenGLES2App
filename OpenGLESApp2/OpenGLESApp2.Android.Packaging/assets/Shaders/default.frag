@@ -156,7 +156,8 @@ void main(void)
 	const highp float near = 10.0;
 	const highp float far = 200.0;
 	const highp float linerDepth = 1.0 / (far - near);
-	highp float curDepth = min(length(posForShadow.xyz) * linerDepth, 1.0);
+//	highp float curDepth = min(length(posForShadow.xyz) * linerDepth, 1.0);
+	highp float curDepth = posForShadow.z;
 	mediump vec4 shadowTexCoord = posForShadow;
 	shadowTexCoord.xy = 0.5 * (posForShadow.xy + posForShadow.w);
 	highp vec2 stc_div_w = shadowTexCoord.xy * (1.0 / shadowTexCoord.w);

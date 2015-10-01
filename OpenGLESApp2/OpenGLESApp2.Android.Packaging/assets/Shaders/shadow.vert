@@ -1,13 +1,15 @@
 #version 100
 
+precision highp float;
+
 attribute highp   vec3 vPosition;
 attribute lowp    vec4 vWeight;
 attribute mediump vec4 vBoneID;
 
-uniform mat4 matLightForShadow;
-uniform vec4 boneMatrices[32 * 3];
+uniform highp mat4 matLightForShadow;
+uniform highp vec4 boneMatrices[32 * 3];
 
-varying vec3 pos;
+varying vec3 depth3;
 
 void main()
 {
@@ -27,5 +29,9 @@ void main()
 	m[3] = vec4(v0.w, v1.w, v2.w, 1);
 
 	gl_Position = matLightForShadow * m * vec4(vPosition, 1);
-	pos = gl_Position.xyz;
+	depth3.x = gl_Position.z * 0.5 + 0.5;
+	depth3.y = fract(depth3.x * 256.0);
+	depth3.z = fract(depth3.y * 256.0);
+	depth3.x -= depth3.y * (1.0 / 256.0);
+	depth3.y -= depth3.z * (1.0 / 256.0);
 }
