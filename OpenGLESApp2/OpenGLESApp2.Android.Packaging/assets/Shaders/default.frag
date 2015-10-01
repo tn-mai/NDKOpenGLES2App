@@ -82,11 +82,13 @@ void main(void)
   const highp float maxLightRadius = 1000.0;
 #if 1
   // material parameter
-  mediump vec3 Idiff = vec3(0.0, 0.0, 0.0);
-  mediump vec3 Ispec = vec3(0.0, 0.0, 0.0);
+  lowp vec3 Idiff = vec3(0.0, 0.0, 0.0);
+  lowp vec3 Ispec = vec3(0.0, 0.0, 0.0);
   lowp vec4 col = texture2D(texDiffuse, texCoord.xy) * materialColor;
 
     mediump vec3 eyeVector = normalize(eyePos - pos);
+
+#if 1
 	mediump vec3 vertexToLight = lightPos - pos;
 	mediump vec3 lightVector = normalize(vertexToLight);
 
@@ -129,23 +131,27 @@ void main(void)
 	// éãê¸Ç∆ñ@ê¸ÇÃäpìxÇ…ÇÊÇ¡ÇƒÇÕfÇ™infÇ…Ç»ÇÈÇ±Ç∆Ç™Ç†ÇÈ.
     mediump vec3 f = max((D * F * G) / (4.0 * dotNL * dotNV), 0.0);
     Ispec += lightColor * attenuation * f;
+#else
+	mediump vec3 F0 = CalcF0(col.rgb, metallicAndRoughness.x);
+	mediump float dotNV = max(dot(normal, eyeVector), 0.0001);
+#endif
 
 #if 1
-	mediump float mipmapLevel = clamp(2.0 * roughness, 0.0, 2.0);
+	mediump float mipmapLevel = clamp(2.0 * metallicAndRoughness.y, 0.0, 2.0);
 	mediump vec3 refVector2 = reflect(eyeVector, normal);
-	lowp vec3 iblColor[3];
-	iblColor[0] = textureCube(texIBL[0], refVector2).rgb;
-	iblColor[1] = textureCube(texIBL[1], refVector2).rgb;
-	iblColor[2] = textureCube(texIBL[2], refVector2).rgb;
-	mediump vec3 colIBL = mix(iblColor[0], iblColor[1], min(mipmapLevel, 1.0));
+	lowp vec4 iblColor[3];
+	iblColor[0] = textureCube(texIBL[0], refVector2);
+	iblColor[1] = textureCube(texIBL[1], refVector2);
+	iblColor[2] = textureCube(texIBL[2], refVector2);
+	mediump vec4 colIBL = mix(iblColor[0], iblColor[1], min(mipmapLevel, 1.0));
 	colIBL = mix(colIBL, iblColor[2], max(mipmapLevel - 1.0, 0.0));
-	mediump vec3 hdrFactor = max(vec3(0.0, 0.0, 0.0), colIBL - 240.0 / 255.0);
+	mediump vec4 hdrFactor = max(colIBL - 240.0 / 255.0, 0.0);
 	colIBL += hdrFactor * 31.0;
-	Ispec += colIBL * FresnelSchlick(F0, dotNV);
-	Idiff += iblColor[2] * col.rgb * (1.0 - metallic);
+	Ispec += colIBL.rgb * FresnelSchlick(F0, dotNV);
+	Idiff += iblColor[2].rgb * col.rgb * (1.0 - metallicAndRoughness.x);
 #else
 	mediump vec3 refVector2 = reflect(eyeVector, normal);
-	Idiff += textureCube(texIBLDiffuse, refVector2).rgb * col.rgb;
+	Idiff += textureCube(texIBL[2], refVector2).rgb * col.rgb;
 #endif
 
 #endif
