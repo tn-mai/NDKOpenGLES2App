@@ -122,8 +122,8 @@ namespace {
 	GLuint LoadShader(android_app* state, GLenum shaderType, const char* path) {
 		GLuint shader = 0;
 		if (auto buf = LoadFile(state, path)) {
-			static const uint8_t defineList[] =
-			  "#version 100\n"
+			static const GLchar version[] = "#version 100\n";
+			static const GLchar defineList[] =
 			  "#define FBO_MAIN_WIDTH  512.0\n"
 			  "#define FBO_MAIN_HEIGHT 800.0\n"
 			  "#define FBO_SUB_WIDTH  128.0\n"
@@ -135,14 +135,21 @@ namespace {
 			  "#define SHADOWMAP_SUB_WIDTH  (SHADOWMAP_MAIN_WIDTH / 4.0)\n"
 			  "#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT / 4.0)\n"
 			  ;
-			buf->insert(buf->begin(), defineList, defineList + sizeof(defineList) - 1);
 			shader = glCreateShader(shaderType);
 			if (!shader) {
 				return 0;
 			}
-			const GLchar* pSrc = reinterpret_cast<GLchar*>(static_cast<void*>(&(*buf)[0]));
-			const GLint srcSize = buf->size();
-			glShaderSource(shader, 1, &pSrc, &srcSize);
+			const GLchar* pSrc[] = {
+			  version,
+			  defineList,
+			  reinterpret_cast<GLchar*>(static_cast<void*>(&(*buf)[0])),
+			};
+			const GLint srcSize[] = {
+			  sizeof(version) - 1,
+			  sizeof(defineList) - 1,
+			  static_cast<GLint>(buf->size()),
+			};
+			glShaderSource(shader, sizeof(pSrc)/sizeof(pSrc[0]), pSrc, srcSize);
 			glCompileShader(shader);
 		}
 		GLint compiled = 0;
