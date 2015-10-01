@@ -16,8 +16,8 @@ highp float ldexp(lowp vec2 v)
 void main()
 {
   const mediump float coef = 1.0 / 255.0;
-  const mediump vec2 textureSize = vec2(128.0, 128.0);
-  const mediump float width = 1.0 / 512.0;
+  const mediump vec2 textureSize = vec2(SHADOWMAP_SUB_WIDTH, SHADOWMAP_SUB_HEIGHT);
+  const mediump float width = 1.0 / SHADOWMAP_SUB_WIDTH;
 #if 0
   mediump float x, y;
   highp vec2 acc = vec2(0.0, 0.0);

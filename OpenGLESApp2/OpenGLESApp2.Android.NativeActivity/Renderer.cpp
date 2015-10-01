@@ -747,6 +747,8 @@ void Renderer::Render(const Object* begin, const Object* end)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
+	static const float FBO_MAIN_WIDTH = 512.0f;
+	static const float FBO_MAIN_HEIGHT = 800.0f;
 	static const float MAIN_RENDERING_PATH_WIDTH = 480.0f;
 	static const float MAIN_RENDERING_PATH_HEIGHT = 800.0f;
 	static const float FBO_SUB_WIDTH = 128.0f;
@@ -1135,7 +1137,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  glUniform4f(shader.unitTexCoord, 480.0f / 512.0f, 800.0f / 800.0f, 1.0f / 512.0f, 1.0f / 800.0f);
+	  glUniform4f(shader.unitTexCoord, MAIN_RENDERING_PATH_WIDTH / FBO_MAIN_WIDTH, MAIN_RENDERING_PATH_HEIGHT / FBO_MAIN_HEIGHT, 1.0f / FBO_MAIN_WIDTH, 1.0f / FBO_MAIN_HEIGHT);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
 

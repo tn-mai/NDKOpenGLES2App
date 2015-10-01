@@ -23,7 +23,7 @@ mediump vec3 HDRFactor(lowp vec3 rgb)
 
 void main()
 {
-  const mediump vec2 scale = vec2(1.0 / 120.0, 1.0 / 200.0);
+  const mediump vec2 scale = vec2(1.0 / MAIN_RENDERING_PATH_WIDTH / 4.0, 1.0 / MAIN_RENDERING_PATH_HEIGHT / 4.0);
   lowp vec3 t0 = HDRFactor(texture2D(texDiffuse, texCoord + vec2(-1.0, -1.0) * scale).rgb);
   lowp vec3 t1 = HDRFactor(texture2D(texDiffuse, texCoord + vec2( 1.0, -1.0) * scale).rgb);
   lowp vec3 t2 = HDRFactor(texture2D(texDiffuse, texCoord + vec2(-1.0,  1.0) * scale).rgb);
