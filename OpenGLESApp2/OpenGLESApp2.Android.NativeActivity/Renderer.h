@@ -552,7 +552,7 @@ private:
 	uint32_t frames;
 	uint32_t prevFrames;
 
-	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR0, fboHDR1;
+	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR0, fboHDR1, fboHDR2;
 	GLuint depth;
 
 	GLuint vbo;
