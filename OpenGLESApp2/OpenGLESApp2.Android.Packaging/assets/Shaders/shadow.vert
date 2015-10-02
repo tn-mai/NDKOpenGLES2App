@@ -30,6 +30,5 @@ void main()
 	depth3.x = gl_Position.z * 0.5 + 0.5;
 	depth3.y = fract(depth3.x * 256.0);
 	depth3.z = fract(depth3.y * 256.0);
-	depth3.x -= depth3.y * (1.0 / 256.0);
-	depth3.y -= depth3.z * (1.0 / 256.0);
+	depth3.xy -= depth3.yz * (1.0 / 256.0);
 }
