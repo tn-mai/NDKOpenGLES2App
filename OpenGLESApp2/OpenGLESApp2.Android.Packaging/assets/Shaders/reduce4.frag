@@ -1,15 +1,12 @@
 uniform sampler2D texDiffuse;
-uniform mediump vec4 unitTexCoord;
 
-varying mediump vec2 texCoord;
+varying mediump vec4 texCoord[2];
 
 void main()
 {
-  mediump vec2 coord = texCoord * unitTexCoord.xy;
-  lowp vec3 t0 = texture2D(texDiffuse, coord + vec2(-1.0, -1.0) * unitTexCoord.zw).rgb;
-  lowp vec3 t1 = texture2D(texDiffuse, coord + vec2( 1.0, -1.0) * unitTexCoord.zw).rgb;
-  lowp vec3 t2 = texture2D(texDiffuse, coord + vec2(-1.0,  1.0) * unitTexCoord.zw).rgb;
-  lowp vec3 t3 = texture2D(texDiffuse, coord + vec2( 1.0,  1.0) * unitTexCoord.zw).rgb;
-  highp vec3 tmp = t0 + t1 + t2 + t3;
-  gl_FragColor = vec4(tmp * (1.0 / 4.0), 1.0);
+  gl_FragColor = texture2D(texDiffuse, texCoord[0].xy);
+  gl_FragColor += texture2D(texDiffuse, texCoord[0].zw);
+  gl_FragColor += texture2D(texDiffuse, texCoord[1].xy);
+  gl_FragColor += texture2D(texDiffuse, texCoord[1].zw);
+  gl_FragColor *= (1.0 / 4.0);
 }
