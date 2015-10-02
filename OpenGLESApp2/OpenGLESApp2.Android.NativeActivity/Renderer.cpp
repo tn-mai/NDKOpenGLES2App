@@ -786,16 +786,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  mView = LookAt(eye, at, Vector3F(0, 1, 0));
 	}
 
-	// 射影行列を設定.
 	static float fov = 60.0f;
-	static const float near = 0.1f;
-	static const float far = 500.0f;
-	Matrix4x4 mProj;
-	{
-	  int32_t viewport[4];
-	  glGetIntegerv(GL_VIEWPORT, viewport);
-	  mProj = Perspective(fov, viewport[2], viewport[3], near, far);
-	}
 
 	// パフォーマンス計測準備.
 	static const int FENCE_ID_SHADOW_PATH = 0;
@@ -1004,9 +995,13 @@ void Renderer::Render(const Object* begin, const Object* end)
 	glEnableVertexAttribArray(VertexAttribLocation_BoneID);
 	glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
 #endif
-	GLuint currentProgramId = 0;
+
+	static const float near = 0.1f;
+	static const float far = 500.0f;
+	const Matrix4x4 mProj = Perspective(fov, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT, near, far);
 
 #if 1
+	GLuint currentProgramId = 0;
 	for (const Object* itr = begin; itr != end; ++itr) {
 		const Object& obj = *itr;
 		if (!obj.IsValid()) {
