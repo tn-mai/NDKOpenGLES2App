@@ -20,10 +20,8 @@ varying mediump vec4 posForShadow;
 // use for debugging.
 varying lowp vec3 color;
 
-mediump float G1(mediump float dottedFactor, mediump float k)
-{
-  return dottedFactor / (dottedFactor * (1.0 - k) + k);
-}
+#define G1(dottedFactor, k) \
+  (dottedFactor / (dottedFactor * (1.0 - k) + k))
 
 // [FGS]
 // F0 : fresnel refrectance of material.
@@ -35,20 +33,12 @@ mediump float G1(mediump float dottedFactor, mediump float k)
 // reference:
 //   http://d.hatena.ne.jp/hanecci/20130727/p2
 //   https://seblagarde.wordpress.com/2011/08/17/hello-world/
-mediump vec3 CalcF0(lowp vec3 col, lowp float metallic)
-{
-  const lowp float dielectricRange = 235.0 / 255.0;
-//  const lowp float metalRange = 20.0 / 255.0;
-//  mediump float F0_Dielectric = clamp(metallic * (1.0 / dielectricRange), 0.0, 1.0) * 0.067 * (1.0 - step(dielectricRange, metallic));
-//  mediump float F0_Metal = clamp((metallic - dielectricRange) * (1.0 / metalRange), 0.0, 1.0) * 0.3 + step(dielectricRange, metallic) * 0.7;
-  lowp float isMetal = step(dielectricRange, metallic);
-  return isMetal * col * metallic + (1.0 - isMetal) * metallic;
-}
+#define CalcF0(ret, col, metallic) \
+  lowp float isMetal = step(235.0 / 255.0, metallic); \
+  ret = isMetal * col * metallic + (1.0 - isMetal) * metallic;
 
-mediump vec3 FresnelSchlick(mediump vec3 F0, mediump float dotEH)
-{
-  return F0 + (1.0 - F0) * exp2((-5.55473 * dotEH - 6.98316) * dotEH);
-}
+#define FresnelSchlick(F0, dotEH) \
+  (F0 + (1.0 - F0) * exp2((-5.55473 * dotEH - 6.98316) * dotEH))
 
 /**
   @ref http://http.developer.nvidia.com/GPUGems3/gpugems3_ch08.html
@@ -108,7 +98,8 @@ void main(void)
     // F(v, h) = F0 + (1.0 - F0) * 2^(-5.55473*dot(v, h) - 6.98316)*dot(v, h)
     lowp float metallic = metallicAndRoughness.x;
     mediump float dotVH = dot(eyeVector, halfVector);
-    mediump vec3 F0 = CalcF0(col.rgb, metallic);
+	mediump vec3 F0;
+	CalcF0(F0, col.rgb, metallic);
     mediump vec3 F = FresnelSchlick(F0, dotVH);
 
     // k = (roughness + 1)^2 / 8
@@ -124,7 +115,8 @@ void main(void)
     mediump vec3 f = max((D * F * G) / (4.0 * dotNL * dotNV), 0.0);
     Ispec += lightColor * attenuation * f;
 #else
-	mediump vec3 F0 = CalcF0(col.rgb, metallicAndRoughness.x);
+	mediump vec3 F0;
+	CalcF0(F0, col.rgb, metallicAndRoughness.x);
 	mediump float dotNV = max(dot(normal, eyeVector), 0.0001);
 #endif
 
