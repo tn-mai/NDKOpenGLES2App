@@ -50,11 +50,6 @@ mediump vec3 FresnelSchlick(mediump vec3 F0, mediump float dotEH)
   return F0 + (1.0 - F0) * exp2((-5.55473 * dotEH - 6.98316) * dotEH);
 }
 
-highp float ldexp(lowp vec2 v)
-{
-	return v.x * exp2(v.y * (-255.0));
-}
-
 /**
   @ref http://http.developer.nvidia.com/GPUGems3/gpugems3_ch08.html
   @ref http://codeflow.org/entries/2013/feb/15/soft-shadow-mapping/
@@ -67,7 +62,6 @@ lowp float ChebyshevUpperBound(mediump vec4 tex, highp float curDepth)
 	return 1.0;
   }
   highp float E_x2 = (tex.z + tex.w * (1.0 / 255.0));
-  //highp float E_x2 = ldexp(tex.zw);
   highp float variance = max(E_x2 - (Ex * Ex), 0.002);
   highp float mD = (curDepth - Ex) * 400.0;
   highp float p = variance / (variance + mD * mD);
