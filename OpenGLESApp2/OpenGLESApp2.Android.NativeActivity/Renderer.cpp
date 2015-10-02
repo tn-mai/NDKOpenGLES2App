@@ -119,24 +119,39 @@ namespace {
 		return buf;
 	}
 
+#define FBO_MAIN_WIDTH 512.0
+#define FBO_MAIN_HEIGHT 800.0
+#define MAIN_RENDERING_PATH_WIDTH 360.0
+#define MAIN_RENDERING_PATH_HEIGHT 640.0
+#define FBO_SUB_WIDTH 128.0
+#define FBO_SUB_HEIGHT 128.0
+#define SHADOWMAP_MAIN_WIDTH 512.0
+#define SHADOWMAP_MAIN_HEIGHT 512.0
+#define SHADOWMAP_SUB_WIDTH (SHADOWMAP_MAIN_WIDTH * 0.25)
+#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT * 0.25)
+
 	GLuint LoadShader(android_app* state, GLenum shaderType, const char* path) {
 		GLuint shader = 0;
 		if (auto buf = LoadFile(state, path)) {
 			static const GLchar version[] = "#version 100\n";
+#define MAKE_DEFINE_0(str, val) "#define " str " " #val "\n"
+#define MAKE_DEFINE(def) MAKE_DEFINE_0(#def, def)
 			static const GLchar defineList[] =
-			  "#define FBO_MAIN_WIDTH  512.0\n"
-			  "#define FBO_MAIN_HEIGHT 800.0\n"
-			  "#define FBO_SUB_WIDTH  128.0\n"
-			  "#define FBO_SUB_HEIGHT 128.0\n"
-			  "#define MAIN_RENDERING_PATH_WIDTH  480.0\n"
-			  "#define MAIN_RENDERING_PATH_HEIGHT 800.0\n"
-			  "#define SHADOWMAP_MAIN_WIDTH  512.0\n"
-			  "#define SHADOWMAP_MAIN_HEIGHT 512.0\n"
-			  "#define SHADOWMAP_SUB_WIDTH  (SHADOWMAP_MAIN_WIDTH / 4.0)\n"
-			  "#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT / 4.0)\n"
+			  MAKE_DEFINE(FBO_MAIN_WIDTH)
+			  MAKE_DEFINE(FBO_MAIN_HEIGHT)
+			  MAKE_DEFINE(FBO_SUB_WIDTH)
+			  MAKE_DEFINE(FBO_SUB_HEIGHT)
+			  MAKE_DEFINE(MAIN_RENDERING_PATH_WIDTH)
+			  MAKE_DEFINE(MAIN_RENDERING_PATH_HEIGHT)
+			  MAKE_DEFINE(SHADOWMAP_MAIN_WIDTH)
+			  MAKE_DEFINE(SHADOWMAP_MAIN_HEIGHT)
+			  MAKE_DEFINE(SHADOWMAP_SUB_WIDTH)
+			  MAKE_DEFINE(SHADOWMAP_SUB_HEIGHT)
 			  "#define SCALE_BONE_WEIGHT(w) ((w) * (1.0 / 255.0))\n"
 			  "#define SCALE_TEXCOORD(c) ((c) * (1.0 / 65535.0))\n"
 			  ;
+#undef MAKE_DEFINE
+#undef MAKE_DEFINE_0
 			shader = glCreateShader(shaderType);
 			if (!shader) {
 				return 0;
@@ -755,17 +770,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-
-	static const float FBO_MAIN_WIDTH = 512.0f;
-	static const float FBO_MAIN_HEIGHT = 800.0f;
-	static const float MAIN_RENDERING_PATH_WIDTH = 480.0f;
-	static const float MAIN_RENDERING_PATH_HEIGHT = 800.0f;
-	static const float FBO_SUB_WIDTH = 128.0f;
-	static const float FBO_SUB_HEIGHT = 128.0f;
-	static const float SHADOWMAP_MAIN_WIDTH = 512.0f;
-	static const float SHADOWMAP_MAIN_HEIGHT = 512.0f;
-	static const float SHADOWMAP_SUB_WIDTH = SHADOWMAP_MAIN_WIDTH * 0.25f;
-	static const float SHADOWMAP_SUB_HEIGHT = SHADOWMAP_MAIN_HEIGHT * 0.25f;
 
 	// とりあえず適当なカメラデータからビュー行列を設定.
 	Matrix4x4 mView;
