@@ -858,7 +858,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glCullFace(GL_FRONT);
 
 		glViewport(0, 0, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT);
-		glScissor(0, 0, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT);
 		glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -979,7 +978,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fboMain);
 	glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT);
-	glScissor(0, 0, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1228,7 +1226,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 	{
 	  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	  glViewport(0, 0, width, height);
-	  glScissor(0, 0,width, height);
 	  glDisable(GL_DEPTH_TEST);
 	  glDepthFunc(GL_ALWAYS);
 	  glCullFace(GL_BACK);
