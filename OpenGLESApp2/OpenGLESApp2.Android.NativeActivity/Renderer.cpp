@@ -1003,6 +1003,10 @@ void Renderer::Render(const Object* begin, const Object* end)
 	const Matrix4x4 mProj = Perspective(fov, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT, near, far);
 
 #if 1
+	// 適当にライトを置いてみる.
+	const Vector4F lightPos(50, 50, 50, 1.0);
+	const Vector3F lightColor(7000.0f, 6000.0f, 5000.0f);
+
 	GLuint currentProgramId = 0;
 	for (const Object* itr = begin; itr != end; ++itr) {
 		const Object& obj = *itr;
@@ -1015,14 +1019,13 @@ void Renderer::Render(const Object* begin, const Object* end)
 			glUseProgram(shader.program);
 			currentProgramId = shader.program;
 
-			glUniform3f(shader.eyePos, eye.x, eye.y, eye.z);
 			glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mProj.f);
 			glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mView.f);
 			glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
 
-			// 適当にライトを置いてみる.
-			glUniform3f(shader.lightColor, 7000.0f, 6000.0f, 5000.0f);
-			glUniform3f(shader.lightPos, 50, 50, 50);
+			glUniform3f(shader.eyePos, eye.x, eye.y, eye.z);
+			glUniform3f(shader.lightColor, lightColor.x, lightColor.y, lightColor.z);
+			glUniform3f(shader.lightPos, lightPos.x, lightPos.y, lightPos.z);
 
 			glUniform1i(shader.texDiffuse, 0);
 			//	glUniform1i(shader.texNormal, 1);
@@ -1074,16 +1077,15 @@ void Renderer::Render(const Object* begin, const Object* end)
 		const Shader& shader = shaderList["default"];
 		glUseProgram(shader.program);
 
-		glUniform3f(shader.eyePos, eye.x, eye.y, eye.z);
 		glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mProj.f);
 //		const Matrix4x4 mV = LookAt(Vector3F(0, 0, -3), Vector3F(0, 0, 0), Vector3F(0, 1, 0));
 //		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mV.f);
 		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mView.f);
 		glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
 
-		// 適当にライトを置いてみる.
+		glUniform3f(shader.eyePos, eye.x, eye.y, eye.z);
 		glUniform3f(shader.lightColor, 0.0f, 0.0f, 0.0f);
-		glUniform3f(shader.lightPos, 50, 50, 50);
+		glUniform3f(shader.lightPos, lightPos.x, lightPos.y, lightPos.z);
 
 		glUniform1i(shader.texDiffuse, 0);
 		//	glUniform1i(shader.texNormal, 1);
