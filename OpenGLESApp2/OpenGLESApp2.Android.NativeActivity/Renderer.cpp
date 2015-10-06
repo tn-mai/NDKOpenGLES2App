@@ -1790,7 +1790,8 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				// input要素を解析し、対応するソース及びオフセットを得る.
 				std::vector<Position3F> posArray;
 				std::vector<Vector3F> normalArray;
-				std::vector<Position2S> texcoordArray[VERTEX_TEXTURE_COUNT_MAX];
+				typedef std::pair<int, Position2S> TexCoordType;
+				std::vector<TexCoordType> texcoordArray[VERTEX_TEXTURE_COUNT_MAX];
 				int vertexOff = -1, normalOff = -1, texcoordOff[VERTEX_TEXTURE_COUNT_MAX] = { -1, -1 };
 				int offsetMax = 0;
 				for (auto& e : trianglesNode) {
@@ -1843,12 +1844,17 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 							const std::string srcId = e.second.get<std::string>("<xmlattr>.source").substr(1);
 							LOGI("TEXCOORD[%d] SOURCE: #%s", index, srcId.c_str());
 							const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return atof(s.c_str()); });
-							texcoordArray[index].shrink_to_fit();
-							texcoordArray[index].reserve(tmp.size() / 3);
+							auto& list = texcoordArray[index];
+							list.shrink_to_fit();
+							list.reserve(tmp.size() / 2);
 							for (size_t i = 0; i + 1 < tmp.size(); i += 2) {
-								texcoordArray[index].push_back(Position2S::FromFloat(tmp[i], tmp[i + 1]));
+								// 既に同じ座標データが存在していたら、そのデータのインデックスを自分のインデックスとして記録する.
+							    const Position2S uv = Position2S::FromFloat(tmp[i], tmp[i + 1]);
+								const auto& itr = std::find_if(list.begin(), list.end(), [uv](const TexCoordType& obj) { return obj.second == uv; });
+								const int id = (itr == list.end()) ? (i / 2) : itr->first;
+								list.push_back(std::make_pair(id, uv));
 							}
-							LOGI("TEXCOORD[%d] ARRAY SIZE:%d", index, texcoordArray[index].size());
+							LOGI("TEXCOORD[%d] ARRAY SIZE:%d", index, list.size());
 							texcoordOff[index] = e.second.get<int>("<xmlattr>.offset");
 							offsetMax = std::max(offsetMax, texcoordOff[index]);
 						}
@@ -1862,22 +1868,28 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				vertIdList.reserve(triCount * 3);
 				const std::vector<int> indexList = split<int>(trianglesNode.get<std::string>("p"), ' ', [](const std::string& s)->int { return atoi(s.c_str()); });
 				for (int i = 0; i < indexList.size(); i += stride) {
-					const uint_fast64_t vertId =
-						(static_cast<uint_fast64_t>((vertexOff != -1) ? indexList[i + vertexOff] : 0xfff) << 0) |
-						(static_cast<uint_fast64_t>((normalOff != -1) ? indexList[i + normalOff] : 0xfff) << 12) |
-						(static_cast<uint_fast64_t>((texcoordOff[0] != -1) ? indexList[i + texcoordOff[0]] : 0xfff) << 24) |
-						(static_cast<uint_fast64_t>((texcoordOff[1] != -1) ? indexList[i + texcoordOff[1]] : 0xfff) << 36);
+					const uint_fast64_t posId = indexList[i + vertexOff];
+					const uint_fast64_t idNormal = (normalOff != -1) ? indexList[i + normalOff] : 0xfff;
+					uint_fast64_t idTexcoord[VERTEX_TEXTURE_COUNT_MAX];
+					for (int j = 0; j < VERTEX_TEXTURE_COUNT_MAX; ++j) {
+					  if (texcoordOff[j] != -1) {
+						const int tmpIndex = indexList[i + texcoordOff[j]];
+						idTexcoord[j] = texcoordArray[j][tmpIndex].first;
+					  } else {
+						idTexcoord[j] = 0xfff;
+					  }
+					}
+					const uint_fast64_t vertId = (posId << 0) | (idNormal << 12) | (idTexcoord[0] << 24) | (idTexcoord[1] << 36);
 					// LOGI("vertId: %llx", vertId);
 					auto itr = std::find(vertIdList.begin(), vertIdList.end(), vertId);
 					if (itr != vertIdList.end()) {
 						indices.push_back(itr - vertIdList.begin() + baseVertexOffset);
 					} else {
 						Vertex v;
-						const int posId = indexList[i + vertexOff];
-						v.position = (vertexOff != -1) ? posArray[posId] : Position3F();
-						v.normal = (normalOff != -1) ? normalArray[indexList[i + normalOff]] : Vector3F();
+						v.position = (vertexOff != -1) ? posArray[posId] : Position3F(0, 0, 0);
+						v.normal = (normalOff != -1) ? normalArray[idNormal] : Vector3F(0, 0, 1);
 						for (int j = 0; j < VERTEX_TEXTURE_COUNT_MAX; ++j) {
-							v.texCoord[j] = (texcoordOff[j] != -1) ? texcoordArray[j][indexList[i + texcoordOff[j]]] : Position2S();
+							v.texCoord[j] = (texcoordOff[j] != -1) ? texcoordArray[j][idTexcoord[j]].second : Position2S(0, 0);
 						}
 						// TODO: transformにおける量子化の結果、合計が255(=1.0)にならないことがあるため、補正処理が必要.
 						if (boneNameList.empty()) {
