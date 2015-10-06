@@ -1786,7 +1786,6 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				}
 				const BPT::ptree& meshNode = itr->second.get_child("mesh");
 				const BPT::ptree& trianglesNode = meshNode.get_child("triangles");
-				LOGI("%s", trianglesNode.get<std::string>("<xmlattr>.material").c_str());
 
 				// input要素を解析し、対応するソース及びオフセットを得る.
 				std::vector<Position3F> posArray;
