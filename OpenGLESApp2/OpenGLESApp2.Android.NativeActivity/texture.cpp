@@ -1,6 +1,9 @@
 #include "texture.h"
 #include "android_native_app_glue.h"
+#include <android/log.h>
 #include <vector>
+
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "texture.cpp", __VA_ARGS__))
 
 namespace Texture {
 
@@ -168,17 +171,20 @@ namespace Texture {
 		};
 		AAsset* pAsset = AAssetManager_open(state->activity->assetManager, filename, 0);
 		if (!pAsset) {
+			LOGW("cannot open:'%s'", filename);
 			return nullptr;
 		}
 
 		const Finalizer finalizer(pAsset);
 		const off_t size = AAsset_getLength(pAsset);
 		if (size <= sizeof(KTXHeader)) {
+			LOGW("illegal size:'%s'", filename);
 			return nullptr;
 		}
 		KTXHeader header;
 		int result = AAsset_read(pAsset, &header, sizeof(KTXHeader));
 		if (result < 0 || !IsKTXHeader(header)) {
+			LOGW("illegal header:'%s'", filename);
 			return nullptr;
 		}
 		TexturePtr p = std::make_shared<Texture>();
@@ -205,6 +211,7 @@ namespace Texture {
 			uint32_t imageSize;
 			result = AAsset_read(pAsset, &imageSize, 4);
 			if (result < 0) {
+				LOGW("can't read(miplevel=%d):'%s'", mipLevel, filename);
 				return nullptr;
 			}
 			imageSize = GetValue(&imageSize, endianness);
@@ -212,6 +219,7 @@ namespace Texture {
 			data.resize(imageSizeWithPadding * faceCount);
 			result = AAsset_read(pAsset, &data[0], data.size());
 			if (result < 0) {
+				LOGW("can't read(miplevel=%d):'%s'", mipLevel, filename);
 				return nullptr;
 			}
 			const uint8_t* pImage = reinterpret_cast<const uint8_t*>(&data[0]);
