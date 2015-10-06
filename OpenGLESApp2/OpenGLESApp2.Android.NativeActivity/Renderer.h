@@ -552,7 +552,7 @@ public:
 	void Swap();
 
 private:
-	void LoadMesh(const char*, const char*);
+	void LoadMesh(const char*, const char* = nullptr, const char* = nullptr);
 	void CreateSkyboxMesh();
 	void CreateBoardMesh(const char*, const Vector3F&);
 	void CreateAsciiMesh(const char*);

@@ -1028,19 +1028,19 @@ void Renderer::Render(const Object* begin, const Object* end)
 			glUniform3f(shader.lightPos, lightPos.x, lightPos.y, lightPos.z);
 
 			glUniform1i(shader.texDiffuse, 0);
-			//	glUniform1i(shader.texNormal, 1);
-			static const int texIBLId[] = { 1, 2, 3 };
+			glUniform1i(shader.texNormal, 1);
+			static const int texIBLId[] = { 2, 3, 4 };
 			glUniform1iv(shader.texIBL, 3, texIBLId);
-			glUniform1i(shader.texShadow, 4);
+			glUniform1i(shader.texShadow, 5);
 
 			// IBL用テクスチャを設定.
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_low"]->TextureId());
+			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
 			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["irradiance"]->TextureId());
+			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_low"]->TextureId());
 			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["irradiance"]->TextureId());
+			glActiveTexture(GL_TEXTURE5);
 			glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 		}
 
@@ -1048,12 +1048,19 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glUniform2f(shader.materialMetallicAndRoughness, Fix8ToFloat(obj.Metallic()), Fix8ToFloat(obj.Roughness()));
 
 		{
-			const auto& tex = obj.Mesh()->texDiffuse;
+			const auto& texDiffuse = obj.Mesh()->texDiffuse;
 			glActiveTexture(GL_TEXTURE0);
-			if (tex) {
-				glBindTexture(GL_TEXTURE_2D, tex->TextureId());
+			if (texDiffuse) {
+				glBindTexture(GL_TEXTURE_2D, texDiffuse->TextureId());
 			} else {
 				glBindTexture(GL_TEXTURE_2D, 0);
+			}
+			const auto& texNormal = obj.Mesh()->texNormal;
+			glActiveTexture(GL_TEXTURE1);
+			if (texNormal) {
+			  glBindTexture(GL_TEXTURE_2D, texNormal->TextureId());
+			} else {
+			  glBindTexture(GL_TEXTURE_2D, 0);
 			}
 		}
 
@@ -1088,23 +1095,25 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glUniform3f(shader.lightPos, lightPos.x, lightPos.y, lightPos.z);
 
 		glUniform1i(shader.texDiffuse, 0);
-		//	glUniform1i(shader.texNormal, 1);
-		static const int texIBLId[] = { 1, 2, 3 };
+		glUniform1i(shader.texNormal, 1);
+		static const int texIBLId[] = { 2, 3, 4 };
 		glUniform1iv(shader.texIBL, 3, texIBLId);
-		glUniform1i(shader.texShadow, 4);
+		glUniform1i(shader.texShadow, 5);
 
 		// IBL用テクスチャを設定.
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_low"]->TextureId());
+		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
 		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["irradiance"]->TextureId());
+		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_low"]->TextureId());
 		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["irradiance"]->TextureId());
+		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureList["dummy"]->TextureId());
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
 		//m.Set(1, 3, -5.0f);
 		glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
@@ -1344,14 +1353,16 @@ void Renderer::Render(const Object* begin, const Object* end)
 #endif
 
 	// テクスチャのバインドを解除.
-	glActiveTexture(GL_TEXTURE4);
+	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -1447,8 +1458,8 @@ namespace {
 */
 void Renderer::InitMesh()
 {
-	LoadMesh("Sphere.dae", "dummy");
-	LoadMesh("cubes.dae", "wood");
+	LoadMesh("cubes.dae", "wood", "wood_nml");
+	LoadMesh("Sphere.dae", "Sphere", "Sphere_nml");
 	CreateSkyboxMesh();
 	CreateBoardMesh("board", Vector3F(25.0f, 25.0f, 1.0f));
 	CreateBoardMesh("board2D", Vector3F(1.0f, 1.0f, 1.0f));
@@ -1591,7 +1602,7 @@ void Renderer::CreateAsciiMesh(const char* id)
   iboEnd += indices.size() * sizeof(GLushort);
 }
 
-void Renderer::LoadMesh(const char* filename, const char* texName)
+void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char* texNormal)
 {
 	if (auto pBuf = LoadFile(state, filename)) {
 		// property_treeを使ってCOLLADAファイルを解析.
@@ -1941,10 +1952,16 @@ void Renderer::LoadMesh(const char* filename, const char* texName)
 					local::AddJoint(joints, scenesNode, boneNameList);
 					mesh.SetJoint(boneNameList, joints);
 				}
-				if (texName) {
-					const auto itr = textureList.find(texName);
+				if (texDiffuse) {
+					const auto itr = textureList.find(texDiffuse);
 					if (itr != textureList.end()) {
 						mesh.texDiffuse = itr->second;
+					}
+				}
+				if (texNormal) {
+					const auto itr = textureList.find(texNormal);
+					if (itr != textureList.end()) {
+						mesh.texNormal = itr->second;
 					}
 				}
 				meshList.insert({ mesh.id, mesh });
