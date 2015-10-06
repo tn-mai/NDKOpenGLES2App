@@ -2039,6 +2039,9 @@ void Renderer::InitTexture()
 	textureList.insert({ "skybox_low", Texture::LoadKTX(state, "skybox_low.ktx") });
 	textureList.insert({ "irradiance", Texture::LoadKTX(state, "irradiance.ktx") });
 	textureList.insert({ "wood", Texture::LoadKTX(state, "wood.ktx") });
+	textureList.insert({ "wood_nml", Texture::LoadKTX(state, "Textures/wood_nml.ktx") });
+	textureList.insert({ "Sphere", Texture::LoadKTX(state, "Textures/Sphere.ktx") });
+	textureList.insert({ "Sphere_nml", Texture::LoadKTX(state, "Textures/Sphere_nml.ktx") });
 }
 
 Object Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)

@@ -97,6 +97,9 @@
       <SubType>Designer</SubType>
     </Content>
     <Content Include="assets\Textures\ascii.ktx" />
+    <Content Include="assets\Textures\Sphere.ktx" />
+    <Content Include="assets\Textures\Sphere_nml.ktx" />
+    <Content Include="assets\Textures\wood_nml.ktx" />
     <Content Include="assets\wood.ktx" />
     <Content Include="res\values\strings.xml" />
     <AntBuildXml Include="build.xml" />
