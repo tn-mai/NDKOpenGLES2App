@@ -1685,6 +1685,7 @@ void Renderer::LoadMesh(const char* filename, const char* texName)
 			vertecies.reserve(defaultMaxVertexCount);
 			indices.reserve(defaultMaxVertexCount * 3);
 			GLintptr baseIndexOffset = iboEnd;
+			int baseVertexOffset = vboEnd / sizeof(Vertex);
 			for (auto& e : scenesNode) {
 				if (e.first != "node" || e.second.get<std::string>("<xmlattr>.type") != "NODE") {
 					continue;
@@ -1857,9 +1858,8 @@ void Renderer::LoadMesh(const char* filename, const char* texName)
 					// LOGI("vertId: %llx", vertId);
 					auto itr = std::find(vertIdList.begin(), vertIdList.end(), vertId);
 					if (itr != vertIdList.end()) {
-						indices.push_back(itr - vertIdList.begin() + iboEnd / sizeof(GLushort));
-					}
-					else {
+						indices.push_back(itr - vertIdList.begin() + baseVertexOffset);
+					} else {
 						Vertex v;
 						const int posId = indexList[i + vertexOff];
 						v.position = (vertexOff != -1) ? posArray[posId] : Position3F();
@@ -1877,7 +1877,7 @@ void Renderer::LoadMesh(const char* filename, const char* texName)
 							std::transform(skinInfo.weightList[posId].begin(), skinInfo.weightList[posId].end(), v.weight, [](float w) { return static_cast<GLubyte>(w * 255.0f + 0.5f); });
 							std::copy(skinInfo.boneIdList[posId].begin(), skinInfo.boneIdList[posId].end(), v.boneID);
 						}
-						indices.push_back(vertIdList.size() + iboEnd / sizeof(GLushort));
+						indices.push_back(vertIdList.size() + baseVertexOffset);
 						vertecies.push_back(v);
 						vertIdList.push_back(vertId);
 					}
@@ -1947,6 +1947,7 @@ void Renderer::LoadMesh(const char* filename, const char* texName)
 				}
 				meshList.insert({ mesh.id, mesh });
 				baseIndexOffset += sizeof(GLushort) * triCount * 3;
+				baseVertexOffset += vertIdList.size();
 			}
 			LOGI("MAKING VERTEX LIST SUCCESS:%d, %d", vertecies.size(), indices.size());
 			glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
