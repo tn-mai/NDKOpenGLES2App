@@ -8,6 +8,7 @@
 #include <map>
 #include <string>
 #include <math.h>
+#include <float.h>
 
 struct Matrix4x3;
 struct Matrix4x4;
@@ -100,7 +101,13 @@ struct Vector3F {
 	Vector3F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; return *this; }
 	Vector3F operator/(GLfloat rhs) const { return Vector3F(*this) /= rhs; }
 	GLfloat Length() const { return sqrtf(x * x + y * y + z * z); }
-	Vector3F& Normalize() { return operator/=(Length()); }
+	Vector3F& Normalize() {
+	  const float l = Length();
+	  if (l > FLT_EPSILON) {
+		return operator/=(l);
+	  }
+	  return *this;
+	}
 	Vector3F Cross(const Vector3F& rhs) const { return Vector3F(y * rhs.z - z * rhs.y, z * rhs.x - x * rhs.z, x * rhs.y - y * rhs.x); }
 	GLfloat Dot(const Vector3F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z; }
 	static constexpr Vector3F Unit() { return Vector3F(0, 0, 0); }
@@ -121,7 +128,13 @@ struct Vector4F {
 	Vector4F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; w /= rhs;  return *this; }
 	Vector4F operator/(GLfloat rhs) const { return Vector4F(*this) /= rhs; }
 	GLfloat Length() const { return sqrtf(x * x + y * y + z * z + w * w); }
-	Vector4F& Normalize() { return operator/=(Length()); }
+	Vector4F& Normalize() {
+	  const float l = Length();
+	  if (l > FLT_EPSILON) {
+		return operator/=(l);
+	  }
+	  return *this;
+	}
 	Vector4F Cross(const Vector4F& rhs) const { return Vector4F(y * rhs.z - z * rhs.y, z * rhs.w - w * rhs.z, w * rhs.x - x * rhs.w, x * rhs.y - y * rhs.x); }
 	GLfloat Dot(const Vector4F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z + w * rhs.w; }
 	GLfloat Dot3(const Vector4F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z; }
@@ -178,9 +191,16 @@ struct Quaternion {
 	}
 	GLfloat Dot(const Quaternion& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
 	GLfloat Length() const { return sqrtf(x * x + y * y + z * z + w * w); }
-	Quaternion& Normalize() { return operator/=(Length()); }
+	Quaternion& Normalize() {
+	  const float l = Length();
+	  if (l > FLT_EPSILON) {
+		return operator/=(l);
+	  }
+	  return *this;
+	}
 	Quaternion Conjugate() const { return Quaternion(-x, -y, -z, w); }
 	Vector3F Apply(const Vector3F& v) const {
+
 		const Quaternion q(
 			v.x * w + v.z * y - v.y * z,
 			v.y * w + v.x * z - v.z * x,
