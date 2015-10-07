@@ -1863,9 +1863,9 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				const int stride = offsetMax + 1; // 頂点ごとに必要とするインデックスの数.
 				LOGI("STRIDE:%d", stride);
 
-				const int triCount = trianglesNode.get<int>("<xmlattr>.count"); // 三角形(trianglesなので)の個数. インデックスの要素数ではないことに注意.
+				const int indexCount = trianglesNode.get<int>("<xmlattr>.count") * 3; // trianglesノードの場合、count要素は三角形の個数を示すので、インデックスの要素数にするため3を掛けている.
 				std::vector<uint_fast64_t> vertIdList;
-				vertIdList.reserve(triCount * 3);
+				vertIdList.reserve(indexCount);
 				const std::vector<int> indexList = split<int>(trianglesNode.get<std::string>("p"), ' ', [](const std::string& s)->int { return atoi(s.c_str()); });
 				for (int i = 0; i < indexList.size(); i += stride) {
 					const uint_fast64_t posId = indexList[i + vertexOff];
@@ -1953,7 +1953,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 					}
 				};
 
-				Mesh mesh = Mesh(nodeElem.get<std::string>("<xmlattr>.id"), baseIndexOffset, triCount * 3);
+				Mesh mesh = Mesh(nodeElem.get<std::string>("<xmlattr>.id"), baseIndexOffset, indexCount);
 				if (!boneNameList.empty()) {
 					std::vector<Joint> joints;
 					joints.resize(boneNameList.size());
@@ -1976,7 +1976,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 					}
 				}
 				meshList.insert({ mesh.id, mesh });
-				baseIndexOffset += sizeof(GLushort) * triCount * 3;
+				baseIndexOffset += sizeof(GLushort) * indexCount;
 				baseVertexOffset += vertIdList.size();
 			}
 			LOGI("MAKING VERTEX LIST SUCCESS:%d, %d", vertecies.size(), indices.size());
