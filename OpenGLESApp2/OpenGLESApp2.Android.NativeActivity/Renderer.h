@@ -22,6 +22,8 @@ struct Position3F {
 	GLfloat x, y, z;
 	Position3F() {}
 	constexpr Position3F(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}
+	bool operator==(const Position3F& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; }
+	bool operator!=(const Position3F& rhs) const { return !(*this == rhs); }
 	Position3F& operator*=(GLfloat rhs) { x *= rhs; y *= rhs; z *= rhs; return *this; }
 	Position3F operator*(GLfloat rhs) const { return Position3F(*this) *= rhs; }
 	Position3F& operator*=(const Vector3F& rhs);
@@ -37,6 +39,8 @@ struct Position2F {
 	GLfloat x, y;
 	Position2F() {}
 	constexpr Position2F(GLfloat a, GLfloat b) : x(a), y(b) {}
+	bool operator==(const Position2F& rhs) const { return x == rhs.x && y == rhs.y; }
+	bool operator!=(const Position2F& rhs) const { return !(*this == rhs); }
 	Position2F& operator-=(const Vector2F&);
 	Position2F& operator+=(const Vector2F&);
 };
@@ -48,6 +52,8 @@ struct Position2S {
 	GLushort x, y;
 	Position2S() {}
 	constexpr Position2S(GLushort a, GLushort b) : x(a), y(b) {}
+	bool operator==(const Position2S& rhs) const { return x == rhs.x && y == rhs.y; }
+	bool operator!=(const Position2S& rhs) const { return !(*this == rhs); }
 	static constexpr Position2S FromFloat(float a, float b) {
 		return Position2S(a * static_cast<float>(0xffff), b * static_cast<float>(0xffff));
 	}
@@ -66,6 +72,8 @@ struct Vector2F {
   GLfloat x, y;
   Vector2F() {}
   constexpr Vector2F(GLfloat a, GLfloat b) : x(a), y(b) {}
+  bool operator==(const Vector2F& rhs) const { return x == rhs.x && y == rhs.y; }
+  bool operator!=(const Vector2F& rhs) const { return !(*this == rhs); }
   Vector2F& operator+=(const Vector2F& rhs) { x += rhs.x; y += rhs.y; return *this; }
   Vector2F operator+(const Vector2F& rhs) const { return Vector2F(*this) += rhs; }
   Vector2F& operator-=(const Vector2F& rhs) { x -= rhs.x; y -= rhs.y; return *this; }
@@ -89,6 +97,9 @@ struct Vector3F {
 	GLfloat x, y, z;
 	Vector3F() {}
 	constexpr Vector3F(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}
+	bool operator==(const Vector3F& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; }
+	bool operator!=(const Vector3F& rhs) const { return !(*this == rhs); }
+	Vector3F operator-() const { return Vector3F(-x, -y, -z); }
 	Vector3F& operator+=(const Vector3F& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; return *this; }
 	Vector3F operator+(const Vector3F& rhs) const { return Vector3F(*this) += rhs; }
 	Vector3F& operator-=(const Vector3F& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; return *this; }
@@ -118,6 +129,8 @@ struct Vector4F {
 	Vector4F() {}
 	constexpr Vector4F(const Vector3F& v, GLfloat d = 1.0f) : x(v.x), y(v.y), z(v.z), w(d) {}
 	constexpr Vector4F(GLfloat a, GLfloat b, GLfloat c, GLfloat d) : x(a), y(b), z(c), w(d) {}
+	bool operator==(const Vector4F& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
+	bool operator!=(const Vector4F& rhs) const { return !(*this == rhs); }
 	Vector4F& operator+=(const Vector4F& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; w += rhs.w; return *this; }
 	Vector4F operator+(const Vector4F& rhs) const { return Vector4F(*this) += rhs; }
 	Vector4F& operator-=(const Vector4F& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; w -= rhs.w;  return *this; }
@@ -174,6 +187,17 @@ struct Quaternion {
 		z = axis.z * d;
 		w = cos(angle * 0.5f);
 	}
+	Quaternion(const Vector3F& u, const Vector3F& v) {
+	  const Vector3F a = u.Cross(v);
+	  x = a.x;
+	  y = a.y;
+	  z = a.z;
+	  w = u.Dot(v);
+	  w += Length();
+	  Normalize();
+	}
+	bool operator==(const Quaternion& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
+	bool operator!=(const Quaternion& rhs) const { return !(*this == rhs); }
 	Quaternion& operator*=(GLfloat rhs) { x *= rhs; y *= rhs; z *= rhs; w *= rhs;  return *this; }
 	Quaternion operator*(GLfloat rhs) const { return Quaternion(*this) *= rhs; }
 	friend Quaternion operator*(GLfloat lhs, const Quaternion& rhs) { return rhs * lhs; }
@@ -342,6 +366,7 @@ struct Vertex {
 	Vector3F    normal; ///< 頂点ノーマル. 12
 	GLubyte     boneID[4]; ///< 頂点ブレンディングのボーンID. 4
 	Position2S  texCoord[VERTEX_TEXTURE_COUNT_MAX]; ///< ディフューズ(withメタルネス)マップ座標, ノーマル(withラフネス)マップ座標. 8
+	Vector4F    tangent; ///< 頂点タンジェント. 16
 
 	Vertex() {}
 };
@@ -476,7 +501,8 @@ struct Shader
 enum VertexAttribLocation {
 	VertexAttribLocation_Position,
 	VertexAttribLocation_Normal,
-	VertexAttribLocation_TexCoord01,
+	VertexAttribLocation_Tangent,
+    VertexAttribLocation_TexCoord01,
 	VertexAttribLocation_Weight,
 	VertexAttribLocation_BoneID,
 };

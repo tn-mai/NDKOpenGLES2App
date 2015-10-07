@@ -2,6 +2,7 @@ precision highp float;
 
 attribute highp   vec3 vPosition;
 attribute mediump vec3 vNormal;
+attribute mediump vec4 vTangent;
 attribute mediump vec4 vTexCoord01;
 attribute lowp    vec4 vWeight;
 attribute mediump vec4 vBoneID;
@@ -15,8 +16,17 @@ uniform mat4 matLightForShadow;
 */
 uniform vec4 boneMatrices[32*3];
 
-varying mediump vec3 pos;
-varying mediump vec3 normal;
+uniform mediump vec3 lightPos; // in view space.
+uniform mediump vec3 eyePos; // in world space.
+
+varying mediump vec4 lightVectorAndDistance;
+varying mediump vec3 eyeVector;
+varying mediump vec3 halfVector;
+varying mediump vec4 posW;
+varying mediump vec3 normalW;
+varying mediump vec3 tangentW;
+varying mediump vec3 binormalW;
+
 varying mediump vec4 texCoord;
 varying mediump vec4 posForShadow;
 
@@ -47,8 +57,29 @@ void main()
   // But in most case, the matrix is orthonormal(when not include the scale factor).
   // Therefore, we can be used it to transform the normal.
   // note: In the orthonormal matrix, inverse(M) equals transpose(M), thus transpose(inverse(M)) equals transpose(transpose(M)). That result equals M.
-  pos = (m * vec4(vPosition, 1)).xyz;
-  normal = normalize(mat3(m) * vNormal);
+  mat3 m3 = mat3(m);
+  normalW = normalize(m3 * vNormal);
+  tangentW = normalize(m3 * vTangent.xyz);
+  binormalW = cross(normalW, tangentW) *vTangent.w;
+
+  posW = m * vec4(vPosition, 1);
+
+  mediump vec3 lightVec = lightPos - posW.xyz;
+  lightVectorAndDistance.x = dot(lightVec, tangentW);
+  lightVectorAndDistance.y = dot(lightVec, binormalW);
+  lightVectorAndDistance.z = dot(lightVec, normalW);
+  lightVectorAndDistance.w = length(lightVectorAndDistance.xyz);
+  lightVectorAndDistance.xyz = normalize(lightVectorAndDistance.xyz);
+
+  vec3 eyeVec = eyePos - posW.xyz;
+  eyeVector.x = dot(eyeVec, tangentW);
+  eyeVector.y = dot(eyeVec, binormalW);
+  eyeVector.z = dot(eyeVec, normalW);
+  eyeVector = normalize(eyeVector);
+
+  halfVector = normalize(eyeVector + lightVectorAndDistance.xyz);
+
   texCoord = SCALE_TEXCOORD(vTexCoord01);
   gl_Position = (matProjection * matView * m) * vec4(vPosition, 1);
+  //color = vTangent * 0.5 + 0.5;
 }

@@ -207,6 +207,7 @@ namespace {
 			checkGlError("glAttachShader");
 			glBindAttribLocation(program, VertexAttribLocation_Position, "vPosition");
 			glBindAttribLocation(program, VertexAttribLocation_Normal, "vNormal");
+			glBindAttribLocation(program, VertexAttribLocation_Tangent, "vTangent");
 			glBindAttribLocation(program, VertexAttribLocation_TexCoord01, "vTexCoord01");
 			glBindAttribLocation(program, VertexAttribLocation_Weight, "vWeight");
 			glBindAttribLocation(program, VertexAttribLocation_BoneID, "vBoneID");
@@ -761,6 +762,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	static const void* const offPosition = reinterpret_cast<void*>(offsetof(Vertex, position));
 	static const void* const offWeight = reinterpret_cast<void*>(offsetof(Vertex, weight[0]));
 	static const void* const offNormal = reinterpret_cast<void*>(offsetof(Vertex, normal));
+	static const void* const offTangent = reinterpret_cast<void*>(offsetof(Vertex, tangent));
 	static const void* const offBoneID = reinterpret_cast<void*>(offsetof(Vertex, boneID[0]));
 	static const void* const offTexCoord01 = reinterpret_cast<void*>(offsetof(Vertex, texCoord[0]));
 
@@ -845,6 +847,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glEnableVertexAttribArray(VertexAttribLocation_Position);
 		glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
 		glDisableVertexAttribArray(VertexAttribLocation_Normal);
+		glDisableVertexAttribArray(VertexAttribLocation_Tangent);
 		glDisableVertexAttribArray(VertexAttribLocation_TexCoord01);
 		glEnableVertexAttribArray(VertexAttribLocation_Weight);
 		glVertexAttribPointer(VertexAttribLocation_Weight, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offWeight);
@@ -990,6 +993,8 @@ void Renderer::Render(const Object* begin, const Object* end)
 	glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
 	glEnableVertexAttribArray(VertexAttribLocation_Normal);
 	glVertexAttribPointer(VertexAttribLocation_Normal, 3, GL_FLOAT, GL_FALSE, stride, offNormal);
+	glEnableVertexAttribArray(VertexAttribLocation_Tangent);
+	glVertexAttribPointer(VertexAttribLocation_Tangent, 4, GL_FLOAT, GL_FALSE, stride, offTangent);
 	glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
 	glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
 	glEnableVertexAttribArray(VertexAttribLocation_Weight);
@@ -1243,14 +1248,12 @@ void Renderer::Render(const Object* begin, const Object* end)
 #if 1
 	  glEnableVertexAttribArray(VertexAttribLocation_Position);
 	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
-	  glEnableVertexAttribArray(VertexAttribLocation_Normal);
-	  glVertexAttribPointer(VertexAttribLocation_Normal, 3, GL_FLOAT, GL_FALSE, stride, offNormal);
+	  glDisableVertexAttribArray(VertexAttribLocation_Normal);
+	  glDisableVertexAttribArray(VertexAttribLocation_Tangent);
 	  glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
 	  glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
-	  glEnableVertexAttribArray(VertexAttribLocation_Weight);
-	  glVertexAttribPointer(VertexAttribLocation_Weight, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offWeight);
-	  glEnableVertexAttribArray(VertexAttribLocation_BoneID);
-	  glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
+	  glDisableVertexAttribArray(VertexAttribLocation_Weight);
+	  glDisableVertexAttribArray(VertexAttribLocation_BoneID);
 #endif
 	  const Shader& shader = shaderList["applyhdr"];
 	  glUseProgram(shader.program);
@@ -1450,6 +1453,12 @@ namespace {
 	std::string getSourceNameArray(const BPT::ptree& pt, const std::string& id) {
 		return getSourceArray(pt, id, "Name_array");
 	}
+
+	Vector3F MakeTangentVector(const Vector3F& normal) {
+	  Vector3F c1 = normal.Cross(Vector3F(0.0f, 0.0f, 1.0f));
+	  Vector3F c2 = normal.Cross(Vector3F(0.0f, 1.0f, 0.0f));
+	  return (c1.Length() > c2.Length() ? c1 : c2).Normalize();
+	}
 }
 
 /** 描画に必要なポリゴンメッシュの初期化.
@@ -1485,6 +1494,7 @@ void Renderer::CreateSkyboxMesh()
 	for (int i = 0; i < 8 * 3; i += 3) {
 		Vertex v;
 		v.position = Position3F(cubeVertices[i + 0], cubeVertices[i + 1], cubeVertices[i + 2]) * 100.0f;
+		// this is only using position. so other parametar is not set.
 		vertecies.push_back(v);
 	}
 	static const GLushort cubeIndices[] = {
@@ -1531,6 +1541,7 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 		v.weight[0] = 255;
 		v.weight[1] = v.weight[2] = v.weight[3] = 0;
 		v.normal = Vector3F(0.0f, 0.0f, 1.0f);
+		v.tangent = MakeTangentVector(v.normal);
 		v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
 		v.texCoord[0] = Position2S::FromFloat(cubeVertices[i + 3], cubeVertices[i + 4]);
 		v.texCoord[1] = v.texCoord[0];
@@ -1572,6 +1583,7 @@ void Renderer::CreateAsciiMesh(const char* id)
 		v.weight[0] = 255;
 		v.weight[1] = v.weight[2] = v.weight[3] = 0;
 		v.normal = Vector3F(0.0f, 0.0f, 1.0f);
+		v.tangent = MakeTangentVector(v.normal);
 		v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
 		v.texCoord[0] = Position2S::FromFloat(rectVertecies[i + 2] + x * 32.0f / 512.0f, rectVertecies[i + 3] + (1.0f - (y + 1) * 64.0f / 512.0f));
 		v.texCoord[1] = v.texCoord[0];
@@ -1888,6 +1900,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 						Vertex v;
 						v.position = (vertexOff != -1) ? posArray[posId] : Position3F(0, 0, 0);
 						v.normal = (normalOff != -1) ? normalArray[idNormal] : Vector3F(0, 0, 1);
+						v.tangent = Vector3F(0, 0, 0);
 						for (int j = 0; j < VERTEX_TEXTURE_COUNT_MAX; ++j) {
 							v.texCoord[j] = (texcoordOff[j] != -1) ? texcoordArray[j][idTexcoord[j]].second : Position2S(0, 0);
 						}
@@ -1979,6 +1992,66 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				baseIndexOffset += sizeof(GLushort) * indexCount;
 				baseVertexOffset += vertIdList.size();
 			}
+
+			// 頂点タンジェントを計算する.
+			{
+			  std::vector<std::pair<Vector3F, Vector3F>> tangentList;
+			  tangentList.resize(vertecies.size(), std::make_pair(Vector3F(0, 0, 0), Vector3F(0, 0, 0)));
+			  const size_t end = indices.size();
+			  for (size_t i = 0; i < end; i += 3) {
+				const int i0 = indices[i + 0] - vboEnd / sizeof(Vertex);
+				const int i1 = indices[i + 1] - vboEnd / sizeof(Vertex);
+				const int i2 = indices[i + 2] - vboEnd / sizeof(Vertex);
+				Vertex& a = vertecies[i0];
+				Vertex& b = vertecies[i1];
+				Vertex& c = vertecies[i2];
+				const Vector3F ab = b.position - a.position;
+				const Vector3F ac = c.position - a.position;
+				const float s1 = b.texCoord[0].x - a.texCoord[0].x;
+				const float t1 = b.texCoord[0].y - a.texCoord[0].y;
+				const float s2 = c.texCoord[0].x - a.texCoord[0].x;
+				const float t2 = c.texCoord[0].y - a.texCoord[0].y;
+
+				const float st_cross = s1 * t2 - t1 * s2;
+				const float r = (abs(st_cross) <= 0.0001f) ? 1.0f : (1.0f / st_cross);
+				Vector3F sdir(t1 * ac.x - t2 * ab.x, t1 * ac.y - t2 * ab.y, t1 * ac.z - t2 * ab.z);
+				sdir *= r;
+				sdir.Normalize();
+				Vector3F tdir(s1 * ac.x - s2 * ab.x, s1 * ac.y - s2 * ab.y, s1 * ac.z - s2 * ab.z);
+				tdir *= r;
+				tdir.Normalize();
+
+				tangentList[i0].first += sdir;
+				tangentList[i1].first += sdir;
+				tangentList[i2].first += sdir;
+				tangentList[i0].second += tdir;
+				tangentList[i1].second += tdir;
+				tangentList[i2].second += tdir;
+			  }
+			  for (auto& e : tangentList) {
+				e.first.Normalize();
+				e.second.Normalize();
+			  }
+			  auto tangentListItr = tangentList.begin();
+			  for (auto& e : vertecies) {
+				const Vector3F& t = tangentListItr->first;
+				if (t.Length()) {
+				  const Vector3F& b = tangentListItr->second;
+				  e.tangent = (t - e.normal * e.normal.Dot(t)).Normalize();
+				  e.tangent.w = e.normal.Cross(t).Dot(b) < 0.0f ? -1.0f : 1.0f;
+				} else {
+				  const Vector3F v0 = e.normal.Cross(Vector3F(1, 0, 0));
+				  const Vector3F v1 = e.normal.Cross(Vector3F(0, 1, 0));
+				  if (v0.Length() >= v1.Length()) {
+					e.tangent = v0;
+				  } else {
+					e.tangent = v1;
+				  }
+				}
+				++tangentListItr;
+			  }
+			}
+
 			LOGI("MAKING VERTEX LIST SUCCESS:%d, %d", vertecies.size(), indices.size());
 			glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
 			vboEnd += vertecies.size() * sizeof(Vertex);

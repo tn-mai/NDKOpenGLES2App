@@ -1,7 +1,6 @@
-uniform mediump vec3 eyePos;
+uniform mediump vec3 eyePos; // in world space.
 
 uniform lowp vec3 lightColor;
-uniform mediump vec3 lightPos;
 
 uniform lowp vec4 materialColor;
 uniform lowp vec2 metallicAndRoughness;
@@ -12,8 +11,14 @@ uniform sampler2D texMetalRoughness;
 uniform samplerCube texIBL[3];
 uniform sampler2D texShadow;
 
-varying mediump vec3 pos;
-varying mediump vec3 normal;
+varying mediump vec4 lightVectorAndDistance;
+varying mediump vec3 eyeVector;
+varying mediump vec3 halfVector;
+varying mediump vec4 posW;
+varying mediump vec3 normalW;
+varying mediump vec3 tangentW;
+varying mediump vec3 binormalW;
+
 varying mediump vec4 texCoord;
 varying mediump vec4 posForShadow;
 
@@ -49,14 +54,15 @@ void main(void)
   lowp vec3 Idiff = vec3(0.0, 0.0, 0.0);
   lowp vec3 Ispec = vec3(0.0, 0.0, 0.0);
   lowp vec4 col = texture2D(texDiffuse, texCoord.xy) * materialColor;
+  mediump vec3 normal = texture2D(texNormal, texCoord.xy).rgb;
 
-    mediump vec3 eyeVector = normalize(eyePos - pos);
+  // use (0, 0, 1) if the model has not the normal map texture.
+  normal = mix(vec3(0.0, 0.0, 1.0), normalize(normal * 2.0 - 1.0), step(0.5, dot(normal, normal)));
 
 #if 1
-	mediump vec3 vertexToLight = lightPos - pos;
-	mediump vec3 lightVector = normalize(vertexToLight);
+	mediump vec3 lightVector = lightVectorAndDistance.xyz;
 
-    highp float distance = length(vertexToLight);
+    highp float distance = lightVectorAndDistance.w;
 	highp float lightInfluence = distance / maxLightRadius;
 	highp float fallOffSrc = clamp(1.0 - lightInfluence * lightInfluence * lightInfluence * lightInfluence, 0.0, 1.0);
     highp float attenuation = fallOffSrc * fallOffSrc / (distance * distance + 1.0);
@@ -66,7 +72,6 @@ void main(void)
     // [GGX]
     // D(h) = alpha^2 / ( pi * (dot(n, h)^2 * (alpha^2 - 1) + 1)^2)
     lowp float roughness = metallicAndRoughness.y;
-    mediump vec3 halfVector = normalize(eyeVector + lightVector);
     highp float alpha = roughness * roughness;
     highp float alpha2 = alpha * alpha;
     highp float dotNH = dot(normal, halfVector);
@@ -96,15 +101,21 @@ void main(void)
 	// éãê¸Ç∆ñ@ê¸ÇÃäpìxÇ…ÇÊÇ¡ÇƒÇÕfÇ™infÇ…Ç»ÇÈÇ±Ç∆Ç™Ç†ÇÈ.
     mediump vec3 f = max((D * F * G) / (4.0 * dotNL * dotNV), 0.0);
     Ispec += lightColor * attenuation * f;
+
+	mediump vec3 eyeVectorW = normalize(eyePos - posW.xyz);
 #else
+	mediump vec3 eyeVectorW = normalize(eyePos - posW.xyz);
 	mediump vec3 F0;
 	CalcF0(F0, col.rgb, metallicAndRoughness.x);
-	mediump float dotNV = max(dot(normal, eyeVector), 0.0001);
 #endif
 
+	mediump vec3 normal2;
+	normal2.x = dot(normal, tangentW);
+	normal2.y = dot(normal, binormalW);
+	normal2.z = dot(normal, normalW);
 #if 1
 	mediump float mipmapLevel = clamp(2.0 * metallicAndRoughness.y, 0.0, 2.0);
-	mediump vec3 refVector2 = reflect(eyeVector, normal);
+	mediump vec3 refVector2 = reflect(eyeVectorW, normal2);
 	lowp vec4 iblColor[3];
 	iblColor[0] = textureCube(texIBL[0], refVector2);
 	iblColor[1] = textureCube(texIBL[1], refVector2);
@@ -113,10 +124,11 @@ void main(void)
 	colIBL = mix(colIBL, iblColor[2], max(mipmapLevel - 1.0, 0.0));
 	mediump vec4 hdrFactor = max(colIBL - 240.0 / 255.0, 0.0);
 	colIBL += hdrFactor * 31.0;
-	Ispec += colIBL.rgb * FresnelSchlick(F0, dotNV);
-	Idiff += iblColor[2].rgb * col.rgb * (1.0 - metallicAndRoughness.x);
+	mediump float dotNV2 = max(dot(normalW, eyeVectorW), 0.0001);
+	Ispec += colIBL.rgb * FresnelSchlick(F0, dotNV2);
+	Idiff = iblColor[2].rgb * col.rgb * (1.0 - metallicAndRoughness.x);
 #else
-	mediump vec3 refVector2 = reflect(eyeVector, normal);
+	mediump vec3 refVector2 = reflect(eyeVectorW, normal2);
 	Idiff += textureCube(texIBL[2], refVector2).rgb * col.rgb;
 #endif
 
