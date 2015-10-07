@@ -21,6 +21,7 @@
 #include <GLES2/gl2ext.h>
 #include <android/sensor.h>
 #include <android/log.h>
+#include <android/window.h>
 
 #include <typeinfo>
 #include <boost/property_tree/ptree.hpp>
@@ -274,6 +275,8 @@ void android_main(struct android_app* state) {
 	state->userData = &engine;
 	state->onAppCmd = engine_handle_cmd;
 	state->onInputEvent = engine_handle_input;
+
+	ANativeActivity_setWindowFlags(state->activity, AWINDOW_FLAG_FULLSCREEN | AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
 
 	// ‰Á‘¬“xŒv‚ÌŠÄ‹‚Ì€”õ
 	engine.sensorManager = ASensorManager_getInstance();
