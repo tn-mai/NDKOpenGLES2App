@@ -79,10 +79,10 @@
     <Content Include="assets\Shaders\gaussian3x3.vert" />
     <Content Include="assets\Shaders\hdrdiff.frag" />
     <Content Include="assets\Shaders\hdrdiff.vert" />
-    <Content Include="assets\Shaders\reduce4.frag" />
-    <Content Include="assets\Shaders\reduce4.vert" />
     <Content Include="assets\Shaders\reduceLum.frag" />
     <Content Include="assets\Shaders\reduceLum.vert" />
+    <Content Include="assets\Shaders\sample4.frag" />
+    <Content Include="assets\Shaders\sample4.vert" />
     <Content Include="assets\Shaders\ShaderPlain.frag" />
     <Content Include="assets\Shaders\ShaderPlain.vert" />
     <Content Include="assets\Shaders\shadow.frag" />

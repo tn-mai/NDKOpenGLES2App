@@ -498,11 +498,11 @@ Renderer::Renderer(android_app* s)
   , fboSub(0)
   , fboShadow0(0)
   , fboShadow1(0)
-  , fboHDR0(0)
-  , fboHDR1(0)
-  , fboHDR2(0)
   , depth(0)
 {
+  for (auto& e : fboHDR) {
+	e = 0;
+  }
 }
 
 /** ÉfÉXÉgÉâÉNÉ^.
@@ -510,6 +510,23 @@ Renderer::Renderer(android_app* s)
 Renderer::~Renderer()
 {
 	Unload();
+}
+
+Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
+{
+	static const char* const  fboNameList[] = {
+		"fboMain",
+		"fboSub",
+		"fboShadow0",
+		"fboShadow1",
+		"fboHDR0",
+		"fboHDR1",
+		"fboHDR2",
+		"fboHDR3",
+		"fboHDR4",
+	};
+	GLuint* p = const_cast<GLuint*>(&fboMain + id);
+	return { fboNameList[id], p };
 }
 
 /** ï`âÊä¬ã´ÇÃèâä˙ê›íË.
@@ -640,7 +657,7 @@ void Renderer::Initialize()
 	  "shadow",
 	  "bilinear4x4",
 	  "gaussian3x3",
-	  "reduce4",
+	  "sample4",
 	  "reduceLum",
 	  "hdrdiff",
 	  "applyhdr",
@@ -693,18 +710,8 @@ void Renderer::Initialize()
 		}
 	}
 
-	struct {
-		const char* const name;
-		GLuint* p;
-	} const fboList[] = {
-		{ "fboSub", &fboSub },
-		{ "fboShadow0", &fboShadow0 },
-		{ "fboShadow1", &fboShadow1 },
-		{ "fboHDR0", &fboHDR0 },
-		{ "fboHDR1", &fboHDR1 },
-		{ "fboHDR2", &fboHDR2 },
-	};
-	for (const auto e : fboList) {
+	for (int i = FBO_Sub; i < FBO_End; ++i) {
+		const FBOInfo e = GetFBOInfo(i);
 		const auto& tex = *textureList[e.name];
 		glGenFramebuffers(1, e.p);
 		glBindFramebuffer(GL_FRAMEBUFFER, *e.p);
@@ -1168,9 +1175,9 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  const Mesh& mesh = meshList["board2D"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	}
-	// fboSub ->(hdrdiff)-> fboHDR0
+	// fboSub ->(hdrdiff)-> fboHDR[0]
 	{
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR0);
+	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR[0]);
 	  glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4);
 
 	  const Shader& shader = shaderList["hdrdiff"];
@@ -1186,11 +1193,9 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  const Mesh& mesh = meshList["board2D"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	}
-	// fboHDR0 ->(reduce4)-> fboHDR1 ->(reduce4)-> fboHDR2
+	// fboHDR[0] ->(sample4)-> fboHDR[1] ... fboHDR[4]
 	{
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR1);
-	  glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / 16, MAIN_RENDERING_PATH_HEIGHT / 16);
-	  const Shader& shader = shaderList["reduce4"];
+	  const Shader& shader = shaderList["sample4"];
 	  glUseProgram(shader.program);
 
 	  Matrix4x4 mtx = Matrix4x4::Unit();
@@ -1198,24 +1203,20 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 1.0f / MAIN_RENDERING_PATH_WIDTH / 4.0f, 1.0f / MAIN_RENDERING_PATH_HEIGHT / 4.0f);
 	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboHDR0"]->TextureId());
+
 	  const Mesh& mesh = meshList["board2D"];
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR2);
-	  glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / 64, MAIN_RENDERING_PATH_HEIGHT / 64);
-	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 1.0f / MAIN_RENDERING_PATH_WIDTH / 16.0f, 1.0f / MAIN_RENDERING_PATH_HEIGHT / 16.0f);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboHDR1"]->TextureId());
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  int scale = 8;
+	  for (int i = FBO_HDR0; i < FBO_HDR4; ++i, scale *= 2) {
+		glBindFramebuffer(GL_FRAMEBUFFER, *GetFBOInfo(i + 1).p);
+		glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / scale, MAIN_RENDERING_PATH_HEIGHT / scale);
+		glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.25f / static_cast<float>(MAIN_RENDERING_PATH_WIDTH / scale), 0.25f / static_cast<float>(MAIN_RENDERING_PATH_HEIGHT / scale));
+		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
+		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  }
 	}
-	// fboHDR2 ->(default2D)-> fboHDR1 ->(default2D)-> fboHDR0
+	// fboHDR[4] ->(default2D)-> fboHDR[3] ... fboHDR[0]
 	{
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR1);
-	  glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / 16, MAIN_RENDERING_PATH_HEIGHT / 16);
-	  glBlendFunc(GL_ONE, GL_ONE);
-
 	  const Shader& shader = shaderList["default2D"];
 	  glUseProgram(shader.program);
 
@@ -1226,14 +1227,16 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboHDR2"]->TextureId());
-	  const Mesh& mesh = meshList["board2D"];
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR0);
-	  glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboHDR1"]->TextureId());
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  glBlendFunc(GL_ONE, GL_ONE);
+	  const Mesh& mesh = meshList["board2D"];
+	  int scale = 32;
+	  for (int i = FBO_HDR4; i > FBO_HDR0; --i, scale /= 2) {
+		glBindFramebuffer(GL_FRAMEBUFFER, *GetFBOInfo(i - 1).p);
+		glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / scale, MAIN_RENDERING_PATH_HEIGHT / scale);
+		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
+		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  }
 	}
 
 	glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
@@ -1381,13 +1384,12 @@ void Renderer::Update(float dTime)
 void Renderer::Unload()
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	GLuint* const fboPtrList[] = {
-	  &fboMain, &fboSub, &fboShadow0, &fboShadow1, &fboHDR0, &fboHDR1, &fboHDR2, &depth
-	};
-	for (auto e : fboPtrList) {
-	  if (*e) {
-		glDeleteRenderbuffers(1, e);
-		*e = 0;
+
+	for (int i = FBO_End - 1; i >= 0; --i) {
+	  const FBOInfo& e = GetFBOInfo(i);
+	  if (*e.p) {
+		glDeleteRenderbuffers(1, e.p);
+		*e.p = 0;
 	  }
 	}
 
@@ -2130,9 +2132,11 @@ void Renderer::InitTexture()
 	textureList.insert({ "fboSub", Texture::CreateEmpty2D(MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4) }); // ÉJÉâÅ[(1/4)
 	textureList.insert({ "fboShadow0", Texture::CreateEmpty2D(SHADOWMAP_SUB_WIDTH, SHADOWMAP_SUB_HEIGHT) }); // âeèkè¨
 	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(SHADOWMAP_SUB_WIDTH, SHADOWMAP_SUB_HEIGHT) }); // âeÇ⁄Ç©Çµ
-	textureList.insert({ "fboHDR0", Texture::CreateEmpty2D(MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4) }); // HDR(1/4)
-	textureList.insert({ "fboHDR1", Texture::CreateEmpty2D(MAIN_RENDERING_PATH_WIDTH / 16, MAIN_RENDERING_PATH_HEIGHT / 16) }); // HDR(1/16)
-	textureList.insert({ "fboHDR2", Texture::CreateEmpty2D(MAIN_RENDERING_PATH_WIDTH / 64, MAIN_RENDERING_PATH_HEIGHT / 64) }); // HDR(1/64)
+	int scale = 4;
+	for (int i = FBO_HDR0; i <= FBO_HDR4; ++i) {
+	  textureList.insert({ GetFBOInfo(i).name, Texture::CreateEmpty2D(MAIN_RENDERING_PATH_WIDTH / scale, MAIN_RENDERING_PATH_HEIGHT / scale) }); // HDR
+	  scale *= 2;
+	}
 
 	textureList.insert({ "dummyCubeMap", Texture::CreateDummyCubeMap() });
 	textureList.insert({ "dummy", Texture::CreateDummy2D() });

@@ -578,6 +578,24 @@ public:
 	void Swap();
 
 private:
+	enum FBOIndex {
+		FBO_Main,
+		FBO_Sub,
+		FBO_Shadow0,
+  		FBO_Shadow1,
+	    FBO_HDR0,
+		FBO_HDR1,
+		FBO_HDR2,
+		FBO_HDR3,
+		FBO_HDR4,
+
+		FBO_End,
+	};
+	struct FBOInfo {
+		const char* const name;
+		GLuint* p;
+	};
+	FBOInfo GetFBOInfo(int) const;
 	void LoadMesh(const char*, const char* = nullptr, const char* = nullptr);
 	void CreateSkyboxMesh();
 	void CreateBoardMesh(const char*, const Vector3F&);
@@ -598,7 +616,7 @@ private:
 	uint32_t frames;
 	uint32_t prevFrames;
 
-	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR0, fboHDR1, fboHDR2;
+	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR[5];
 	GLuint depth;
 
 	GLuint vbo;
