@@ -900,7 +900,11 @@ void Renderer::Render(const Object* begin, const Object* end)
 		}
 		if(1){
 		  Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
-		  //m.Set(1, 3, -5.0f);
+		  // 地面は裏面を持たないため、-Y方向にオフセットすることで裏面とする.
+		  {
+			glCullFace(GL_BACK);
+			m.Set(1, 3, -0.01f);
+		  }
 		  glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
 		  const Mesh& mesh = meshList["board"];
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
@@ -1127,14 +1131,14 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureList["dummy"]->TextureId());
+		glBindTexture(GL_TEXTURE_2D, textureList["floor"]->TextureId());
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTexture(GL_TEXTURE_2D, textureList["floor_nml"]->TextureId());
 		Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
 		//m.Set(1, 3, -5.0f);
 		glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
 		const Mesh& mesh = meshList["board"];
-		glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
+		glUniform4f(shader.materialColor, 0.3f, 0.3f, 0.3f, 1.0f);
 		glUniform2f(shader.materialMetallicAndRoughness, 0.0f, 1.0f);
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	}
@@ -1476,7 +1480,7 @@ void Renderer::InitMesh()
 	LoadMesh("cubes.dae", "wood", "wood_nml");
 	LoadMesh("Sphere.dae", "Sphere", "Sphere_nml");
 	CreateSkyboxMesh();
-	CreateBoardMesh("board", Vector3F(25.0f, 25.0f, 1.0f));
+	CreateFloorMesh("board", Vector3F(10.0f, 10.0f, 1.0f));
 	CreateBoardMesh("board2D", Vector3F(1.0f, 1.0f, 1.0f));
 	CreateAsciiMesh("ascii");
 }
@@ -1569,6 +1573,58 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 	vboEnd += vertecies.size() * sizeof(Vertex);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
 	iboEnd += indices.size() * sizeof(GLushort);
+}
+
+void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale)
+{
+  std::vector<Vertex> vertecies;
+  std::vector<GLushort> indices;
+  vertecies.reserve(4);
+  indices.reserve(2 * 3);
+  static const GLfloat cubeVertices[] = {
+	-1,  1, 0,  0, 0,
+	-1,  0, 0,  0, 0.5,
+	-1, -1, 0,  0, 1,
+
+	 0,  1, 0,  0.5, 0,
+	 0,  0, 0,  0.5, 0.5,
+	 0, -1, 0,  0.5, 1,
+
+	 1,  1, 0,  1, 0,
+	 1,  0, 0,  1, 0.5,
+	 1, -1, 0,  1, 1,
+  };
+  for (int i = 0; i < 9 * 5; i += 5) {
+	Vertex v;
+	v.position = Position3F(cubeVertices[i + 0], cubeVertices[i + 1], cubeVertices[i + 2]) * scale;
+	v.weight[0] = 255;
+	v.weight[1] = v.weight[2] = v.weight[3] = 0;
+	v.normal = Vector3F(0.0f, 0.0f, 1.0f);
+	v.tangent = MakeTangentVector(v.normal);
+	v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
+	v.texCoord[0] = Position2S::FromFloat(cubeVertices[i + 3], cubeVertices[i + 4]);
+	v.texCoord[1] = v.texCoord[0];
+	vertecies.push_back(v);
+  }
+
+  static const GLushort cubeIndices[] = {
+	0, 1, 4, 4, 3, 0,
+	1, 2, 5, 5, 4, 1,
+	3, 4, 7, 7, 6, 3,
+	4, 5, 8, 8, 7, 4,
+  };
+  const GLushort offset = vboEnd / sizeof(Vertex);
+  for (auto e : cubeIndices) {
+	indices.push_back(e + offset);
+  }
+
+  const Mesh mesh = Mesh(id, iboEnd, 4 * 2 * 3);
+  meshList.insert({ id, mesh });
+
+  glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
+  vboEnd += vertecies.size() * sizeof(Vertex);
+  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
+  iboEnd += indices.size() * sizeof(GLushort);
 }
 
 void Renderer::CreateAsciiMesh(const char* id)

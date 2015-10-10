@@ -599,6 +599,7 @@ private:
 	void LoadMesh(const char*, const char* = nullptr, const char* = nullptr);
 	void CreateSkyboxMesh();
 	void CreateBoardMesh(const char*, const Vector3F&);
+	void CreateFloorMesh(const char*, const Vector3F&);
 	void CreateAsciiMesh(const char*);
 	void DrawFont(const Position2F&, const char*);
 
