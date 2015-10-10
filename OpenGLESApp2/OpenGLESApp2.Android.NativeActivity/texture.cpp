@@ -114,6 +114,10 @@ namespace Texture {
 		glBindTexture(tex.Target(), tex.texId);
 		static const uint8_t pixels[] = { 0xF0, 0x40, 0x20, 0xff };
 		glTexImage2D(GL_TEXTURE_2D, 0, tex.InternalFormat(), 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		const GLenum result = glGetError();
+		if (result != GL_NO_ERROR) {
+		  LOGW("glTexImage2D error 0x%04x", result);
+		}
 		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -229,6 +233,17 @@ namespace Texture {
 					glCompressedTexImage2D(target + faceIndex, mipLevel, tex.InternalFormat(), curWidth, curHeight, 0, imageSize, pImage);
 				} else {
 					glTexImage2D(target + faceIndex, mipLevel, tex.InternalFormat(), curWidth, curHeight, 0, format, type, pImage);
+				}
+				const GLenum result = glGetError();
+				switch(result) {
+				case GL_NO_ERROR:
+				  break;
+				case GL_INVALID_OPERATION:
+				  LOGW("glCompressed/TexImage2D return GL_INVALID_OPERATION");
+				  break;
+				default:
+				  LOGW("glCompressed/TexImage2D return error code 0x%04x", result);
+				  break;
 				}
 				pImage += imageSizeWithPadding;
 			}
