@@ -195,10 +195,10 @@ namespace Texture {
 		Texture& tex = static_cast<Texture&>(*p);
 		const Endian endianness = GetEndian(header);
 		const GLenum type = GetValue(&header.glType, endianness);
-		const GLenum format = GetValue(&header.glBaseInternalFormat, endianness);
+		const GLenum format = GetValue(type ? &header.glFormat : &header.glBaseInternalFormat, endianness);
 		const int faceCount = GetValue(&header.numberOfFaces, endianness);
 		const int mipCount = GetValue(&header.numberOfMipmapLevels, endianness);
-		tex.internalFormat = GetValue(&header.glInternalFormat, endianness);
+		tex.internalFormat = GetValue(type ? &header.glBaseInternalFormat : &header.glInternalFormat, endianness);
 		tex.width = GetValue(&header.pixelWidth, endianness);
 		tex.height = GetValue(&header.pixelHeight, endianness);
 		tex.target = faceCount == 6 ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
