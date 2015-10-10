@@ -53,11 +53,9 @@ void main(void)
   // material parameter
   lowp vec3 Idiff = vec3(0.0, 0.0, 0.0);
   lowp vec3 Ispec = vec3(0.0, 0.0, 0.0);
-  lowp vec4 col = texture2D(texDiffuse, texCoord.xy) * materialColor;
-  mediump vec3 normal = texture2D(texNormal, texCoord.xy).rgb;
-
-  // use (0, 0, 1) if the model has not the normal map texture.
-  normal = mix(vec3(0.0, 0.0, 1.0), normalize(normal * 2.0 - 1.0), step(0.5, dot(normal, normal)));
+  lowp vec4 col = texture2D(texDiffuse, texCoord.xy);
+  col.rgb *= materialColor.rgb;
+  mediump vec4 normal = texture2D(texNormal, texCoord.xy);
 
 #if 1
 	mediump vec3 lightVector = lightVectorAndDistance.xyz;
@@ -106,27 +104,29 @@ void main(void)
 #else
 	mediump vec3 eyeVectorW = normalize(eyePos - posW.xyz);
 	mediump vec3 F0;
-	CalcF0(F0, col.rgb, metallicAndRoughness.x);
+	mediump float metal = 1.0 - col.a;
+	CalcF0(F0, col.rgb, metal);
 #endif
 
 	mediump vec3 normal2;
-	normal2.x = dot(normal, tangentW);
-	normal2.y = dot(normal, binormalW);
-	normal2.z = dot(normal, normalW);
+	normal2.x = dot(normal.xyz, tangentW);
+	normal2.y = dot(normal.xyz, binormalW);
+	normal2.z = dot(normal.xyz, normalW);
 #if 1
-	mediump float mipmapLevel = clamp(2.0 * metallicAndRoughness.y, 0.0, 2.0);
+	mediump float mipmapLevel = clamp(2.0 * normal.w, 0.0, 2.0);
 	mediump vec3 refVector2 = reflect(eyeVectorW, normal2);
 	lowp vec4 iblColor[3];
 	iblColor[0] = textureCube(texIBL[0], refVector2);
 	iblColor[1] = textureCube(texIBL[1], refVector2);
 	iblColor[2] = textureCube(texIBL[2], refVector2);
+	iblColor[0].rgb *= 1.0 / iblColor[0].a;
+	iblColor[1].rgb *= 1.0 / iblColor[1].a;
+	iblColor[2].rgb *= 1.0 / iblColor[2].a;
 	mediump vec4 colIBL = mix(iblColor[0], iblColor[1], min(mipmapLevel, 1.0));
 	colIBL = mix(colIBL, iblColor[2], max(mipmapLevel - 1.0, 0.0));
-	mediump vec4 hdrFactor = max(colIBL - 240.0 / 255.0, 0.0);
-	colIBL += hdrFactor * 31.0;
 	mediump float dotNV2 = max(dot(normalW, eyeVectorW), 0.0001);
 	Ispec += colIBL.rgb * FresnelSchlick(F0, dotNV2);
-	Idiff = iblColor[2].rgb * col.rgb * (1.0 - metallicAndRoughness.x);
+	Idiff = iblColor[2].rgb * col.rgb * col.a;
 #else
 	mediump vec3 refVector2 = reflect(eyeVectorW, normal2);
 	Idiff += textureCube(texIBL[2], refVector2).rgb * col.rgb;
@@ -134,7 +134,7 @@ void main(void)
 
 #endif
 
-	gl_FragColor = vec4(Idiff + Ispec, col.a);
+	gl_FragColor = vec4(Idiff + Ispec, materialColor.a);
 
 #if 1
 	mediump vec4 shadowTexCoord = posForShadow;
