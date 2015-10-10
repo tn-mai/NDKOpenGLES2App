@@ -612,6 +612,8 @@ private:
 	int32_t width;
 	int32_t height;
 
+	std::string texBaseDir;
+
 	uint64_t startTime;
 	uint32_t frames;
 	uint32_t prevFrames;

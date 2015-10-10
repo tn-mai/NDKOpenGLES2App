@@ -492,6 +492,7 @@ void Object::Update(float t)
 Renderer::Renderer(android_app* s)
   : state(s)
   , isInitialized(false)
+  , texBaseDir("Textures/Others/")
   , startTime(0)
   , prevFrames(0)
   , fboMain(0)
@@ -610,6 +611,9 @@ void Renderer::Initialize()
 	  MAKE_TEX_ID_PAIR(GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG)
 	};
 	for (const auto id : formatArray) {
+	  if (id == GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD) {
+		texBaseDir.assign("Textures/Adreno/");
+	  }
 	  bool isLogged = false;
 	  for (const auto* i = texInfoList; i != texInfoList + sizeof(texInfoList) / sizeof(texInfoList[0]); ++i) {
 		if (i->id == id) {
@@ -2140,15 +2144,17 @@ void Renderer::InitTexture()
 
 	textureList.insert({ "dummyCubeMap", Texture::CreateDummyCubeMap() });
 	textureList.insert({ "dummy", Texture::CreateDummy2D() });
-	textureList.insert({ "ascii", Texture::LoadKTX(state, "Textures/ascii.ktx") });
+	textureList.insert({ "ascii", Texture::LoadKTX(state, "Textures/Common/ascii.ktx") });
 
-	textureList.insert({ "skybox_high", Texture::LoadKTX(state, "skybox_high.ktx") });
-	textureList.insert({ "skybox_low", Texture::LoadKTX(state, "skybox_low.ktx") });
-	textureList.insert({ "irradiance", Texture::LoadKTX(state, "irradiance.ktx") });
-	textureList.insert({ "wood", Texture::LoadKTX(state, "wood.ktx") });
-	textureList.insert({ "wood_nml", Texture::LoadKTX(state, "Textures/wood_nml.ktx") });
-	textureList.insert({ "Sphere", Texture::LoadKTX(state, "Textures/Sphere.ktx") });
-	textureList.insert({ "Sphere_nml", Texture::LoadKTX(state, "Textures/Sphere_nml.ktx") });
+	textureList.insert({ "skybox_high", Texture::LoadKTX(state, (texBaseDir + "skybox_high.ktx").c_str()) });
+	textureList.insert({ "skybox_low", Texture::LoadKTX(state, (texBaseDir + "skybox_low.ktx").c_str()) });
+	textureList.insert({ "irradiance", Texture::LoadKTX(state, (texBaseDir + "irradiance.ktx").c_str()) });
+	textureList.insert({ "wood", Texture::LoadKTX(state, (texBaseDir + "wood.ktx").c_str()) });
+	textureList.insert({ "wood_nml", Texture::LoadKTX(state, (texBaseDir + "woodNR.ktx").c_str()) });
+	textureList.insert({ "Sphere", Texture::LoadKTX(state, (texBaseDir + "sphere.ktx").c_str()) });
+	textureList.insert({ "Sphere_nml", Texture::LoadKTX(state, (texBaseDir + "sphereNR.ktx").c_str()) });
+	textureList.insert({ "floor", Texture::LoadKTX(state, (texBaseDir + "floor.ktx").c_str()) });
+	textureList.insert({ "floor_nml", Texture::LoadKTX(state, (texBaseDir + "floorNR.ktx").c_str()) });
 }
 
 Object Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)

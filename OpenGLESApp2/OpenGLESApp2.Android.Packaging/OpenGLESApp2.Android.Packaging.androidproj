@@ -66,7 +66,6 @@
     <Content Include="assets\cubes.dae">
       <SubType>Designer</SubType>
     </Content>
-    <Content Include="assets\irradiance.ktx" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
     <Content Include="assets\Shaders\bitmapfont.frag" />
@@ -91,16 +90,28 @@
     <Content Include="assets\Shaders\bilinear4x4.vert" />
     <Content Include="assets\Shaders\skybox.frag" />
     <Content Include="assets\Shaders\skybox.vert" />
-    <Content Include="assets\skybox_high.ktx" />
-    <Content Include="assets\skybox_low.ktx" />
     <Content Include="assets\Sphere.dae">
       <SubType>Designer</SubType>
     </Content>
-    <Content Include="assets\Textures\ascii.ktx" />
-    <Content Include="assets\Textures\Sphere.ktx" />
-    <Content Include="assets\Textures\Sphere_nml.ktx" />
-    <Content Include="assets\Textures\wood_nml.ktx" />
-    <Content Include="assets\wood.ktx" />
+    <Content Include="assets\Textures\Adreno\floor.ktx" />
+    <Content Include="assets\Textures\Adreno\floorNR.ktx" />
+    <Content Include="assets\Textures\Adreno\irradiance.ktx" />
+    <Content Include="assets\Textures\Adreno\skybox_high.ktx" />
+    <Content Include="assets\Textures\Adreno\skybox_low.ktx" />
+    <Content Include="assets\Textures\Adreno\sphere.ktx" />
+    <Content Include="assets\Textures\Adreno\sphereNR.ktx" />
+    <Content Include="assets\Textures\Adreno\wood.ktx" />
+    <Content Include="assets\Textures\Adreno\woodNR.ktx" />
+    <Content Include="assets\Textures\Common\ascii.ktx" />
+    <Content Include="assets\Textures\Others\floor.ktx" />
+    <Content Include="assets\Textures\Others\floorNR.ktx" />
+    <Content Include="assets\Textures\Others\irradiance.ktx" />
+    <Content Include="assets\Textures\Others\skybox_high.ktx" />
+    <Content Include="assets\Textures\Others\skybox_low.ktx" />
+    <Content Include="assets\Textures\Others\sphere.ktx" />
+    <Content Include="assets\Textures\Others\sphereNR.ktx" />
+    <Content Include="assets\Textures\Others\wood.ktx" />
+    <Content Include="assets\Textures\Others\woodNR.ktx" />
     <Content Include="res\values\strings.xml" />
     <AntBuildXml Include="build.xml" />
     <AndroidManifest Include="AndroidManifest.xml">
