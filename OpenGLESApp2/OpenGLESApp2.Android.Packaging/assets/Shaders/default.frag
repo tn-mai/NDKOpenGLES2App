@@ -147,26 +147,15 @@ void main(void)
 	  */
 	  lowp vec4 tex = texture2DProj(texShadow, shadowTexCoord);
 	  highp float Ex = tex.x + tex.y * (1.0 / 255.0);
-
-	  //const highp float near = 10.0;
-	  //const highp float far = 200.0;
-	  //const highp float linerDepth = 1.0 / (far - near);
-	  //	highp float curDepth = min(length(posForShadow.xyz) * linerDepth, 1.0);
-	  highp float curDepth = posForShadow.z - (1.0 / 65535.0);
-	  lowp float lit = 1.0;
-	  if (curDepth > Ex) {
+	  if (posForShadow.z > Ex) {
 		highp float E_x2 = (tex.z + tex.w * (1.0 / 255.0));
 		highp float variance = max(E_x2 - (Ex * Ex), 0.002);
-		highp float mD = (curDepth - Ex) * 25.0;
+		highp float mD = (posForShadow.z - Ex) * 25.0;
 		highp float p = variance / (variance + mD * mD);
-		lit = clamp(2.0 * p - p * p, 0.7, 0.9) + 0.1;// clamp(2.0 * p - p * p, 0.5, 0.9) + 0.1;
+		lowp float lit = min(max(p - 0.6, 0.0), 0.3) * 2.0 + 0.4;
+		gl_FragColor.rgb *= lit;
 	  }
-	  gl_FragColor.rgb *= lit;
-//	} else {
-//	  gl_FragColor = vec4(vec3(1.0, 1.0, 1.0) - (Idiff + Ispec), col.a);
 	}
-#else
-	lowp float lit = 1.0;
 #endif
   //gl_FragColor = vec4(step(shadowTexCoord.x, posForShadow.w) * step(0.0, shadowTexCoord.x), step(shadowTexCoord.y, posForShadow.w) * step(0.0, shadowTexCoord.y), shadowFactor.x, 1.0);
   //gl_FragColor = vec4(color, 1.0);
