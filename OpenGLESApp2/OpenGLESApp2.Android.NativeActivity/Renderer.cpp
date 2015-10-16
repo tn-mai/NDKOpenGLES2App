@@ -1774,6 +1774,12 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 			  <xmlattr>.id  channel.<xmlattr>.sourceに対応するID.
 			  input 入力ソース.
 			*/
+			bool fromBlender = false;
+			if (const auto& upAxisNode = collada.get_child_optional("COLLADA.asset.up_axis")) {
+				if (upAxisNode->data() == "Z_UP") {
+					fromBlender = true;
+				}
+			}
 			const BPT::ptree& scenesNode = collada.get_child("COLLADA.library_visual_scenes.visual_scene");
 			struct SkinInfo {
 				std::vector<Matrix4x4> invBindPoseMatrixList;
@@ -1791,6 +1797,24 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 			for (auto& e : scenesNode) {
 				if (e.first != "node" || e.second.get<std::string>("<xmlattr>.type") != "NODE") {
 					continue;
+				}
+				Vector3F nodeBaseScale(1, 1, 1);
+				if (auto opt = e.second.get_optional<std::string>("scale")) {
+					const std::vector<float> list = split<float>(opt.get(), ' ', [](const std::string& s) { return atof(s.c_str()); });
+					if (list.size() >= 3) {
+						nodeBaseScale.x = list[0];
+						nodeBaseScale.y = list[1];
+						nodeBaseScale.z = list[2];
+					}
+				}
+				Vector3F nodeBaseTranslate(0, 0, 0);
+				if (auto opt = e.second.get_optional<std::string>("translate")) {
+				  const std::vector<float> list = split<float>(opt.get(), ' ', [](const std::string& s) { return atof(s.c_str()); });
+				  if (list.size() >= 3) {
+					nodeBaseTranslate.x = list[0];
+					nodeBaseTranslate.y = list[1];
+					nodeBaseTranslate.z = list[2];
+				  }
 				}
 				const BPT::ptree& nodeElem = e.second;
 				SkinInfo skinInfo;
@@ -1906,7 +1930,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 						posArray.shrink_to_fit();
 						posArray.reserve(tmp.size() / 3);
 						for (size_t i = 0; i + 2 < tmp.size(); i += 3) {
-							posArray.push_back(Position3F(tmp[i], tmp[i + 1], tmp[i + 2]));
+							posArray.push_back(Position3F(tmp[i], tmp[i + 1], tmp[i + 2]) * nodeBaseScale + nodeBaseTranslate);
 						}
 						LOGI("POS ARRAY SIZE:%d", posArray.size());
 						vertexOff = e.second.get<int>("<xmlattr>.offset");
@@ -2068,6 +2092,14 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				meshList.insert({ mesh.id, mesh });
 				baseIndexOffset += sizeof(GLushort) * indexCount;
 				baseVertexOffset += vertIdList.size();
+			}
+
+			// 軸変換
+			if (fromBlender) {
+				for (auto& e : vertecies) {
+					e.position = Position3F(-e.position.x, e.position.z, e.position.y);
+					e.normal = Vector3F(-e.normal.x, e.normal.z, e.normal.y);
+				}
 			}
 
 			// 頂点タンジェントを計算する.

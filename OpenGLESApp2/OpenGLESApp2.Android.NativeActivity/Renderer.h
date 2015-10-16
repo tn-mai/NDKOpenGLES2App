@@ -26,6 +26,10 @@ struct Position3F {
 	bool operator!=(const Position3F& rhs) const { return !(*this == rhs); }
 	Position3F& operator*=(GLfloat rhs) { x *= rhs; y *= rhs; z *= rhs; return *this; }
 	Position3F operator*(GLfloat rhs) const { return Position3F(*this) *= rhs; }
+	Position3F& operator+=(const Vector3F& rhs);
+	Position3F operator+(const Vector3F& rhs) const;
+	Position3F& operator-=(const Vector3F& rhs);
+	Position3F operator-(const Vector3F& rhs) const;
 	Position3F& operator*=(const Vector3F& rhs);
 	Position3F operator*(const Vector3F& rhs) const;
 	Position3F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; return *this; }
@@ -57,6 +61,7 @@ struct Position2S {
 	static constexpr Position2S FromFloat(float a, float b) {
 		return Position2S(a * static_cast<float>(0xffff), b * static_cast<float>(0xffff));
 	}
+	Position2F ToFloat() const { return Position2F(static_cast<float>(x) / 0xffff, static_cast<float>(y) / 0xffff); }
 };
 
 /**
@@ -85,6 +90,8 @@ struct Vector2F {
   Vector2F operator*(const Vector2F& rhs) const { return Vector2F(*this) *= rhs; }
   Vector2F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; return *this; }
   Vector2F operator/(GLfloat rhs) const { return Vector2F(*this) /= rhs; }
+  Vector2F& operator/=(const Vector2F& rhs) { x /= rhs.x; y /= rhs.y; return *this; }
+  Vector2F operator/(const Vector2F& rhs) const { return Vector2F(*this) /= rhs; }
   GLfloat Length() const { return sqrtf(x * x + y * y); }
   Vector2F& Normalize() { return operator/=(Length()); }
   GLfloat Cross(const Vector2F& rhs) const { return x * rhs.y - y * rhs.x; }
@@ -641,6 +648,10 @@ inline Position2F& Position2F::operator-=(const Vector2F& rhs) { x -= rhs.x; y -
 inline Position2F operator-(const Position2F& lhs, const Vector2F& rhs) { return Position2F(lhs) -= rhs; }
 inline Vector2F operator-(const Position2F& lhs, const Position2F& rhs) { return Vector2F(lhs.x - rhs.x, lhs.y - rhs.y); }
 
+inline Position3F& Position3F::operator+=(const Vector3F& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; return *this; }
+inline Position3F Position3F::operator+(const Vector3F& rhs) const { return Position3F(*this) += rhs; }
+inline Position3F& Position3F::operator-=(const Vector3F& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; return *this; }
+inline Position3F Position3F::operator-(const Vector3F& rhs) const { return Position3F(*this) -= rhs; }
 inline Position3F& Position3F::operator*=(const Vector3F& rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; return *this; }
 inline Position3F Position3F::operator*(const Vector3F& rhs) const { return Position3F(*this) *= rhs; }
 inline Vector3F operator-(const Position3F& lhs, const Position3F& rhs) { return Vector3F(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z); }
