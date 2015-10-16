@@ -1492,6 +1492,8 @@ void Renderer::InitMesh()
 {
 	LoadMesh("cubes.dae", "wood", "wood_nml");
 	LoadMesh("Sphere.dae", "Sphere", "Sphere_nml");
+	LoadMesh("flyingrock.dae", "flyingrock", "flyingrock_nml");
+	LoadMesh("block1.dae", "block1", "block1_nml");
 	CreateSkyboxMesh();
 	CreateFloorMesh("board", Vector3F(10.0f, 10.0f, 1.0f));
 	CreateBoardMesh("board2D", Vector3F(1.0f, 1.0f, 1.0f));
@@ -2224,6 +2226,10 @@ void Renderer::InitTexture()
 	textureList.insert({ "Sphere_nml", Texture::LoadKTX(state, (texBaseDir + "sphereNR.ktx").c_str()) });
 	textureList.insert({ "floor", Texture::LoadKTX(state, (texBaseDir + "floor.ktx").c_str()) });
 	textureList.insert({ "floor_nml", Texture::LoadKTX(state, (texBaseDir + "floorNR.ktx").c_str()) });
+	textureList.insert({ "flyingrock", Texture::LoadKTX(state, (texBaseDir + "flyingrock.ktx").c_str()) });
+	textureList.insert({ "flyingrock_nml", Texture::LoadKTX(state, (texBaseDir + "flyingrockNR.ktx").c_str()) });
+	textureList.insert({ "block1", Texture::LoadKTX(state, (texBaseDir + "block1.ktx").c_str()) });
+	textureList.insert({ "block1_nml", Texture::LoadKTX(state, (texBaseDir + "block1NR.ktx").c_str()) });
 }
 
 Object Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)

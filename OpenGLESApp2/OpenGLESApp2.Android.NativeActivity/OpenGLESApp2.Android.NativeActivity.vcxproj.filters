@@ -5,11 +5,13 @@
     <ClInclude Include="android_native_app_glue.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="texture.h" />
+    <ClInclude Include="TouchSwipeCamera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="texture.cpp" />
+    <ClCompile Include="TouchSwipeCamera.cpp" />
   </ItemGroup>
 </Project>

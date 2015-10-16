@@ -63,9 +63,11 @@
     </AntPackage>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Content Include="assets\block1.dae" />
     <Content Include="assets\cubes.dae">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="assets\flyingrock.dae" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
     <Content Include="assets\Shaders\bitmapfont.frag" />
@@ -90,11 +92,15 @@
     <Content Include="assets\Shaders\bilinear4x4.vert" />
     <Content Include="assets\Shaders\skybox.frag" />
     <Content Include="assets\Shaders\skybox.vert" />
-    <Content Include="assets\Sphere.dae">
+    <Content Include="assets\sphere.dae">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="assets\Textures\Adreno\block1.ktx" />
+    <Content Include="assets\Textures\Adreno\block1NR.ktx" />
     <Content Include="assets\Textures\Adreno\floor.ktx" />
     <Content Include="assets\Textures\Adreno\floorNR.ktx" />
+    <Content Include="assets\Textures\Adreno\flyingrock.ktx" />
+    <Content Include="assets\Textures\Adreno\flyingrockNR.ktx" />
     <Content Include="assets\Textures\Adreno\irradiance.ktx" />
     <Content Include="assets\Textures\Adreno\skybox_high.ktx" />
     <Content Include="assets\Textures\Adreno\skybox_low.ktx" />
@@ -103,8 +109,12 @@
     <Content Include="assets\Textures\Adreno\wood.ktx" />
     <Content Include="assets\Textures\Adreno\woodNR.ktx" />
     <Content Include="assets\Textures\Common\ascii.ktx" />
+    <Content Include="assets\Textures\Others\block1.ktx" />
+    <Content Include="assets\Textures\Others\block1NR.ktx" />
     <Content Include="assets\Textures\Others\floor.ktx" />
     <Content Include="assets\Textures\Others\floorNR.ktx" />
+    <Content Include="assets\Textures\Others\flyingrock.ktx" />
+    <Content Include="assets\Textures\Others\flyingrockNR.ktx" />
     <Content Include="assets\Textures\Others\irradiance.ktx" />
     <Content Include="assets\Textures\Others\skybox_high.ktx" />
     <Content Include="assets\Textures\Others\skybox_low.ktx" />

@@ -168,12 +168,11 @@ static int engine_init_display(struct engine* engine) {
 	engine->obj[1] = engine->renderer.CreateObject("Sphere", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(1.0f)), "default");
 	engine->obj[1].SetTranslation(Vector3F(-1.0f, 0.5f, 0.0f));
 
-//	engine->obj[2] = engine->renderer.CreateObject("pCube1", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(1.0f)), "default");
-//	engine->obj[2].SetAnimation(engine->renderer.GetAnimation("bend"));
-//	engine->obj[2].SetTranslation(Vector3F(0, 0, 1.0f));
+	engine->obj[2] = engine->renderer.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(1.0f)), "default");
+	engine->obj[2].SetTranslation(Vector3F(0.0f, 4.0f, -6.0f));
 
-//	engine->obj[3] = engine->renderer.CreateObject("Sphere", Material(Color4B(255, 255, 255, 255), FloatToFix8(1.0f), FloatToFix8(0.3f)), "default");
-//	engine->obj[3].SetTranslation(Vector3F(0, -1, 0));
+	engine->obj[3] = engine->renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(0.3f)), "default");
+	engine->obj[3].SetTranslation(Vector3F(0.0f, 5.0f, 0));
 
 	engine->obj[4] = engine->renderer.CreateObject("Sphere", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.05f), FloatToFix8(0.1f)), "default");
 	engine->obj[4].SetTranslation(Vector3F(1.0f, 0.5f, 0));
