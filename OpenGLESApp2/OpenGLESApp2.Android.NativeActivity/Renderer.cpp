@@ -2107,8 +2107,13 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 
 			// 頂点タンジェントを計算する.
 			{
-			  std::vector<std::pair<Vector3F, Vector3F>> tangentList;
-			  tangentList.resize(vertecies.size(), std::make_pair(Vector3F(0, 0, 0), Vector3F(0, 0, 0)));
+			  struct TangentInfo {
+				Vector3F t;
+				Vector3F b;
+				TangentInfo() : t(0, 0, 0), b(0, 0, 0) {}
+			  };
+			  std::vector<TangentInfo> tangentList;
+			  tangentList.resize(vertecies.size());
 			  const size_t end = indices.size();
 			  for (size_t i = 0; i < end; i += 3) {
 				const int i0 = indices[i + 0] - vboEnd / sizeof(Vertex);
@@ -2117,38 +2122,41 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				Vertex& a = vertecies[i0];
 				Vertex& b = vertecies[i1];
 				Vertex& c = vertecies[i2];
+				const Position2F stA = a.texCoord[0].ToFloat();
+				const Position2F stB = b.texCoord[0].ToFloat();
+				const Position2F stC = c.texCoord[0].ToFloat();
 				const Vector3F ab = b.position - a.position;
 				const Vector3F ac = c.position - a.position;
-				const float s1 = b.texCoord[0].x - a.texCoord[0].x;
-				const float t1 = b.texCoord[0].y - a.texCoord[0].y;
-				const float s2 = c.texCoord[0].x - a.texCoord[0].x;
-				const float t2 = c.texCoord[0].y - a.texCoord[0].y;
+				const float s1 = stB.x - stA.x;
+				const float t1 = stB.y - stA.y;
+				const float s2 = stC.x - stA.x;
+				const float t2 = stC.y - stA.y;
 
 				const float st_cross = s1 * t2 - t1 * s2;
-				const float r = (abs(st_cross) <= 0.0001f) ? 1.0f : (1.0f / st_cross);
-				Vector3F sdir(t1 * ac.x - t2 * ab.x, t1 * ac.y - t2 * ab.y, t1 * ac.z - t2 * ab.z);
+				const float r = (std::abs(st_cross) <= 0.0001f) ? 1.0f : (1.0f / st_cross);
+				Vector3F sdir(t2 * ab.x - t1 * ac.x, t2 * ab.y - t1 * ac.y, t2 * ab.z - t1 * ac.z);
 				sdir *= r;
 				sdir.Normalize();
 				Vector3F tdir(s1 * ac.x - s2 * ab.x, s1 * ac.y - s2 * ab.y, s1 * ac.z - s2 * ab.z);
 				tdir *= r;
 				tdir.Normalize();
 
-				tangentList[i0].first += sdir;
-				tangentList[i1].first += sdir;
-				tangentList[i2].first += sdir;
-				tangentList[i0].second += tdir;
-				tangentList[i1].second += tdir;
-				tangentList[i2].second += tdir;
+				tangentList[i0].t += sdir;
+				tangentList[i0].b += tdir;
+				tangentList[i1].t += sdir;
+				tangentList[i1].b += tdir;
+				tangentList[i2].t += sdir;
+				tangentList[i2].b += tdir;
 			  }
 			  for (auto& e : tangentList) {
-				e.first.Normalize();
-				e.second.Normalize();
+				e.t.Normalize();
+				e.b.Normalize();
 			  }
 			  auto tangentListItr = tangentList.begin();
 			  for (auto& e : vertecies) {
-				const Vector3F& t = tangentListItr->first;
+				const Vector3F& t = tangentListItr->t;
 				if (t.Length()) {
-				  const Vector3F& b = tangentListItr->second;
+				  const Vector3F& b = tangentListItr->b;
 				  e.tangent = (t - e.normal * e.normal.Dot(t)).Normalize();
 				  e.tangent.w = e.normal.Cross(t).Dot(b) < 0.0f ? -1.0f : 1.0f;
 				} else {
