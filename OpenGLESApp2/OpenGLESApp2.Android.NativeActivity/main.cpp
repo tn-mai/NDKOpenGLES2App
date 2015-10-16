@@ -350,10 +350,10 @@ void android_main(struct android_app* state) {
 					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
 				}
 			}
+#if 0
 			static float roughness = 1.0f;
 			static float step = 0.005;
 			engine.obj[1].SetRoughness(FloatToFix8(roughness));
-#if 0
 			roughness += step;
 			if (roughness >= 1.0) {
 				step = -0.005f;
