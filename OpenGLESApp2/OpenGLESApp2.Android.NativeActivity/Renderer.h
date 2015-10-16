@@ -565,7 +565,7 @@ public:
 	const Animation* GetAnimation(const char* name);
 	void Initialize();
 	void Render(const Object*, const Object*);
-	void Update( float dTime);
+	void Update( float dTime, const Vector3F&, const Vector3F&);
 	void Unload();
 	void InitMesh();
 	void InitTexture();
@@ -614,6 +614,9 @@ private:
 	int32_t height;
 
 	std::string texBaseDir;
+
+	Vector3F cameraPos;
+	Vector3F cameraDir;
 
 	uint64_t startTime;
 	uint32_t frames;

@@ -17,6 +17,7 @@
 
 #include "Renderer.h"
 #include "android_native_app_glue.h"
+#include "TouchSwipeCamera.h"
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <android/sensor.h>
@@ -28,6 +29,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <boost/math/constants/constants.hpp>
 #include <vector>
 #include <streambuf>
 
@@ -67,6 +69,7 @@ struct engine {
 //		, width(0)
 //		, height(0)
 		, state()
+	    , debugCamera(a)
 		, renderer(a)
 	{}
 
@@ -84,9 +87,15 @@ struct engine {
 //	int32_t height;
 	struct saved_state state;
 
+	TouchSwipeCamera debugCamera;
 	Renderer renderer;
 	Object obj[5];
 };
+
+template<typename T>
+T degreeToRadian(T d) {
+  return d * boost::math::constants::pi<T>() / static_cast<T>(180);
+}
 
 /**
 * 現在の表示の EGL コンテキストを初期化します。
@@ -149,6 +158,8 @@ static int engine_init_display(struct engine* engine) {
 #endif
 	// GL の状態を初期化します。
 	engine->renderer.Initialize();
+	engine->debugCamera.Reset();
+	engine->debugCamera.ScreenSize(engine->renderer.Width(), engine->renderer.Height());
 
 	engine->obj[0] = engine->renderer.CreateObject("pCube1", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(0.6f)), "default");
 	engine->obj[0].SetAnimation(engine->renderer.GetAnimation("bend"));
@@ -196,12 +207,7 @@ static void engine_term_display(struct engine* engine) {
 */
 static int32_t engine_handle_input(struct android_app* app, AInputEvent* event) {
 	struct engine* engine = (struct engine*)app->userData;
-	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
-		engine->state.x = AMotionEvent_getX(event, 0);
-		engine->state.y = AMotionEvent_getY(event, 0);
-		return 1;
-	}
-	return 0;
+	return engine->debugCamera.HandleEvent(event);
 }
 
 /**
@@ -337,7 +343,8 @@ void android_main(struct android_app* state) {
 #else
 			const float deltaTime = 1.0f / 30.0f;
 #endif
-			engine.renderer.Update(deltaTime);
+			engine.debugCamera.Update(deltaTime);
+			engine.renderer.Update(deltaTime, engine.debugCamera.Position(), engine.debugCamera.EyeVector());
 			for (auto&& e : engine.obj) {
 				e.Update(deltaTime);
 				while (e.GetCurrentTime() >= 1.0f) {

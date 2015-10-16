@@ -788,19 +788,9 @@ void Renderer::Render(const Object* begin, const Object* end)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
 	// とりあえず適当なカメラデータからビュー行列を設定.
-	Matrix4x4 mView;
-	Vector3F eye;
-	static Vector3F at(0, 0.5, 0);
-	{
-	  static float degree = 0;
-	  const float r = degreeToRadian(degree);
-	  eye = Vector3F(std::cos(r) * -3.0f, 2, std::sin(r) * -3.0f);
-	  degree += 0.5f;
-	  if (degree >= 360) {
-		degree -= 360;
-	  }
-	  mView = LookAt(eye, at, Vector3F(0, 1, 0));
-	}
+	const Vector3F eye = cameraPos;
+	const Vector3F at = cameraPos + cameraDir;
+	const Matrix4x4 mView = LookAt(eye, at, Vector3F(0, 1, 0));
 
 	static float fov = 60.0f;
 
@@ -1337,6 +1327,27 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  s += boost::lexical_cast<std::string>(prevFrames);
 	  DrawFont(Position2F(16, 40), s.c_str());
 	}
+
+	{
+	  auto f = [this](int pos, char c, float value) {
+		char buf[11];
+		buf[0] = c; buf[1] = ':'; buf[2] = value >= 0.0f ? ' ' : '-';
+		const int x = std::abs<int>(value * 100.0f);
+		for (int i = 3, s = 100000; i < 10; ++i) {
+		  if (i == 6) {
+			buf[i] = '.';
+		  } else {
+			buf[i] = '0' + (x / s) % 10;
+			s /= 10;
+		  }
+		}
+		buf[10] = '\0';
+		DrawFont(Position2F(400, pos), buf);
+	  };
+	  f( 4, 'X', cameraPos.x);
+	  f(20, 'Y', cameraPos.y);
+	  f(36, 'Z', cameraPos.z);
+	}
 #if 0
 	{
 	  const Shader& shader = shaderList["default2D"];
@@ -1385,8 +1396,10 @@ void Renderer::Render(const Object* begin, const Object* end)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Renderer::Update(float dTime)
+void Renderer::Update(float dTime, const Vector3F& pos, const Vector3F& dir)
 {
+  cameraPos = pos;
+  cameraDir = dir;
 }
 
 void Renderer::Unload()
