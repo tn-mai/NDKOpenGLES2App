@@ -57,7 +57,7 @@ void main(void)
   col.rgb *= materialColor.rgb;
   mediump vec4 normal = texture2D(texNormal, texCoord.xy);
 
-#if 1
+#if 0
 	mediump vec3 lightVector = lightVectorAndDistance.xyz;
 
     highp float distance = lightVectorAndDistance.w;
@@ -122,11 +122,21 @@ void main(void)
 	iblColor[0].rgb *= 1.0 / iblColor[0].a;
 	iblColor[1].rgb *= 1.0 / iblColor[1].a;
 	iblColor[2].rgb *= 1.0 / iblColor[2].a;
-	mediump vec4 colIBL = mix(iblColor[0], iblColor[1], min(mipmapLevel, 1.0));
-	colIBL = mix(colIBL, iblColor[2], max(mipmapLevel - 1.0, 0.0));
+
+#if 1
+	// なんか明るすぎたので一時的に抑えてる.
+	// TODO: これはテクスチャの問題なので、適切なテクスチャを作成できたら削除すること.
+	//       すぐ下のIdiff計算部分にも補正処理が入れてあるので忘れずに削除すること.
+	iblColor[0].rgb *= 0.75;
+	iblColor[1].rgb *= 0.5;
+	iblColor[2].rgb *= 0.25;
+#endif
+
+	mediump vec3 colIBL = mix(iblColor[0].rgb , iblColor[1].rgb, min(mipmapLevel, 1.0));
+	colIBL = mix(colIBL, iblColor[2].rgb, max(mipmapLevel - 1.0, 0.0));
 	mediump float dotNV2 = max(dot(normalW, eyeVectorW), 0.0001);
-	Ispec += colIBL.rgb * FresnelSchlick(F0, dotNV2);
-	Idiff = iblColor[2].rgb * col.rgb * col.a;
+	Ispec += colIBL * FresnelSchlick(F0, dotNV2);
+	Idiff = iblColor[2].rgb * 1.5 * col.rgb * col.a;
 #else
 	mediump vec3 refVector2 = reflect(eyeVectorW, normal2);
 	Idiff += textureCube(texIBL[2], refVector2).rgb * col.rgb;
