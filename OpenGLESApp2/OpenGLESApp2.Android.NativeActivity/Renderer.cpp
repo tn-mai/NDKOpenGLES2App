@@ -1592,48 +1592,51 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 
 void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale)
 {
+  static const int subdivideCount = 5;
+
   std::vector<Vertex> vertecies;
+  vertecies.reserve((subdivideCount + 1) * (subdivideCount + 1));
+  float tx = 0.0f, ty = 0.0f;
+  for (float y = 0; y < subdivideCount + 1; ++y) {
+	for (float x = 0; x < subdivideCount + 1; ++x) {
+	  Vertex v;
+	  v.position = Position3F(2 * x / subdivideCount - 1, -2 * y / subdivideCount + 1, 0) * scale;
+	  v.weight[0] = 255;
+	  v.weight[1] = v.weight[2] = v.weight[3] = 0;
+	  v.normal = Vector3F(0.0f, 0.0f, 1.0f);
+	  v.tangent = MakeTangentVector(v.normal);
+	  v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
+	  v.texCoord[0] = Position2S::FromFloat(tx, ty);
+	  v.texCoord[1] = v.texCoord[0];
+	  vertecies.push_back(v);
+	  tx += 1.0f;
+	  if (tx > 1.0f) {
+		tx = 0.0f;
+	  }
+	}
+	ty += 1.0f;
+	if (ty > 1.0f) {
+	  ty = 0.0f;
+	}
+  }
+
   std::vector<GLushort> indices;
-  vertecies.reserve(4);
-  indices.reserve(2 * 3);
-  static const GLfloat cubeVertices[] = {
-	-1,  1, 0,  0, 0,
-	-1,  0, 0,  0, 0.5,
-	-1, -1, 0,  0, 1,
-
-	 0,  1, 0,  0.5, 0,
-	 0,  0, 0,  0.5, 0.5,
-	 0, -1, 0,  0.5, 1,
-
-	 1,  1, 0,  1, 0,
-	 1,  0, 0,  1, 0.5,
-	 1, -1, 0,  1, 1,
-  };
-  for (int i = 0; i < 9 * 5; i += 5) {
-	Vertex v;
-	v.position = Position3F(cubeVertices[i + 0], cubeVertices[i + 1], cubeVertices[i + 2]) * scale;
-	v.weight[0] = 255;
-	v.weight[1] = v.weight[2] = v.weight[3] = 0;
-	v.normal = Vector3F(0.0f, 0.0f, 1.0f);
-	v.tangent = MakeTangentVector(v.normal);
-	v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
-	v.texCoord[0] = Position2S::FromFloat(cubeVertices[i + 3], cubeVertices[i + 4]);
-	v.texCoord[1] = v.texCoord[0];
-	vertecies.push_back(v);
-  }
-
-  static const GLushort cubeIndices[] = {
-	0, 1, 4, 4, 3, 0,
-	1, 2, 5, 5, 4, 1,
-	3, 4, 7, 7, 6, 3,
-	4, 5, 8, 8, 7, 4,
-  };
+  indices.reserve((subdivideCount * subdivideCount) * 2 * 3);
   const GLushort offset = vboEnd / sizeof(Vertex);
-  for (auto e : cubeIndices) {
-	indices.push_back(e + offset);
+  for (int y = 0; y < subdivideCount; ++y) {
+	const int y0 = (y + 0) * (subdivideCount + 1) + offset;
+	const int y1 = (y + 1) * (subdivideCount + 1) + offset;
+	for (int x = 0; x < subdivideCount; ++x) {
+	  indices.push_back(y0 + (x + 0));
+	  indices.push_back(y1 + (x + 0));
+	  indices.push_back(y1 + (x + 1));
+	  indices.push_back(y1 + (x + 1));
+	  indices.push_back(y0 + (x + 1));
+	  indices.push_back(y0 + (x + 0));
+	}
   }
 
-  const Mesh mesh = Mesh(id, iboEnd, 4 * 2 * 3);
+  const Mesh mesh = Mesh(id, iboEnd, indices.size());
   meshList.insert({ id, mesh });
 
   glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
