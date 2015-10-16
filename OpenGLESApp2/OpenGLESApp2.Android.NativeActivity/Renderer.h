@@ -231,20 +231,12 @@ struct Quaternion {
 	}
 	Quaternion Conjugate() const { return Quaternion(-x, -y, -z, w); }
 	Vector3F Apply(const Vector3F& v) const {
-
-		const Quaternion q(
-			v.x * w + v.z * y - v.y * z,
-			v.y * w + v.x * z - v.z * x,
-			v.z * w + v.y * x - v.x * y,
-			v.x * x + v.y * y + v.z * z);
-		return Vector3F(
-			w * q.x + x * q.w + y * q.z - z * q.y,
-			w * q.y + y * q.w + z * q.x - x * q.z,
-			w * q.z + z * q.w + x * q.y - y * q.x) * (1.0f / Length());
-//		const Vector3F xyz(x, y, z);
-//		return v + 2.0f * (v.Cross(xyz) + w * v).Cross(xyz);
-//		const Vector3F t = xyz.Cross(v) * 2.0f;
-//		return v + t * w + xyz.Cross(t);
+		const Vector3F xyz(x, y, z);
+		Vector3F uv = xyz.Cross(v);
+		Vector3F uuv = xyz.Cross(uv);
+		uv *= 2.0f * w;
+		uuv *= 2.0f;
+		return v + uv + uuv;
 	}
 	friend Quaternion Sleap(const Quaternion& qa, const Quaternion& qb, float t);
 	static constexpr Quaternion Unit() { return Quaternion(0, 0, 0, 1); }
