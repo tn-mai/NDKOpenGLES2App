@@ -281,8 +281,8 @@ namespace {
 	Matrix4x4 LookAt(const Vector3F& eyePos, const Vector3F& targetPos, const Vector3F& upVector)
 	{
 		const Vector3F ezVector = (eyePos - targetPos).Normalize();
-		const Vector3F exVector = upVector.Cross(ezVector);
-		const Vector3F eyVector = ezVector.Cross(exVector);
+		const Vector3F exVector = upVector.Cross(ezVector).Normalize();
+		const Vector3F eyVector = ezVector.Cross(exVector).Normalize();
 		Matrix4x4 m;
 		m.SetVector(0, Vector4F(exVector.x, eyVector.x, ezVector.x, 0));
 		m.SetVector(1, Vector4F(exVector.y, eyVector.y, ezVector.y, 0));
