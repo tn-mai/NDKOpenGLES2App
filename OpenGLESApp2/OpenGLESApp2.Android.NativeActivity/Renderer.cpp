@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "Mesh.h"
 #include "android_native_app_glue.h"
 #include <android/log.h>
 #include <EGL/egl.h>
@@ -9,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 #include <boost/lexical_cast.hpp>
 #include <vector>
 #include <streambuf>
@@ -20,6 +22,17 @@ namespace BPT = boost::property_tree;
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
+#define FBO_MAIN_WIDTH 512.0
+#define FBO_MAIN_HEIGHT 800.0
+#define MAIN_RENDERING_PATH_WIDTH 360.0
+#define MAIN_RENDERING_PATH_HEIGHT 640.0
+#define FBO_SUB_WIDTH 128.0
+#define FBO_SUB_HEIGHT 128.0
+#define SHADOWMAP_MAIN_WIDTH 512.0
+#define SHADOWMAP_MAIN_HEIGHT 512.0
+#define SHADOWMAP_SUB_WIDTH (SHADOWMAP_MAIN_WIDTH * 0.25)
+#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT * 0.25)
+
 namespace {
 
   PFNGLDELETEFENCESNVPROC glDeleteFencesNV;
@@ -29,6 +42,14 @@ namespace {
   PFNGLFINISHFENCENVPROC glFinishFenceNV;
   PFNGLSETFENCENVPROC glSetFenceNV;
   PFNGLTESTFENCENVPROC glTestFenceNV;
+
+  GLvoid dummy_glDeleteFencesNV(GLsizei, const GLuint*) {}
+  GLvoid dummy_glGenFencesNV(GLsizei, GLuint*) {}
+  GLvoid dummy_glGetFenceivNV(GLuint, GLenum, GLint*) {}
+  GLboolean dummy_glIsFenceNV(GLuint) { return false; }
+  GLvoid dummy_glFinishFenceNV(GLuint) {}
+  GLvoid dummy_glSetFenceNV(GLuint, GLenum) {}
+  GLboolean dummy_glTestFenceNV(GLuint) { return false; }
 
   void InitNVFenceExtention(bool hasNVfenceExtension)
   {
@@ -42,13 +63,13 @@ namespace {
 	  glTestFenceNV = (PFNGLTESTFENCENVPROC)eglGetProcAddress("glTestFenceNV");
 	  LOGI("Enable GL_NV_fence");
 	} else {
-	  glDeleteFencesNV = [](GLsizei, const GLuint*) -> void {};
-	  glGenFencesNV = [](GLsizei, GLuint*) -> void {};
-	  glGetFenceivNV = [](GLuint, GLenum, GLint*) -> void {};
-	  glIsFenceNV = [](GLuint) -> GLboolean { return false; };
-	  glFinishFenceNV = [](GLuint) -> void {};
-	  glSetFenceNV = [](GLuint, GLenum) -> void {};
-	  glTestFenceNV = [](GLuint) -> GLboolean { return false; };
+	  glDeleteFencesNV = dummy_glDeleteFencesNV;
+	  glGenFencesNV = dummy_glGenFencesNV;
+	  glGetFenceivNV = dummy_glGetFenceivNV;
+	  glIsFenceNV = dummy_glIsFenceNV;
+	  glFinishFenceNV = dummy_glFinishFenceNV;
+	  glSetFenceNV = dummy_glSetFenceNV;
+	  glTestFenceNV = dummy_glTestFenceNV;
 	  LOGI("Disable GL_NV_fence");
 	}
   }
@@ -107,28 +128,19 @@ namespace {
 		RawBufferType buf;
 		AAsset* pAsset = AAssetManager_open(state->activity->assetManager, filename, mode);
 		if (!pAsset) {
-			return boost::none;
+		  LOGI("LoadFile: %s not found.", filename);
+		  return boost::none;
 		}
 		const off_t size = AAsset_getLength(pAsset);
 		buf.resize(size);
 		const int result = AAsset_read(pAsset, &buf[0], AAsset_getLength(pAsset));
 		AAsset_close(pAsset);
 		if (result < 0) {
-			return boost::none;
+		  LOGI("LoadFile: %s can't read.", filename);
+		  return boost::none;
 		}
 		return buf;
 	}
-
-#define FBO_MAIN_WIDTH 512.0
-#define FBO_MAIN_HEIGHT 800.0
-#define MAIN_RENDERING_PATH_WIDTH 360.0
-#define MAIN_RENDERING_PATH_HEIGHT 640.0
-#define FBO_SUB_WIDTH 128.0
-#define FBO_SUB_HEIGHT 128.0
-#define SHADOWMAP_MAIN_WIDTH 512.0
-#define SHADOWMAP_MAIN_HEIGHT 512.0
-#define SHADOWMAP_SUB_WIDTH (SHADOWMAP_MAIN_WIDTH * 0.25)
-#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT * 0.25)
 
 	GLuint LoadShader(android_app* state, GLenum shaderType, const char* path) {
 		GLuint shader = 0;
@@ -137,6 +149,9 @@ namespace {
 #define MAKE_DEFINE_0(str, val) "#define " str " " #val "\n"
 #define MAKE_DEFINE(def) MAKE_DEFINE_0(#def, def)
 			static const GLchar defineList[] =
+#ifdef SUNNYSIDEUP_DEBUG
+			  "#define DEBUG\n"
+#endif // SUNNYSIDEUP_DEBUG
 			  MAKE_DEFINE(FBO_MAIN_WIDTH)
 			  MAKE_DEFINE(FBO_MAIN_HEIGHT)
 			  MAKE_DEFINE(FBO_SUB_WIDTH)
@@ -147,6 +162,9 @@ namespace {
 			  MAKE_DEFINE(SHADOWMAP_MAIN_HEIGHT)
 			  MAKE_DEFINE(SHADOWMAP_SUB_WIDTH)
 			  MAKE_DEFINE(SHADOWMAP_SUB_HEIGHT)
+#ifdef USE_HDR_BLOOM
+			  "#define USE_HDR_BLOOM\n"
+#endif // USE_HDR_BLOOM
 			  "#define SCALE_BONE_WEIGHT(w) ((w) * (1.0 / 255.0))\n"
 			  "#define SCALE_TEXCOORD(c) ((c) * (1.0 / 65535.0))\n"
 			  ;
@@ -211,6 +229,7 @@ namespace {
 			glBindAttribLocation(program, VertexAttribLocation_TexCoord01, "vTexCoord01");
 			glBindAttribLocation(program, VertexAttribLocation_Weight, "vWeight");
 			glBindAttribLocation(program, VertexAttribLocation_BoneID, "vBoneID");
+			glBindAttribLocation(program, VertexAttribLocation_Color, "vColor");
 			glLinkProgram(program);
 			GLint linkStatus = GL_FALSE;
 			glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
@@ -247,6 +266,9 @@ namespace {
 		s.matProjection = glGetUniformLocation(program, "matProjection");
 		s.matLightForShadow = glGetUniformLocation(program, "matLightForShadow");
 		s.bones = glGetUniformLocation(program, "boneMatrices");
+
+		s.debug = glGetUniformLocation(program, "debug");
+
 		s.id = name;
 		return s;
 	}
@@ -278,19 +300,33 @@ namespace {
 	  return m;
 	}
 
-	Matrix4x4 LookAt(const Vector3F& eyePos, const Vector3F& targetPos, const Vector3F& upVector)
-	{
-		const Vector3F ezVector = (eyePos - targetPos).Normalize();
-		const Vector3F exVector = upVector.Cross(ezVector).Normalize();
-		const Vector3F eyVector = ezVector.Cross(exVector).Normalize();
-		Matrix4x4 m;
-		m.SetVector(0, Vector4F(exVector.x, eyVector.x, ezVector.x, 0));
-		m.SetVector(1, Vector4F(exVector.y, eyVector.y, ezVector.y, 0));
-		m.SetVector(2, Vector4F(exVector.z, eyVector.z, ezVector.z, 0));
-		m.SetVector(3, Vector4F(-exVector.Dot(eyePos), -eyVector.Dot(eyePos), -ezVector.Dot(eyePos), 1.0f));
-		return m;
-	}
 } // unnamed namespace
+
+struct TBNVertex {
+  TBNVertex(const Position3F& p, Color4B c, const uint8_t* b, const uint8_t* w)
+	: position(p)
+	, color(c)
+	, weight{ w[0], w[1], w[2], w[3] }
+	, boneID{ b[0], b[1], b[2], b[3] }
+  {}
+  Position3F position;
+  Color4B color;
+  GLubyte weight[4];
+  GLubyte boneID[4];
+};
+
+Matrix4x4 LookAt(const Position3F& eyePos, const Position3F& targetPos, const Vector3F& upVector)
+{
+  const Vector3F ezVector = (eyePos - targetPos).Normalize();
+  const Vector3F exVector = upVector.Cross(ezVector).Normalize();
+  const Vector3F eyVector = ezVector.Cross(exVector).Normalize();
+  Matrix4x4 m;
+  m.SetVector(0, Vector4F(exVector.x, eyVector.x, ezVector.x, 0));
+  m.SetVector(1, Vector4F(exVector.y, eyVector.y, ezVector.y, 0));
+  m.SetVector(2, Vector4F(exVector.z, eyVector.z, ezVector.z, 0));
+  m.SetVector(3, Vector4F(-Dot(exVector, eyePos), -Dot(eyVector, eyePos), -Dot(ezVector, eyePos), 1.0f));
+  return m;
+}
 
 /** Shaderデストラクタ.
 */
@@ -449,6 +485,9 @@ std::vector<RotTrans> AnimationPlayer::Update(const JointList& jointList, float 
 		return result;
 	}
 	currentTime += t;
+	if (pAnime->loopFlag) {
+	  currentTime = std::fmod(currentTime, pAnime->totalTime);
+	}
 	result.reserve(jointList.size());
 	for (int i = 0; i < jointList.size(); ++i) {
 		const Animation::ElementPair p = pAnime->GetElementByTime(i, currentTime);
@@ -462,11 +501,15 @@ std::vector<RotTrans> AnimationPlayer::Update(const JointList& jointList, float 
 void UpdateJointRotTrans(std::vector<RotTrans>& rtList, const Joint* root, const Joint* joint, const RotTrans& parentRT)
 {
 	RotTrans& rtBuf = rtList[joint - root];
+#if 0
 	RotTrans rt = rtBuf * joint->initialPose;
 	rt *= parentRT;
 	rtBuf = rt * joint->invBindPose;
+#else
+	rtBuf = joint->invBindPose * rtBuf;
+#endif
 	if (joint->offChild) {
-		UpdateJointRotTrans(rtList, root, joint + joint->offChild, rt);
+		UpdateJointRotTrans(rtList, root, joint + joint->offChild, rtBuf);
 	}
 	if (joint->offSibling) {
 		UpdateJointRotTrans(rtList, root, joint + joint->offSibling, parentRT);
@@ -493,8 +536,7 @@ Renderer::Renderer(android_app* s)
   : state(s)
   , isInitialized(false)
   , texBaseDir("Textures/Others/")
-  , startTime(0)
-  , prevFrames(0)
+  , random(time(nullptr))
   , fboMain(0)
   , fboSub(0)
   , fboShadow0(0)
@@ -647,6 +689,8 @@ void Renderer::Initialize()
 
 	InitNVFenceExtention(hasNVfenceExtension);
 
+	glGetIntegerv(GL_VIEWPORT, viewport);
+
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
@@ -656,7 +700,9 @@ void Renderer::Initialize()
 
 	static const char* const shaderNameList[] = {
 	  "default",
+	  "defaultWithAlpha",
 	  "default2D",
+	  "cloud",
 	  "skybox",
 	  "shadow",
 	  "bilinear4x4",
@@ -665,6 +711,7 @@ void Renderer::Initialize()
 	  "reduceLum",
 	  "hdrdiff",
 	  "applyhdr",
+	  "tbn",
 	};
 	for (const auto e : shaderNameList) {
 		const std::string vert = std::string("Shaders/") + std::string(e) + std::string(".vert");
@@ -686,8 +733,16 @@ void Renderer::Initialize()
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * 1024 * 10 * 3, 0, GL_STATIC_DRAW);
 		iboEnd = 0;
-
+#ifdef SHOW_TANGENT_SPACE
+		glGenBuffers(1, &vboTBN);
+		glBindBuffer(GL_ARRAY_BUFFER, vboTBN);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(TBNVertex) * 1024 * 30, 0, GL_STATIC_DRAW);
+		vboTBNEnd = 0;
+#endif // SHOW_TANGENT_SPACE
 		InitMesh();
+
+		LOGI("VBO: %lu%%", vboEnd * 100 / (sizeof(Vertex) * 1024 * 10));
+		LOGI("IBO: %lu%%", iboEnd * 100 / (sizeof(GLushort) * 1024 * 10 * 3));
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -742,8 +797,6 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glBlendFunc(GL_ONE, GL_ZERO);
   glDisable(GL_CULL_FACE);
 
-  int32_t viewport[4];
-  glGetIntegerv(GL_VIEWPORT, viewport);
   const Matrix4x4 mP = { {
 	  2.0f / viewport[2], 0,                  0,                                    0,
 	  0,                  -2.0f / viewport[3], 0,                                    0,
@@ -751,7 +804,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
 	-1.0f,              1.0f,              -((500.0f + 0.1f) / (500.0f - 0.1f)), 1,
 	} };
   glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mP.f);
-  Matrix4x4 mV = LookAt(Vector3F(0, 0, 10), Vector3F(0, 0, 0), Vector3F(0, 1, 0));
+  Matrix4x4 mV = LookAt(Position3F(0, 0, 10), Position3F(0, 0, 0), Vector3F(0, 1, 0));
   glUniform1i(shader.texDiffuse, 0);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureList["ascii"]->TextureId());
@@ -767,7 +820,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glEnable(GL_CULL_FACE);
 }
 
-void Renderer::Render(const Object* begin, const Object* end)
+void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 {
 	static const int32_t stride = sizeof(Vertex);
 	static const void* const offPosition = reinterpret_cast<void*>(offsetof(Vertex, position));
@@ -780,17 +833,17 @@ void Renderer::Render(const Object* begin, const Object* end)
 	if (!isInitialized) {
 	  return;
 	}
-	if (begin == end) {
-		return;
-	}
+//	if (begin == end) {
+//		return;
+//	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
 	// とりあえず適当なカメラデータからビュー行列を設定.
-	const Vector3F eye = cameraPos;
-	const Vector3F at = cameraPos + cameraDir;
-	const Matrix4x4 mView = LookAt(eye, at, Vector3F(0, 1, 0));
+	const Position3F eye = cameraPos;
+	const Position3F at = cameraPos + cameraDir;
+	const Matrix4x4 mView = LookAt(eye, at, cameraUp);
 
 	static float fov = 60.0f;
 
@@ -805,10 +858,9 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	// shadow path.
 
-	static Vector3F viewPos(50, 50, 50);
 	static const float shadowNear = 10.0f;
-	static const float shadowFar = 100.0f; // 精度を確保するため短めにしておく.
-	const Matrix4x4 mViewL = LookAt(viewPos, Vector3F(0, 0, 0), Vector3F(0, 1, 0));
+	static const float shadowFar = 2000.0f; // 精度を確保するため短めにしておく.
+	const Matrix4x4 mViewL = LookAt(eye + Vector3F(200, 500, 200), eye, Vector3F(0, 1, 0));
 //	const Matrix4x4 mProjL = Perspective(fov, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
 	const Matrix4x4 mProjL = Olthographic(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
 	Matrix4x4 mCropL;
@@ -823,12 +875,12 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  const Position2F p = a + ca * 0.5f;
 	  const Vector2F v = Vector2F(-ca.y, ca.x).Normalize();
 	  const float distance = p.y + p.x * v.y; // 視点から視錐台の外接円の中心までの距離.
-	  const float r = (a - Position2F(0, distance)).Length(); // 視錐台の外接円の半径.
+	  //const float r = (a - Position2F(0, distance)).Length(); // 視錐台の外接円の半径.
 
 	  const Vector3F vEye = (at - eye).Normalize();
-	  const Vector3F frustumCenter = eye + (vEye * distance);
-	  Vector4F transformedCenter = mProjL * mViewL * frustumCenter;
-	  static float ms = 10.0f;// 4.0f;// transformedCenter.w / frustumRadius;
+	  const Position3F frustumCenter = eye + (vEye * distance);
+	  Vector4F transformedCenter = mProjL * mViewL * Vector3F(frustumCenter.x, frustumCenter.y, frustumCenter.z);
+	  static float ms = 0.5f;// 4.0f;// transformedCenter.w / frustumRadius;
 	  static float mss = 2.25f;
 	  const float mx = -transformedCenter.x / transformedCenter.w * mss;
 	  const float my = -transformedCenter.y / transformedCenter.w * mss;
@@ -844,7 +896,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 #if 1
 	{
-#if 1
 		glEnableVertexAttribArray(VertexAttribLocation_Position);
 		glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
 		glDisableVertexAttribArray(VertexAttribLocation_Normal);
@@ -854,7 +905,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glVertexAttribPointer(VertexAttribLocation_Weight, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offWeight);
 		glEnableVertexAttribArray(VertexAttribLocation_BoneID);
 		glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
-#endif
+
 		glBindFramebuffer(GL_FRAMEBUFFER, fboMain);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -869,8 +920,8 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glUseProgram(shader.program);
 		glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
 
-		for (const Object* itr = begin; itr != end; ++itr) {
-			const Object& obj = *itr;
+		for (const ObjectPtr* itr = begin; itr != end; ++itr) {
+			const Object& obj = *itr->get();
 			if (!obj.IsValid()) {
 				continue;
 			}
@@ -883,12 +934,22 @@ void Renderer::Render(const Object* begin, const Object* end)
 			  mScale.Set(0, 0, obj.Scale().x);
 			  mScale.Set(1, 1, obj.Scale().y);
 			  mScale.Set(2, 2, obj.Scale().z);
-			  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
+			  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
 			  glUniform4fv(shader.bones, 3, m.f);
 			}
 			glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
 		}
-		if(1){
+		// 自分の影(とりあえず球体で代用).
+		if (1) {
+		  Matrix4x3 m = Matrix4x3::Unit();
+		  m.Set(0, 3, eye.x);
+		  m.Set(1, 3, eye.y);
+		  m.Set(2, 3, eye.z);
+		  glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
+		  const Mesh& mesh = meshList["Sphere"];
+		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+		}
+		{
 		  Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
 		  // 地面は裏面を持たないため、-Y方向にオフセットすることで裏面とする.
 		  {
@@ -896,7 +957,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 			m.Set(1, 3, -0.01f);
 		  }
 		  glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
-		  const Mesh& mesh = meshList["board"];
+		  const Mesh& mesh = meshList["ground"];
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
 		if(0){
@@ -914,7 +975,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 		  const float r = (a - Position2F(0, distance)).Length(); // 視錐台の外接円の半径.
 
 		  const Vector3F vEye = (at - eye).Normalize();
-		  const Vector3F frustumCenter = eye + (vEye * distance);
+		  const Position3F frustumCenter = eye + (vEye * distance);
 		  Matrix4x4 m = Matrix4x4::FromScale(r * 2, r * 2, r * 2);
 		  m.Set(0, 3, frustumCenter.x);
 		  m.Set(1, 3, frustumCenter.y);
@@ -993,7 +1054,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	glClearColor(0.2f, 0.4f, 0.8f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#if 1
+
 	glEnableVertexAttribArray(VertexAttribLocation_Position);
 	glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
 	glEnableVertexAttribArray(VertexAttribLocation_Normal);
@@ -1006,26 +1067,52 @@ void Renderer::Render(const Object* begin, const Object* end)
 	glVertexAttribPointer(VertexAttribLocation_Weight, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offWeight);
 	glEnableVertexAttribArray(VertexAttribLocation_BoneID);
 	glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
-#endif
 
-	static const float near = 0.1f;
-	static const float far = 500.0f;
+	static const float near = 1.0f;
+	static const float far = 5000.0f;
 	const Matrix4x4 mProj = Perspective(fov, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT, near, far);
 
-#if 1
 	// 適当にライトを置いてみる.
 	const Vector4F lightPos(50, 50, 50, 1.0);
 	const Vector3F lightColor(7000.0f, 6000.0f, 5000.0f);
+#if 1
+	{
+	  const Shader& shader = shaderList["skybox"];
+	  glUseProgram(shader.program);
+
+	  Matrix4x4 mTrans(Matrix4x4::Unit());
+	  mTrans.SetVector(3, Vector4F(eye.x, eye.y, eye.z, 1));
+	  const Matrix4x4 m = mView * mTrans;
+	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mProj.f);
+	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, m.f);
+
+	  glUniform1i(shader.texDiffuse, 0);
+	  glActiveTexture(GL_TEXTURE0);
+	  glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
+	  glActiveTexture(GL_TEXTURE1);
+	  glBindTexture(GL_TEXTURE_2D, 0);
+	  glActiveTexture(GL_TEXTURE2);
+	  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	  glActiveTexture(GL_TEXTURE3);
+	  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	  glActiveTexture(GL_TEXTURE4);
+	  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	  glActiveTexture(GL_TEXTURE5);
+	  glBindTexture(GL_TEXTURE_2D, 0);
+	  const Mesh& mesh = meshList["skybox"];
+	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
+	}
 
 	GLuint currentProgramId = 0;
-	for (const Object* itr = begin; itr != end; ++itr) {
-		const Object& obj = *itr;
+	for (const ObjectPtr* itr = begin; itr != end; ++itr) {
+		const Object& obj = *itr->get();
 		if (!obj.IsValid()) {
 			continue;
 		}
 
-		const Shader& shader = *itr->Shader();
-		if (shader.program != currentProgramId) {
+		const Shader& shader = *obj.Shader();
+		if (shader.program && shader.program != currentProgramId) {
 			glUseProgram(shader.program);
 			currentProgramId = shader.program;
 
@@ -1052,10 +1139,25 @@ void Renderer::Render(const Object* begin, const Object* end)
 			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["irradiance"]->TextureId());
 			glActiveTexture(GL_TEXTURE5);
 			glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
+
+			if (shader.program == shaderList["cloud"].program) {
+				glDepthMask(GL_FALSE);
+				glDisable(GL_CULL_FACE);
+			} else {
+				glDepthMask(GL_TRUE);
+				glEnable(GL_CULL_FACE);
+			}
+#ifdef SUNNYSIDEUP_DEBUG
+			static float debug = -1;
+			glUniform1f(shader.debug, debug);
+#endif // SUNNYSIDEUP_DEBUG
 		}
 
-		glUniform4f(shader.materialColor, Fix8ToFloat(obj.Color().r), Fix8ToFloat(obj.Color().g), Fix8ToFloat(obj.Color().b), Fix8ToFloat(obj.Color().a));
-		glUniform2f(shader.materialMetallicAndRoughness, Fix8ToFloat(obj.Metallic()), Fix8ToFloat(obj.Roughness()));
+		const Vector4F materialColor = obj.Color().ToVector4F();
+		glUniform4fv(shader.materialColor, 1, &materialColor.x);
+		const float metallic = obj.Metallic();
+		const float roughness = obj.Roughness();
+		glUniform2f(shader.materialMetallicAndRoughness, metallic, roughness);
 
 		{
 			const auto& texDiffuse = obj.Mesh()->texDiffuse;
@@ -1068,9 +1170,9 @@ void Renderer::Render(const Object* begin, const Object* end)
 			const auto& texNormal = obj.Mesh()->texNormal;
 			glActiveTexture(GL_TEXTURE1);
 			if (texNormal) {
-			  glBindTexture(GL_TEXTURE_2D, texNormal->TextureId());
+				glBindTexture(GL_TEXTURE_2D, texNormal->TextureId());
 			} else {
-			  glBindTexture(GL_TEXTURE_2D, 0);
+				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 		}
 
@@ -1082,75 +1184,74 @@ void Renderer::Render(const Object* begin, const Object* end)
 		  mScale.Set(0, 0, obj.Scale().x);
 		  mScale.Set(1, 1, obj.Scale().y);
 		  mScale.Set(2, 2, obj.Scale().z);
-		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
+		  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
 		glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
 	}
-#endif
+	glDepthMask(GL_TRUE);
+	glEnable(GL_CULL_FACE);
 
-#if 1
-	{
-		const Shader& shader = shaderList["default"];
-		glUseProgram(shader.program);
+#ifdef SHOW_TANGENT_SPACE
+	static bool showTangentSpace = true;
+	if (showTangentSpace) {
+	  static const size_t stride = sizeof(TBNVertex);
+	  static const void* const offPosition = reinterpret_cast<void*>(offsetof(TBNVertex, position));
+	  static const void* const offColor = reinterpret_cast<void*>(offsetof(TBNVertex, color));
+	  static const void* const offWeight = reinterpret_cast<void*>(offsetof(TBNVertex, weight));
+	  static const void* const offBoneID = reinterpret_cast<void*>(offsetof(TBNVertex, boneID));
 
-		glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mProj.f);
-//		const Matrix4x4 mV = LookAt(Vector3F(0, 0, -3), Vector3F(0, 0, 0), Vector3F(0, 1, 0));
-//		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mV.f);
-		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mView.f);
-		glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
-
-		glUniform3f(shader.eyePos, eye.x, eye.y, eye.z);
-		glUniform3f(shader.lightColor, 0.0f, 0.0f, 0.0f);
-		glUniform3f(shader.lightPos, lightPos.x, lightPos.y, lightPos.z);
-
-		glUniform1i(shader.texDiffuse, 0);
-		glUniform1i(shader.texNormal, 1);
-		static const int texIBLId[] = { 2, 3, 4 };
-		glUniform1iv(shader.texIBL, 3, texIBLId);
-		glUniform1i(shader.texShadow, 5);
-
-		// IBL用テクスチャを設定.
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_low"]->TextureId());
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["irradiance"]->TextureId());
-		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureList["floor"]->TextureId());
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, textureList["floor_nml"]->TextureId());
-		Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
-		//m.Set(1, 3, -5.0f);
-		glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
-		const Mesh& mesh = meshList["board"];
-		glUniform4f(shader.materialColor, 0.3f, 0.3f, 0.3f, 1.0f);
-		glUniform2f(shader.materialMetallicAndRoughness, 0.0f, 1.0f);
-		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  glBindBuffer(GL_ARRAY_BUFFER, vboTBN);
+	  glEnableVertexAttribArray(VertexAttribLocation_Position);
+	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
+	  glEnableVertexAttribArray(VertexAttribLocation_Weight);
+	  glVertexAttribPointer(VertexAttribLocation_Weight, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offWeight);
+	  glEnableVertexAttribArray(VertexAttribLocation_BoneID);
+	  glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
+	  glEnableVertexAttribArray(VertexAttribLocation_Color);
+	  glVertexAttribPointer(VertexAttribLocation_Color, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride, offColor);
+	  const Shader& shader = shaderList["tbn"];
+	  glUseProgram(shader.program);
+	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mProj.f);
+	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mView.f);
+	  for (const ObjectPtr* itr = begin; itr != end; ++itr) {
+		const Object& obj = *itr->get();
+		if (!obj.IsValid()) {
+		  continue;
+		}
+		const size_t boneCount = std::min(obj.GetBoneCount(), static_cast<size_t>(32));
+		if (boneCount) {
+		  glUniform4fv(shader.bones, boneCount * 3, obj.GetBoneMatirxArray());
+		} else {
+		  Matrix4x3 mScale = Matrix4x3::Unit();
+		  mScale.Set(0, 0, obj.Scale().x);
+		  mScale.Set(1, 1, obj.Scale().y);
+		  mScale.Set(2, 2, obj.Scale().z);
+		  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
+		  glUniform4fv(shader.bones, 3, m.f);
+		}
+		glDrawArrays(GL_LINES, obj.Mesh()->vboTBNOffset, obj.Mesh()->vboTBNCount);
+	  }
 	}
-#endif
-#if 1
-	{
-		const Shader& shader = shaderList["skybox"];
-		glUseProgram(shader.program);
-
-		glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mProj.f);
-		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mView.f);
-
-		glUniform1i(shader.texDiffuse, 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
-		const Mesh& mesh = meshList["skybox"];
-		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-		glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
-	}
+	glDisableVertexAttribArray(VertexAttribLocation_Color);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+#endif // SHOW_TANGENT_SPACE
 #endif
 
+#ifdef USE_HDR_BLOOM
 	// hdr path.
+	glEnableVertexAttribArray(VertexAttribLocation_Position);
+	glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
+	glEnableVertexAttribArray(VertexAttribLocation_Normal);
+	glVertexAttribPointer(VertexAttribLocation_Normal, 3, GL_FLOAT, GL_FALSE, stride, offNormal);
+	glEnableVertexAttribArray(VertexAttribLocation_Tangent);
+	glVertexAttribPointer(VertexAttribLocation_Tangent, 4, GL_FLOAT, GL_FALSE, stride, offTangent);
+	glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
+	glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
+	glEnableVertexAttribArray(VertexAttribLocation_Weight);
+	glVertexAttribPointer(VertexAttribLocation_Weight, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offWeight);
+	glEnableVertexAttribArray(VertexAttribLocation_BoneID);
+	glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
 
 	// fboMain ->(reduceLum)-> fboSub
 	{
@@ -1236,7 +1337,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	  }
 	}
-
+#endif // USE_HDR_BLOOM
 	glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
 
 	// final path.
@@ -1246,7 +1347,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  glDisable(GL_DEPTH_TEST);
 	  glDepthFunc(GL_ALWAYS);
 	  glCullFace(GL_BACK);
-#if 1
+
 	  glEnableVertexAttribArray(VertexAttribLocation_Position);
 	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
 	  glDisableVertexAttribArray(VertexAttribLocation_Normal);
@@ -1255,7 +1356,7 @@ void Renderer::Render(const Object* begin, const Object* end)
 	  glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
 	  glDisableVertexAttribArray(VertexAttribLocation_Weight);
 	  glDisableVertexAttribArray(VertexAttribLocation_BoneID);
-#endif
+
 	  const Shader& shader = shaderList["applyhdr"];
 	  glUseProgram(shader.program);
 	  glBlendFunc(GL_ONE, GL_ZERO);
@@ -1280,7 +1381,6 @@ void Renderer::Render(const Object* begin, const Object* end)
 
 	// パフォーマンス計測.
 	{
-
 	  int64_t fenceTimes[6];
 	  fenceTimes[0] = GetCurrentTime(state);
 	  for (int i = 0; i < 5; ++i) {
@@ -1316,25 +1416,12 @@ void Renderer::Render(const Object* begin, const Object* end)
 	}
 
 	{
-	  ++frames;
-	  const int64_t curTime = GetCurrentTime(state);
-	  if (curTime - startTime >= (1000UL * 1000UL * 1000UL)) {
-		prevFrames = frames;
-		startTime = curTime;
-		frames = 0;
-	  }
-	  std::string s("FPS:");
-	  s += boost::lexical_cast<std::string>(prevFrames);
-	  DrawFont(Position2F(16, 40), s.c_str());
-	}
-
-	{
 	  auto f = [this](int pos, char c, float value) {
-		char buf[11];
+		char buf[16] = { 0 };
 		buf[0] = c; buf[1] = ':'; buf[2] = value >= 0.0f ? ' ' : '-';
 		const int x = std::abs<int>(value * 100.0f);
 		for (int i = 3, s = 100000; i < 10; ++i) {
-		  if (i == 6) {
+		  if (i == 7) {
 			buf[i] = '.';
 		  } else {
 			buf[i] = '0' + (x / s) % 10;
@@ -1342,11 +1429,18 @@ void Renderer::Render(const Object* begin, const Object* end)
 		  }
 		}
 		buf[10] = '\0';
-		DrawFont(Position2F(400, pos), buf);
+		DrawFont(Position2F(392, pos), buf);
 	  };
 	  f( 4, 'X', cameraPos.x);
 	  f(20, 'Y', cameraPos.y);
 	  f(36, 'Z', cameraPos.z);
+	  f(52, 'x', cameraDir.x);
+	  f(68, 'y', cameraDir.y);
+	  f(84, 'z', cameraDir.z);
+
+	  for (auto& e : debugStringList) {
+		DrawFont(Position2F(e.pos.x, e.pos.y), e.str.c_str());
+	  }
 	}
 #if 0
 	{
@@ -1396,10 +1490,11 @@ void Renderer::Render(const Object* begin, const Object* end)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Renderer::Update(float dTime, const Vector3F& pos, const Vector3F& dir)
+void Renderer::Update(float dTime, const Position3F& pos, const Vector3F& dir, const Vector3F& up)
 {
   cameraPos = pos;
   cameraDir = dir;
+  cameraUp = up;
 }
 
 void Renderer::Unload()
@@ -1431,6 +1526,12 @@ void Renderer::Unload()
 		glDeleteBuffers(1, &ibo);
 		ibo = 0;
 	}
+#ifdef SHOW_TANGENT_SPACE
+	if (vboTBN) {
+	  glDeleteBuffers(1, &vboTBN);
+	  vboTBN = 0;
+	}
+#endif // SHOW_TANGENT_SPACE
 
 	if (display != EGL_NO_DISPLAY) {
 		eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -1478,10 +1579,47 @@ namespace {
 	}
 
 	Vector3F MakeTangentVector(const Vector3F& normal) {
-	  Vector3F c1 = normal.Cross(Vector3F(0.0f, 0.0f, 1.0f));
-	  Vector3F c2 = normal.Cross(Vector3F(0.0f, 1.0f, 0.0f));
-	  return (c1.Length() > c2.Length() ? c1 : c2).Normalize();
+	  Vector3F c1 = normal.Cross(Vector3F(0.0f, 1.0f, 0.0f));
+	  Vector3F c2 = normal.Cross(Vector3F(0.0f, 0.0f, 1.0f));
+	  return (c1.LengthSq() >= c2.LengthSq() ? c1 : c2).Normalize();
 	}
+
+	Vertex CreateVertex(const Position3F& pos, const Vector3F& normal, const Position2F& texcoord) {
+		Vertex v;
+		v.position = pos;
+		v.weight[0] = 255;
+		v.weight[1] = v.weight[2] = v.weight[3] = 0;
+		v.normal = normal;
+		v.tangent = MakeTangentVector(normal);
+		v.tangent.w = 1.0f;
+		v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
+		v.texCoord[0] = Position2S::FromFloat(texcoord.x, texcoord.y);
+		v.texCoord[1] = v.texCoord[0];
+		return v;
+	}
+}
+
+#include "TangentSpaceData.h"
+
+void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* normal)
+{
+  if (auto pBuf = LoadFile(state, filename)) {
+	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd);
+	for (auto m : result.meshes) {
+	  const auto itr = textureList.find(diffuse);
+	  if (itr != textureList.end()) {
+		m.texDiffuse = itr->second;
+	  }
+	  const auto itrNml = textureList.find(normal);
+	  if (itrNml != textureList.end()) {
+		m.texNormal = itrNml->second;
+	  }
+	  meshList.insert({ m.id, m });
+	}
+	for (auto e : result.animations) {
+	  animationList.insert({ e.id, e });
+	}
+  }
 }
 
 /** 描画に必要なポリゴンメッシュの初期化.
@@ -1490,14 +1628,29 @@ namespace {
 */
 void Renderer::InitMesh()
 {
-	LoadMesh("cubes.dae", "wood", "wood_nml");
-	LoadMesh("Sphere.dae", "Sphere", "Sphere_nml");
-	LoadMesh("flyingrock.dae", "flyingrock", "flyingrock_nml");
-	LoadMesh("block1.dae", "block1", "block1_nml");
+	LoadMesh("cubes.dae", TangentSpaceData::defaultData, "wood", "wood_nml");
+	LoadMesh("sphere.dae", TangentSpaceData::sphereData, "Sphere", "Sphere_nml");
+	LoadMesh("flyingrock.dae", TangentSpaceData::flyingrockData, "flyingrock", "flyingrock_nml");
+//	LoadMesh("block1.dae", TangentSpaceData::block1Data, "block1", "block1_nml");
+//	LoadMesh("chickenegg.dae", TangentSpaceData::chickeneggData, "chickenegg", "chickenegg_nml");
+	LoadMesh("sunnysideup.dae", TangentSpaceData::sunnysideupData, "sunnysideup", "sunnysideup_nml");
+//	LoadMesh("flyingpan.dae", TangentSpaceData::flyingpanData, "flyingpan", "flyingpan_nml");
+	LoadMesh("brokenegg.dae", TangentSpaceData::brokeneggData, "brokenegg", "brokenegg_nml");
+	LoadMesh("accelerator.dae", TangentSpaceData::acceleratorData, "accelerator", "accelerator_nml");
+
+	LoadFBX("Meshes/block1.msh", "block1", "block1_nml");
+	LoadFBX("Meshes/flyingpan.msh", "flyingpan", "flyingpan_nml");
+	LoadFBX("Meshes/chickenegg.msh", "chickenegg", "chickenegg_nml");
+
 	CreateSkyboxMesh();
-	CreateFloorMesh("board", Vector3F(10.0f, 10.0f, 1.0f));
+	CreateOctahedronMesh();
+	CreateFloorMesh("ground", Vector3F(2000.0f, 2000.0f, 1.0f), 10);
 	CreateBoardMesh("board2D", Vector3F(1.0f, 1.0f, 1.0f));
 	CreateAsciiMesh("ascii");
+	CreateCloudMesh("cloud0", Vector3F(100, 50, 100));
+	CreateCloudMesh("cloud1", Vector3F(150, 50, 150));
+	CreateCloudMesh("cloud2", Vector3F(150, 100, 150));
+	CreateCloudMesh("cloud3", Vector3F(300, 100, 300));
 }
 
 void Renderer::CreateSkyboxMesh()
@@ -1518,7 +1671,7 @@ void Renderer::CreateSkyboxMesh()
 	};
 	for (int i = 0; i < 8 * 3; i += 3) {
 		Vertex v;
-		v.position = Position3F(cubeVertices[i + 0], cubeVertices[i + 1], cubeVertices[i + 2]) * 100.0f;
+		v.position = Position3F(cubeVertices[i + 0], cubeVertices[i + 1], cubeVertices[i + 2]) * (4000.0f / 1.7320508f);
 		// this is only using position. so other parametar is not set.
 		vertecies.push_back(v);
 	}
@@ -1528,14 +1681,14 @@ void Renderer::CreateSkyboxMesh()
 		5, 6, 7, 7, 4, 5,
 		1, 5, 4, 4, 0, 1,
 		7, 3, 0, 0, 4, 7,
-		1, 2, 6, 6, 5, 1,
+//		1, 2, 6, 6, 5, 1,
 	};
 	const GLushort offset = vboEnd / sizeof(Vertex);
 	for (auto e : cubeIndices) {
 		indices.push_back(e + offset);
 	}
 
-	Mesh mesh = Mesh("skybox", iboEnd, 6 * 2 * 3);
+	Mesh mesh = Mesh("skybox", iboEnd, indices.size());
 	const auto itr = textureList.find("skybox_high");
 	if (itr != textureList.end()) {
 		mesh.texDiffuse = itr->second;
@@ -1546,6 +1699,58 @@ void Renderer::CreateSkyboxMesh()
 	vboEnd += vertecies.size() * sizeof(Vertex);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
 	iboEnd += indices.size() * sizeof(GLushort);
+}
+
+void Renderer::CreateOctahedronMesh()
+{
+  std::vector<Vertex> vertecies;
+  std::vector<GLushort> indices;
+  vertecies.reserve(8 * 3);
+  indices.reserve(8 * 3 * 2);
+  static const GLfloat positionList[][3] = {
+	{ 0, 0, 1 },
+	{ 0.125, 0, 0 },
+	{ 0, 0.125, 0 },
+	{-0.125, 0, 0 },
+	{ 0, -0.125, 0 },
+	{ 0, 0, -0.25 },
+  };
+  static const GLushort indexList[][3] = {
+	{ 0, 1, 2 }, { 2, 1, 5 },
+	{ 0, 2, 3 }, { 3, 2, 5 },
+	{ 0, 3, 4 }, { 4, 3, 5 },
+	{ 0, 4, 1 }, { 1, 4, 5 },
+  };
+  static const float texCoordList[][2] = { { 0, 0 }, { 0, 1 }, { 1, 1 } };
+  const GLushort offset = vboEnd / sizeof(Vertex);
+  int index = 0;
+  for (auto& e : indexList) {
+	const Position3F p[3] = {
+	  Position3F(positionList[e[0]][0], positionList[e[0]][1], positionList[e[0]][2]),
+	  Position3F(positionList[e[1]][0], positionList[e[1]][1], positionList[e[1]][2]),
+	  Position3F(positionList[e[2]][0], positionList[e[2]][1], positionList[e[2]][2])
+	};
+	const Vector3F ab(p[1] - p[0]);
+	const Vector3F ac(p[2] - p[0]);
+	const Vector3F normal(ab.Cross(ac).Normalize());
+	for (int i = 0; i < 3; ++i) {
+	  vertecies.push_back(CreateVertex(p[i], normal, Position2F(texCoordList[i][0], texCoordList[i][1])));
+	  indices.push_back(index + offset);
+	  ++index;
+	}
+  }
+
+  Mesh mesh = Mesh("octahedron", iboEnd, indices.size());
+  const auto itr = textureList.find("dummy");
+  if (itr != textureList.end()) {
+	mesh.texDiffuse = itr->second;
+  }
+  meshList.insert({ "octahedron", mesh });
+
+  glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
+  vboEnd += vertecies.size() * sizeof(Vertex);
+  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
+  iboEnd += indices.size() * sizeof(GLushort);
 }
 
 void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
@@ -1561,16 +1766,11 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 		 1,  1, 0,  1, 0,
 	};
 	for (int i = 0; i < 4 * 5; i += 5) {
-		Vertex v;
-		v.position = Position3F(cubeVertices[i + 0], cubeVertices[i + 1], cubeVertices[i + 2]) * scale;
-		v.weight[0] = 255;
-		v.weight[1] = v.weight[2] = v.weight[3] = 0;
-		v.normal = Vector3F(0.0f, 0.0f, 1.0f);
-		v.tangent = MakeTangentVector(v.normal);
-		v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
-		v.texCoord[0] = Position2S::FromFloat(cubeVertices[i + 3], cubeVertices[i + 4]);
-		v.texCoord[1] = v.texCoord[0];
-		vertecies.push_back(v);
+		vertecies.push_back(CreateVertex(
+			Position3F(cubeVertices[i + 0], cubeVertices[i + 1], cubeVertices[i + 2]) * scale,
+			Vector3F(0.0f, 0.0f, 1.0f),
+			Position2F(cubeVertices[i + 3], cubeVertices[i + 4])
+		));
 	}
 	static const GLushort cubeIndices[] = {
 		0, 1, 2, 2, 3, 0,
@@ -1581,7 +1781,7 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 		indices.push_back(e + offset);
 	}
 
-	const Mesh mesh = Mesh(id, iboEnd, 2 * 2 * 3);
+	const Mesh mesh = Mesh(id, iboEnd, indices.size());
 	meshList.insert({ id, mesh });
 
 	glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
@@ -1590,25 +1790,19 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 	iboEnd += indices.size() * sizeof(GLushort);
 }
 
-void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale)
+void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale, int subdivideCount)
 {
-  static const int subdivideCount = 5;
-
   std::vector<Vertex> vertecies;
   vertecies.reserve((subdivideCount + 1) * (subdivideCount + 1));
   float tx = 0.0f, ty = 0.0f;
   for (float y = 0; y < subdivideCount + 1; ++y) {
 	for (float x = 0; x < subdivideCount + 1; ++x) {
-	  Vertex v;
-	  v.position = Position3F(2 * x / subdivideCount - 1, -2 * y / subdivideCount + 1, 0) * scale;
-	  v.weight[0] = 255;
-	  v.weight[1] = v.weight[2] = v.weight[3] = 0;
-	  v.normal = Vector3F(0.0f, 0.0f, 1.0f);
-	  v.tangent = MakeTangentVector(v.normal);
-	  v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
-	  v.texCoord[0] = Position2S::FromFloat(tx, ty);
-	  v.texCoord[1] = v.texCoord[0];
-	  vertecies.push_back(v);
+	  vertecies.push_back(CreateVertex(
+		Position3F(2 * x / subdivideCount - 1, -2 * y / subdivideCount + 1, 0) * scale,
+		Vector3F(0.0f, 0.0f, 1.0f),
+		Position2F(tx, ty)
+	  ));
+#if 0
 	  tx += 1.0f;
 	  if (tx > 1.0f) {
 		tx = 0.0f;
@@ -1618,6 +1812,12 @@ void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale)
 	if (ty > 1.0f) {
 	  ty = 0.0f;
 	}
+#else
+	  tx = (x + 1.0f) / subdivideCount;
+	}
+	tx = 0.0f;
+	ty = (y + 1.0f) / subdivideCount;
+#endif
   }
 
   std::vector<GLushort> indices;
@@ -1636,7 +1836,19 @@ void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale)
 	}
   }
 
-  const Mesh mesh = Mesh(id, iboEnd, indices.size());
+  Mesh mesh = Mesh(id, iboEnd, indices.size());
+  {
+	const auto itr = textureList.find("floor");
+	if (itr != textureList.end()) {
+	  mesh.texDiffuse = itr->second;
+	}
+  }
+  {
+	const auto itr = textureList.find("floor_nml");
+	if (itr != textureList.end()) {
+	  mesh.texNormal = itr->second;
+	}
+  }
   meshList.insert({ id, mesh });
 
   glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
@@ -1658,16 +1870,11 @@ void Renderer::CreateAsciiMesh(const char* id)
   for (int y = 0; y < 8; ++y) {
 	for (int x = 0; x < 16; ++x) {
 	  for (int i = 0; i < 4 * 4; i += 4) {
-		Vertex v;
-		v.position = Position3F(rectVertecies[i + 0], rectVertecies[i + 1], 0.0f);
-		v.weight[0] = 255;
-		v.weight[1] = v.weight[2] = v.weight[3] = 0;
-		v.normal = Vector3F(0.0f, 0.0f, 1.0f);
-		v.tangent = MakeTangentVector(v.normal);
-		v.boneID[0] = v.boneID[1] = v.boneID[2] = v.boneID[3] = 0;
-		v.texCoord[0] = Position2S::FromFloat(rectVertecies[i + 2] + x * 32.0f / 512.0f, rectVertecies[i + 3] + (1.0f - (y + 1) * 64.0f / 512.0f));
-		v.texCoord[1] = v.texCoord[0];
-		vertecies.push_back(v);
+		vertecies.push_back(CreateVertex(
+		  Position3F(rectVertecies[i + 0], rectVertecies[i + 1], 0.0f),
+		  Vector3F(0.0f, 0.0f, 1.0f),
+		  Position2F(rectVertecies[i + 2] + x * 32.0f / 512.0f, rectVertecies[i + 3] + (1.0f - (y + 1) * 64.0f / 512.0f))
+		));
 	  }
 	}
   }
@@ -1694,7 +1901,168 @@ void Renderer::CreateAsciiMesh(const char* id)
   iboEnd += indices.size() * sizeof(GLushort);
 }
 
-void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char* texNormal)
+/** 雲のメッシュを作成し、メッシュリストに登録する.
+
+  @param id メッシュのID. 他のメッシュと被らないユニークなIDを指定すること.
+  @param scale  雲の大きさ(単位:メートル).
+*/
+void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
+{
+  std::vector<Vertex> vertecies;
+  std::vector<GLushort> indices;
+  vertecies.reserve(4 * 10);
+  indices.reserve(3 * 2 * 10);
+
+  static const Vector3F boxelSize(40, 40, 40);
+  const int wx = std::max(1, static_cast<int>(scale.x / boxelSize.x));
+  const int wy = std::max(1, static_cast<int>(scale.y / boxelSize.y));
+  const int wz = std::max(1, static_cast<int>(scale.z / boxelSize.z));
+  std::vector<int> buf(wy * wz * wx, 0);
+  {
+	const int sequenceMax = std::max(1, (wy + wz + wx + 2) / 3);
+	const int cloudCount = std::max(1, (wy * wz * wx * 6) / 10);
+	const int startPos =
+	  boost::random::uniform_int_distribution<>(wz / 4, wz / 2)(random) * wx +
+	  boost::random::uniform_int_distribution<>(wx / 4, wx / 2)(random);
+	buf[startPos] = 1;
+	int pos = startPos;
+	int sequence = 0;
+	for (int i = 0; i < cloudCount; ++i) {
+	  int d[6];
+	  int ds = 0;
+	  const int y = (pos / (wz * wx)) % wy;
+	  const int z = (pos / wx) % wz;
+	  const int x = pos % wx;
+	  /* +y */ if (y < wy - 1 && !buf[pos + wz * wx]) { d[ds++] = 0; }
+	  /* -y */ if (y > 0 && !buf[pos - wz * wx]) { d[ds++] = 1; }
+	  /* +z */ if (z < wz - 1 && !buf[pos + wx]) { d[ds++] = 2; }
+	  /* -z */ if (z > 0 && !buf[pos - wx]) { d[ds++] = 3; }
+	  /* +x */ if (x < wx - 1 && !buf[pos + 1]) { d[ds++] = 4; }
+	  /* -x */ if (x > 0 && !buf[pos - 1]) { d[ds++] = 5; }
+	  if (ds == 0) {
+		pos = startPos;
+		sequence = 0;
+	  } else {
+		const int index = boost::random::uniform_int_distribution<>(0, ds - 1)(random);
+		switch (d[index]) {
+		case 0: pos += wz * wx; break;
+		case 1: pos -= wz * wx; break;
+		case 2: pos += wz; break;
+		case 3: pos -= wz; break;
+		case 4: ++pos; break;
+		default: --pos; break;
+		}
+		buf[pos] = 1;
+		++sequence;
+		if (sequence >= sequenceMax) {
+		  pos = startPos;
+		  sequence = 0;
+		}
+	  }
+	}
+  }
+  for (int i = 0; i < (wz * wx * 3) / 10; ++i) {
+	const int pos =
+	  boost::random::uniform_int_distribution<>(wz / 4, wz / 2)(random) * wx +
+	  boost::random::uniform_int_distribution<>(wx / 4, wx / 2)(random);
+	if (buf[pos]) {
+	  buf[pos] = 3;
+	}
+  }
+
+  {
+	static const float basePos[][2] = { { -1, -1 },{ 1, -1 },{ 1, 1 },{ -1, 1 } };
+	const Quaternion rot1(Vector3F(1, 0, 0), degreeToRadian<float>(-90));
+	const Position3F baseOffset(-boxelSize.x * wx * 0.5f, boxelSize.y * 0.5f, -boxelSize.z * wz * 0.5f);
+	Position3F offset;
+	offset.z = baseOffset.z;
+	for (int z = wz - 1; z >= 0; --z) {
+	  offset.y = baseOffset.y;
+	  for (int y = 0; y < wy; ++y) {
+		offset.x = baseOffset.x;
+		for (int x = 0; x < wx; ++x) {
+		  const int hasCloud = buf[y * wz * wx + z * wx + x];
+		  if (!hasCloud) {
+			continue;
+		  }
+		  const float cloudType = hasCloud == 3 ? 3 : boost::random::uniform_int_distribution<>(0, 2)(random);
+		  const Vector2F cloudScale = Vector2F(boxelSize.x, boxelSize.y) * (boost::random::uniform_int_distribution<>(85, 100)(random) * 0.01f);
+		  const Quaternion rot0 = rot1 * Quaternion(Vector3F(0, 0, 1), degreeToRadian<float>(hasCloud == 3 ? 0 : boost::random::uniform_int_distribution<>(-45, 45)(random)));
+		  const Vector3F offsetRnd(
+			boost::random::uniform_int_distribution<>(boxelSize.x * 0.25f, boxelSize.x * 0.75f)(random),
+			boost::random::uniform_int_distribution<>(boxelSize.y * 0.25f, boxelSize.y * 0.75f)(random),
+			boost::random::uniform_int_distribution<>(boxelSize.z * 0.25f, boxelSize.z * 0.75f)(random)
+		  );
+		  for (int i = 0; i < 4; ++i) {
+			Vector3F pos(basePos[i][0] * cloudScale.x, basePos[i][1] * cloudScale.y, 0);
+			pos = rot0.Apply(pos);
+			pos += offsetRnd;
+			const Position2F texcoord((basePos[i][0] + 1) * 0.125f + cloudType * 0.25f, 0.75f + (basePos[i][1] + 1) * 0.125f);
+			vertecies.push_back(CreateVertex(
+			  offset + pos,
+			  basePos[i][1] == 1 ? Vector3F(0.0f, 0.0f, 1.0f) : Vector3F(0.0f, 0.0f, 1.0f),
+			  texcoord
+			));
+		  }
+		  offset.x += boxelSize.x;
+		}
+		offset.y += boxelSize.y;
+	  }
+	  offset.z += boxelSize.z;
+	}
+#if 0
+	{
+	  float offsetX = 10.0f;
+	  float offsetY = 0.0f;
+	  for (int y = 0; y < middleCountY; ++y) {
+		for (int x = 0; x < middleCountX; ++x) {
+		  const float unitSize = boost::random::uniform_int_distribution<>(20, 29)(random);
+		  const float cloudType = boost::random::uniform_int_distribution<>(0, 2)(random);
+		  const Quaternion rot0(Vector3F(0, 0, 1), degreeToRadian<float>(boost::random::uniform_int_distribution<>(-450, 450)(random) / 10.0f));
+		  for (int i = 0; i < 4; ++i) {
+			Vector3F pos(basePos[i][0] * unitSize, basePos[i][1] * unitSize, 0);
+			pos = rot1.Apply(rot0.Apply(pos));
+			const Position2F texcoord((basePos[i][0] + 1) * 0.125f + cloudType * 0.25f, 0.75f + (basePos[i][1] + 1) * 0.125f);
+			vertecies.push_back(CreateVertex(
+			  Position3F(offsetX, offsetY + unitSize, 0) + pos,
+			  Vector3F(0.0f, 0.0f, 1.0f),
+			  texcoord
+			  ));
+		  }
+		  offsetX += boost::random::uniform_int_distribution<>(20, 30)(random);
+		}
+		offsetY += boost::random::uniform_int_distribution<>(10, 20)(random);
+	  }
+	}
+#endif
+  }
+
+  const GLushort offset = vboEnd / sizeof(Vertex);
+  for (int i = 0; i < vertecies.size(); i += 4) {
+	indices.push_back(i + 0 + offset);
+	indices.push_back(i + 1 + offset);
+	indices.push_back(i + 2 + offset);
+	indices.push_back(i + 2 + offset);
+	indices.push_back(i + 3 + offset);
+	indices.push_back(i + 0 + offset);
+  }
+
+  Mesh mesh = Mesh(id, iboEnd, indices.size());
+  {
+	const auto itr = textureList.find("cloud");
+	if (itr != textureList.end()) {
+	  mesh.texDiffuse = itr->second;
+	}
+  }
+  meshList.insert({ id, mesh });
+
+  glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
+  vboEnd += vertecies.size() * sizeof(Vertex);
+  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
+  iboEnd += indices.size() * sizeof(GLushort);
+}
+
+void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDiffuse, const char* texNormal)
 {
 	if (auto pBuf = LoadFile(state, filename)) {
 		// property_treeを使ってCOLLADAファイルを解析.
@@ -1707,7 +2075,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 		BPT::ptree collada;
 		try {
 			BPT::read_xml(is, collada);
-			LOGI("XML READ SUCCESS");
+			LOGI("XML READ SUCCESS %s", filename);
 		}
 		catch (BPT::xml_parser_error& e) {
 			LOGI("%s", e.message().c_str());
@@ -1796,13 +2164,17 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 			vertecies.reserve(defaultMaxVertexCount);
 			indices.reserve(defaultMaxVertexCount * 3);
 			GLintptr baseIndexOffset = iboEnd;
+#ifdef SHOW_TANGENT_SPACE
+			GLintptr baseVertexOffsetTBN = vboTBNEnd;
+#endif // SHOW_TANGENT_SPACE
 			int baseVertexOffset = vboEnd / sizeof(Vertex);
 			for (auto& e : scenesNode) {
 				if (e.first != "node" || e.second.get<std::string>("<xmlattr>.type") != "NODE") {
 					continue;
 				}
+				const BPT::ptree& nodeElem = e.second;
 				Vector3F nodeBaseScale(1, 1, 1);
-				if (auto opt = e.second.get_optional<std::string>("scale")) {
+				if (auto opt = nodeElem.get_optional<std::string>("scale")) {
 					const std::vector<float> list = split<float>(opt.get(), ' ', [](const std::string& s) { return atof(s.c_str()); });
 					if (list.size() >= 3) {
 						nodeBaseScale.x = list[0];
@@ -1811,7 +2183,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 					}
 				}
 				Vector3F nodeBaseTranslate(0, 0, 0);
-				if (auto opt = e.second.get_optional<std::string>("translate")) {
+				if (auto opt = nodeElem.get_optional<std::string>("translate")) {
 				  const std::vector<float> list = split<float>(opt.get(), ' ', [](const std::string& s) { return atof(s.c_str()); });
 				  if (list.size() >= 3) {
 					nodeBaseTranslate.x = list[0];
@@ -1819,7 +2191,6 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 					nodeBaseTranslate.z = list[2];
 				  }
 				}
-				const BPT::ptree& nodeElem = e.second;
 				SkinInfo skinInfo;
 				const BPT::ptree::const_assoc_iterator itrControllerUrl = e.second.find("instance_controller");
 				if (itrControllerUrl != e.second.not_found()) {
@@ -1875,7 +2246,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 						for (auto& e : vcount) {
 							std::array<int, 4> boneId = { { 0, 0, 0, 0 } };
 							std::array<float, 4> weight = { { 0, 0, 0, 0 } };
-							for (int i = 0; i < 4; ++i) {
+							for (int i = 0; i < e; ++i) {
 								boneId[i] = indexList[offset + 2 * i + boneIdOffset];
 								weight[i] = weightList[indexList[offset + 2 * i + weightOffset]];
 							}
@@ -1901,7 +2272,16 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 					continue;
 				}
 				const BPT::ptree& meshNode = itr->second.get_child("mesh");
-				const BPT::ptree& trianglesNode = meshNode.get_child("triangles");
+				const BPT::ptree* pTriangleNode;
+				if (auto p = meshNode.get_child_optional("triangles")) {
+					pTriangleNode = &p.get();
+				}  else if (auto p = meshNode.get_child_optional("polylist")) {
+					pTriangleNode = &p.get();
+				} else {
+					LOGI("%s has not triangles or polylist.", nodeElem.get<std::string>("<xmlattr>.id").c_str());
+					continue;
+				}
+				const BPT::ptree& trianglesNode = *pTriangleNode;
 
 				// input要素を解析し、対応するソース及びオフセットを得る.
 				std::vector<Position3F> posArray;
@@ -2071,6 +2451,11 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				};
 
 				Mesh mesh = Mesh(nodeElem.get<std::string>("<xmlattr>.id"), baseIndexOffset, indexCount);
+#ifdef SHOW_TANGENT_SPACE
+				mesh.vboTBNOffset = baseVertexOffsetTBN / sizeof(TBNVertex);
+				mesh.vboTBNCount = vertIdList.size() * 3 * 2;
+				baseVertexOffsetTBN += vertIdList.size() * 3 * 2;
+#endif // SHOW_TANGENT_SPACE
 				if (!boneNameList.empty()) {
 					std::vector<Joint> joints;
 					joints.resize(boneNameList.size());
@@ -2101,80 +2486,40 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 			if (fromBlender) {
 				for (auto& e : vertecies) {
 					e.position = Position3F(-e.position.x, e.position.z, e.position.y);
-					e.normal = Vector3F(-e.normal.x, e.normal.z, e.normal.y);
+					e.normal = Vector3F(-e.normal.x, e.normal.z, e.normal.y).Normalize();
 				}
 			}
 
 			// 頂点タンジェントを計算する.
+			TangentSpaceData::CalculateTangent(static_cast<const TangentSpaceData::Data*>(pTD), indices, vboEnd, vertecies);
+
+#ifdef SHOW_TANGENT_SPACE
 			{
-			  struct TangentInfo {
-				Vector3F t;
-				Vector3F b;
-				TangentInfo() : t(0, 0, 0), b(0, 0, 0) {}
-			  };
-			  std::vector<TangentInfo> tangentList;
-			  tangentList.resize(vertecies.size());
-			  const size_t end = indices.size();
-			  for (size_t i = 0; i < end; i += 3) {
-				const int i0 = indices[i + 0] - vboEnd / sizeof(Vertex);
-				const int i1 = indices[i + 1] - vboEnd / sizeof(Vertex);
-				const int i2 = indices[i + 2] - vboEnd / sizeof(Vertex);
-				Vertex& a = vertecies[i0];
-				Vertex& b = vertecies[i1];
-				Vertex& c = vertecies[i2];
-				const Position2F stA = a.texCoord[0].ToFloat();
-				const Position2F stB = b.texCoord[0].ToFloat();
-				const Position2F stC = c.texCoord[0].ToFloat();
-				const Vector3F ab = b.position - a.position;
-				const Vector3F ac = c.position - a.position;
-				const float s1 = stB.x - stA.x;
-				const float t1 = stB.y - stA.y;
-				const float s2 = stC.x - stA.x;
-				const float t2 = stC.y - stA.y;
-
-				const float st_cross = s1 * t2 - t1 * s2;
-				const float r = (std::abs(st_cross) <= 0.0001f) ? 1.0f : (1.0f / st_cross);
-				Vector3F sdir(t2 * ab.x - t1 * ac.x, t2 * ab.y - t1 * ac.y, t2 * ab.z - t1 * ac.z);
-				sdir *= r;
-				sdir.Normalize();
-				Vector3F tdir(s1 * ac.x - s2 * ab.x, s1 * ac.y - s2 * ab.y, s1 * ac.z - s2 * ab.z);
-				tdir *= r;
-				tdir.Normalize();
-
-				tangentList[i0].t += sdir;
-				tangentList[i0].b += tdir;
-				tangentList[i1].t += sdir;
-				tangentList[i1].b += tdir;
-				tangentList[i2].t += sdir;
-				tangentList[i2].b += tdir;
-			  }
-			  for (auto& e : tangentList) {
-				e.t.Normalize();
-				e.b.Normalize();
-			  }
-			  auto tangentListItr = tangentList.begin();
+			  std::vector<TBNVertex> tbn;
+			  tbn.reserve(vertecies.size() * 3 * 2);
+			  static const Color4B red(255, 0, 0, 255), green(0, 255, 0, 255), blue(0, 0, 255, 255);
+			  static const float lentgh = 0.2f;
 			  for (auto& e : vertecies) {
-				const Vector3F& t = tangentListItr->t;
-				if (t.Length()) {
-				  const Vector3F& b = tangentListItr->b;
-				  e.tangent = (t - e.normal * e.normal.Dot(t)).Normalize();
-				  e.tangent.w = e.normal.Cross(t).Dot(b) < 0.0f ? -1.0f : 1.0f;
-				} else {
-				  const Vector3F v0 = e.normal.Cross(Vector3F(1, 0, 0));
-				  const Vector3F v1 = e.normal.Cross(Vector3F(0, 1, 0));
-				  if (v0.Length() >= v1.Length()) {
-					e.tangent = v0;
-				  } else {
-					e.tangent = v1;
-				  }
-				}
-				++tangentListItr;
+				const Vector3F t = e.tangent.ToVec3();
+				const Vector3F b = e.normal.Cross(t).Normalize() * e.tangent.w;
+				tbn.push_back(TBNVertex(e.position, green, e.boneID, e.weight));
+				tbn.push_back(TBNVertex(e.position + b * lentgh, green, e.boneID, e.weight));
+				tbn.push_back(TBNVertex(e.position, red, e.boneID, e.weight));
+				tbn.push_back(TBNVertex(e.position + t * lentgh, red, e.boneID, e.weight));
+				tbn.push_back(TBNVertex(e.position, blue, e.boneID, e.weight));
+				tbn.push_back(TBNVertex(e.position + e.normal * lentgh, blue, e.boneID, e.weight));
 			  }
+			  glBindBuffer(GL_ARRAY_BUFFER, vboTBN);
+			  glBufferSubData(GL_ARRAY_BUFFER, vboTBNEnd, tbn.size() * sizeof(TBNVertex), &tbn[0]);
+			  vboTBNEnd += tbn.size() * sizeof(TBNVertex);
 			}
+#endif // SHOW_TANGENT_SPACE
 
 			LOGI("MAKING VERTEX LIST SUCCESS:%d, %d", vertecies.size(), indices.size());
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
 			glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
 			vboEnd += vertecies.size() * sizeof(Vertex);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
 			iboEnd += indices.size() * sizeof(GLushort);
 		}
@@ -2242,6 +2587,7 @@ void Renderer::LoadMesh(const char* filename, const char* texDiffuse, const char
 				LOGI("BAD PATH");
 			}
 		}
+		LOGI("Success loading %s", filename);
 	}
 }
 void Renderer::InitTexture()
@@ -2267,20 +2613,51 @@ void Renderer::InitTexture()
 	textureList.insert({ "wood_nml", Texture::LoadKTX(state, (texBaseDir + "woodNR.ktx").c_str()) });
 	textureList.insert({ "Sphere", Texture::LoadKTX(state, (texBaseDir + "sphere.ktx").c_str()) });
 	textureList.insert({ "Sphere_nml", Texture::LoadKTX(state, (texBaseDir + "sphereNR.ktx").c_str()) });
-	textureList.insert({ "floor", Texture::LoadKTX(state, (texBaseDir + "floor.ktx").c_str()) });
-	textureList.insert({ "floor_nml", Texture::LoadKTX(state, (texBaseDir + "floorNR.ktx").c_str()) });
+//	textureList.insert({ "floor", Texture::LoadKTX(state, (texBaseDir + "floor.ktx").c_str()) });
+//	textureList.insert({ "floor_nml", Texture::LoadKTX(state, (texBaseDir + "floorNR.ktx").c_str()) });
+	textureList.insert({ "floor", Texture::LoadKTX(state, "Textures/Common/landscape.ktx") });
+	textureList.insert({ "floor_nml", Texture::LoadKTX(state, (texBaseDir + "landscapeNR.ktx").c_str()) });
 	textureList.insert({ "flyingrock", Texture::LoadKTX(state, (texBaseDir + "flyingrock.ktx").c_str()) });
 	textureList.insert({ "flyingrock_nml", Texture::LoadKTX(state, (texBaseDir + "flyingrockNR.ktx").c_str()) });
 	textureList.insert({ "block1", Texture::LoadKTX(state, (texBaseDir + "block1.ktx").c_str()) });
 	textureList.insert({ "block1_nml", Texture::LoadKTX(state, (texBaseDir + "block1NR.ktx").c_str()) });
+	textureList.insert({ "chickenegg", Texture::LoadKTX(state, (texBaseDir + "chickenegg.ktx").c_str()) });
+	textureList.insert({ "chickenegg_nml", Texture::LoadKTX(state, (texBaseDir + "chickeneggNR.ktx").c_str()) });
+	textureList.insert({ "sunnysideup", Texture::LoadKTX(state, (texBaseDir + "sunnysideup.ktx").c_str()) });
+	textureList.insert({ "sunnysideup_nml", Texture::LoadKTX(state, (texBaseDir + "sunnysideupNR.ktx").c_str()) });
+	textureList.insert({ "brokenegg", Texture::LoadKTX(state, (texBaseDir + "brokenegg.ktx").c_str()) });
+	textureList.insert({ "brokenegg_nml", Texture::LoadKTX(state, (texBaseDir + "brokeneggNR.ktx").c_str()) });
+	textureList.insert({ "flyingpan", Texture::LoadKTX(state, (texBaseDir + "flyingpan.ktx").c_str()) });
+	textureList.insert({ "flyingpan_nml", Texture::LoadKTX(state, (texBaseDir + "flyingpanNR.ktx").c_str()) });
+	textureList.insert({ "accelerator", Texture::LoadKTX(state, (texBaseDir + "accelerator.ktx").c_str()) });
+	textureList.insert({ "accelerator_nml", Texture::LoadKTX(state, (texBaseDir + "acceleratorNR.ktx").c_str()) });
+	textureList.insert({ "cloud", Texture::LoadKTX(state, "Textures/Common/cloud.ktx") });
 }
 
-Object Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)
+ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)
 {
-	return Object(RotTrans::Unit(), &meshList.find(meshName)->second, m, &shaderList[shaderName]);
+	Mesh* pMesh = nullptr;
+	auto mesh = meshList.find(meshName);
+	if (mesh != meshList.end()) {
+		pMesh = &mesh->second;
+	} else {
+	  LOGI("Mesh '%s' not found.", meshName);
+	}
+	Shader* pShader = nullptr;
+	auto shader = shaderList.find(shaderName);
+	if (shader != shaderList.end()) {
+		pShader = &shader->second;
+	} else {
+	  LOGI("Shader '%s' not found.", shaderName);
+	}
+	return ObjectPtr(new Object(RotTrans::Unit(), pMesh, m, pShader));
 }
 
 const Animation* Renderer::GetAnimation(const char* name)
 {
-	return &animationList[name];
+	auto itr = animationList.find(name);
+	if (itr != animationList.end()) {
+	  return &itr->second;
+	}
+	return nullptr;
 }

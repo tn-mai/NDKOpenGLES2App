@@ -15,6 +15,7 @@
 *
 */
 
+#include "Scene.h"
 #include "Renderer.h"
 #include "android_native_app_glue.h"
 #include "TouchSwipeCamera.h"
@@ -30,6 +31,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <boost/random.hpp>
 #include <vector>
 #include <streambuf>
 
@@ -43,6 +45,12 @@ namespace BPT = boost::property_tree;
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
+//#define SHOW_DEBUG_SENSOR_OBJECT
+
+static const Region region = { Position3F(-100, 200, -100), Position3F(100, 3800, 100) };
+static const float unitRegionSize = 100.0f;
+static const size_t maxObject = 1000;
+
 /**
 * 保存状態のデータです。
 */
@@ -55,14 +63,15 @@ struct saved_state {
 
 /**
 * アプリの保存状態です。
+*
+* A sensor managiment code was referring to http://plaw.info/2012/03/android-sensor-fusion-tutorial/
 */
 struct engine {
 	engine(android_app* a)
 		: app(a)
 		, sensorManager(0)
-		, accelerometerSensor(0)
-		, sensorEventQueue(0)
 		, animating(0)
+		, initialized(false)
 //		, display(0)
 //		, surface(0)
 //		, context(0)
@@ -71,15 +80,53 @@ struct engine {
 		, state()
 	    , debugCamera(a)
 		, renderer(a)
-	{}
+		, pScene(new Scene(region.min, region.max, unitRegionSize, maxObject))
+		, random(time(nullptr))
+		, avgFps(30.0f)
+		, deltaTime(1.0f / avgFps)
+		, frames(0)
+		, latestFps(30)
+		, startTime(0)
+	{
+		for (int i = 0; i < SensorType_MAX; ++i) {
+			sensor[i] = 0;
+			sensorEventQueue[i] = 0;
+		}
+		gyro = Vector3F::Unit();
+		gyroMatrix = Matrix4x4::Unit();
+		gyroOrientation = Vector3F::Unit();
+		magnet = Vector3F::Unit();
+		accel = Vector3F::Unit();
+		accMagOrientation = Vector3F::Unit();
+		fusedOrientation = Vector3F::Unit();
+	}
 
 	struct android_app* app;
 
+	enum SensorType {
+	  SensorType_Accel,
+	  SensorType_Magnet,
+	  SensorType_Gyro,
+	  SensorType_MAX
+	};
+	enum LooperId {
+	  LooperId_Accel = LOOPER_ID_USER,
+	  LooperId_Magnet,
+	  LooperId_Gyro
+	};
 	ASensorManager* sensorManager;
-	const ASensor* accelerometerSensor;
-	ASensorEventQueue* sensorEventQueue;
+	const ASensor* sensor[SensorType_MAX];
+	ASensorEventQueue* sensorEventQueue[SensorType_MAX];
+	Vector3F gyro;
+	Matrix4x4 gyroMatrix;
+	Vector3F gyroOrientation;
+	Vector3F magnet;
+	Vector3F accel;
+	Vector3F accMagOrientation;
+	Vector3F fusedOrientation;
 
 	int animating;
+	bool initialized;
 //	EGLDisplay display;
 //	EGLSurface surface;
 //	EGLContext context;
@@ -89,7 +136,123 @@ struct engine {
 
 	TouchSwipeCamera debugCamera;
 	Renderer renderer;
-	Object obj[5];
+	std::unique_ptr<Scene> pScene;
+	boost::random::mt19937 random;
+#ifdef SHOW_DEBUG_SENSOR_OBJECT
+	ObjectPtr debugSensorObj;
+#endif // SHOW_DEBUG_SENSOR_OBJECT
+	ObjectPtr debugObj[3];
+	Collision::RigidBodyPtr rigidCamera;
+
+	float avgFps;
+	float deltaTime;
+	int frames;
+	int latestFps;
+	int64_t startTime;
+
+	static bool GetRotationMatrix(Matrix4x4* m, const Vector3F& gravity, const Vector3F& geomagnetic) {
+		Vector3F A(gravity);
+		const Vector3F E(geomagnetic);
+		Vector3F H = E.Cross(A);
+		const float normH = H.Length();
+		if (normH < 0.1f) {
+			return false;
+		}
+		H.Normalize();
+		A.Normalize();
+		const Vector3F M = A.Cross(H);
+
+		m->SetVector(0, Vector4F(H, 0));
+		m->SetVector(1, Vector4F(M, 0));
+		m->SetVector(2, Vector4F(A, 0));
+		m->SetVector(3, Vector4F::Unit());
+		return true;
+	}
+
+	static void GetOrientation(Vector3F* v, const Matrix4x4& m) {
+	  v->x = std::atan2(m.At(0, 1), m.At(1, 1));
+	  v->y = std::asin(-m.At(2, 1));
+	  v->z = std::atan2(-m.At(2, 0), m.At(2, 2));
+	}
+
+	void CalcAccMagOrientation() {
+		Matrix4x4 m;
+		if (GetRotationMatrix(&m, accel, magnet)) {
+			GetOrientation(&accMagOrientation, m);
+		} else {
+			accMagOrientation = accel;
+		}
+	}
+
+	void GetQuaternionFromGyro(Quaternion* deltaRotationVector, Vector3F gyro, float timeFactor) {
+		const float omegaMagnitude = gyro.Length();
+		const float epsilon = 0.000000001f;
+		if (omegaMagnitude > epsilon) {
+		  gyro.Normalize();
+		}
+		*deltaRotationVector = Quaternion(gyro, omegaMagnitude *  timeFactor);
+	}
+
+	static void GetRotationMatrixFromOrientation(Matrix4x4* m, const Vector3F& o) {
+		*m = Matrix4x4::RotationX(o.x) * Matrix4x4::RotationY(o.y) * Matrix4x4::RotationZ(o.z);
+	}
+	
+	static void GetRotationMatrixFromQuaternion(Matrix4x4* m, const Quaternion& r) {
+		const Quaternion q(r.x, r.y, r.z, std::sqrt(1.0f - r.Length()));
+		const Matrix4x3 mm = ToMatrix(q);
+		m->SetVector(0, mm.GetVector(0));
+		m->SetVector(1, mm.GetVector(1));
+		m->SetVector(2, mm.GetVector(2));
+		m->SetVector(0, Vector4F::Unit());
+	}
+
+	void GyroFunction(const Vector3F& vector, float timestamp) {
+		static bool initState = true;
+		static float timeStamp = 0.0f;
+		if (initState) {
+			Matrix4x4 m;
+			GetRotationMatrixFromOrientation(&m, accMagOrientation);
+			gyroMatrix *= m;
+			initState = false;
+		}
+		Quaternion delta = Quaternion::Unit();
+		if (timeStamp != 0.0f) {
+			const float NS2S = 1.0f / 1000000000.0f;
+			const float dt = (timestamp - timeStamp) * NS2S;
+			gyro = Vector3F(vector.x, vector.y, vector.z);
+			GetQuaternionFromGyro(&delta, gyro, dt);
+		}
+		timeStamp = timestamp;
+		Matrix4x4 deltaMatrix;
+		GetRotationMatrixFromQuaternion(&deltaMatrix, delta);
+		gyroMatrix *= deltaMatrix;
+		GetOrientation(&gyroOrientation, gyroMatrix);
+	}
+
+	void CalcFusedOrientation() {
+		const float coeff = 0.98f;
+		const float oneMinusCoeff = 1.0f - coeff;
+		if (sensor[SensorType_Gyro]) {
+			fusedOrientation = gyroOrientation * coeff + accMagOrientation * oneMinusCoeff;
+			GetRotationMatrixFromOrientation(&gyroMatrix, fusedOrientation);
+		} else if (sensor[SensorType_Magnet]) {
+			fusedOrientation = accMagOrientation;
+		} else {
+		  /* 003SHの動作仕様から適当に設定.
+		  accel: デバイスのupベクトル.
+		  デバイス垂直時 x=水平軸(右が+), y=垂直軸(上が+), z=前後軸(前が+).
+		  垂直軸周りの回転を検出できない.
+		  */
+		  fusedOrientation.x = 0.0f;
+		  fusedOrientation.y = -accel.y * 0.1f * boost::math::constants::pi<float>() * 0.5f;
+		  fusedOrientation.z = std::atan(accel.z / accel.x);
+		  if (fusedOrientation.z >= 0.0f) {
+			fusedOrientation.z -= boost::math::constants::pi<float>() * 0.5f;
+		  } else {
+			fusedOrientation.z += boost::math::constants::pi<float>() * 0.5f;
+		  }
+		}
+	}
 };
 
 template<typename T>
@@ -160,23 +323,159 @@ static int engine_init_display(struct engine* engine) {
 	engine->renderer.Initialize();
 	engine->debugCamera.Reset();
 	engine->debugCamera.ScreenSize(engine->renderer.Width(), engine->renderer.Height());
+	engine->debugCamera.Position(Position3F(0, 100, 0));
+	engine->debugCamera.LookAt(Position3F(-1, 100, 0));
+	engine->debugCamera.UpVector(Vector3F(0, 1, 0));
+#if 0
+	// ランダムにオブジェクトを発生させてみる.
+	const int regionCount = std::ceil((region.max.y - region.min.y) / unitRegionSize);
+	for (int i = 0; i < regionCount; ++i) {
+	  int objectCount = engine->random() % 2 + 1;
+	  while (--objectCount >= 0) {
+		const float theta = degreeToRadian<float>(engine->random() % 360);
+		const float distance = engine->random() % 200;
+		const float tx = std::cos(theta) * distance;
+		const float tz = std::sin(theta) * distance;
+		const float ty = engine->random() % 100;
+		if (boost::random::uniform_int_distribution<>(0, 99)(engine->random) < 70) {
+		  auto obj = engine->renderer.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		  Object& o = *obj;
+		  const Vector3F trans(tx, ty + i * unitRegionSize, tz);
+		  o.SetTranslation(trans);
+		  const float scale = static_cast<float>(engine->random() % 40) / 10.0f + 1.0f;
+		  o.SetScale(Vector3F(scale, scale, scale));
+		  const float rx = degreeToRadian<float>(engine->random() % 30);
+		  const float ry = degreeToRadian<float>(engine->random() % 360);
+		  const float rz = degreeToRadian<float>(engine->random() % 30);
+		  o.SetRotation(rx, ry, rz);
+		  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.5, 3, 2.5) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
+		  p->thrust = Vector3F(0, 9.8f, 0);
+		  engine->pScene->Insert(obj, p, Vector3F(-1.47f, 0.25f, 2.512f) * scale);
+		} else {
+		  auto obj = engine->renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		  Object& o = *obj;
+		  const Vector3F trans(tx, ty + i * unitRegionSize, tz);
+		  o.SetTranslation(trans);
+//		  o.SetScale(Vector3F(2, 2, 2));
+		  const float rx = degreeToRadian<float>(engine->random() % 360);
+		  const float ry = degreeToRadian<float>(engine->random() % 360);
+		  const float rz = degreeToRadian<float>(engine->random() % 360);
+		  o.SetRotation(rx, ry, rz);
+		  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(5, 1, 4) * 2, 10 * 1 * 8));
+		  p->thrust = Vector3F(0, 9.8f, 0);
+		  engine->pScene->Insert(obj, p, Vector3F(0, 0, -1) * 2);
+		}
+	  }
+	}
+#endif
+	{
+	  auto obj = engine->renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  Object& o = *obj;
+	  o.SetAnimation(engine->renderer.GetAnimation("Walk"));
+	  const Vector3F trans(5, 100, 4.5f);
+	  o.SetTranslation(trans);
+	  //o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
+	  o.SetScale(Vector3F(5, 5, 5));
+	  Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 5.0f, 0.1));
+	  p->thrust = Vector3F(0, 9.8f, 0);
+	  engine->pScene->Insert(obj, p, Vector3F(0, 0, 0));
+	}
+#if 0
+	{
+	  auto obj = engine->renderer.CreateObject("Accelerator", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  Object& o = *obj;
+	  o.SetScale(Vector3F(5, 5, 5));
+	  o.SetTranslation(Vector3F(-15, 120, 0));
+	  o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
+	  engine->pScene->Insert(obj);
+	}
+#endif
+	{
+	  engine->debugObj[0] = engine->renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  Object& o = *engine->debugObj[0];
+//	  o.SetScale(Vector3F(2, 2, 2));
+	  o.SetTranslation(Vector3F(-15, 100, 0));
+	  o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
+	  engine->pScene->Insert(engine->debugObj[0]);
+	}
+#if 0
+	{
+	  auto obj = engine->renderer.CreateObject("FlyingPan", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  Object& o = *obj;
+	  o.SetScale(Vector3F(5, 5, 5));
+	  o.SetTranslation(Vector3F(15, 10, 0));
+	  engine->pScene->Insert(obj);
+	}
+	{
+	  engine->debugObj[1] = engine->renderer.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0.1f, 0), "default");
+	  Object& o = *engine->debugObj[1];
+	  o.SetScale(Vector3F(3, 3, 3));
+	  o.SetTranslation(Vector3F(15, 11, 0));
+	  engine->pScene->Insert(engine->debugObj[1]);
+	}
+#endif
+	{
+	  auto obj = engine->renderer.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  Object& o = *obj;
+	  o.SetRotation(degreeToRadian(-90.0f), 0, 0);
+	  Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0), Vector3F(0, 1, 0), 1000 * 1000 * 1000));
+	  p->thrust = Vector3F(0, 9.8f, 0);
+	  engine->pScene->Insert(obj, p);
+	}
 
-	engine->obj[0] = engine->renderer.CreateObject("pCube1", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(0.6f)), "default");
-	engine->obj[0].SetAnimation(engine->renderer.GetAnimation("bend"));
-	engine->obj[0].SetTranslation(Vector3F(0, 0, 0.5f));
+	if (0) {
+	  auto obj0 = engine->renderer.CreateObject("BrokenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  Object& o0 = *obj0;
+	  o0.SetScale(Vector3F(3, 3, 3));
+	  o0.SetTranslation(Vector3F(-12, 0.75f, 0));
+	  engine->pScene->Insert(obj0);
+	  auto obj2 = engine->renderer.CreateObject("EggYolk", Material(Color4B(255, 255, 255, 255), -0.05f, 0), "default");
+	  Object& o2 = *obj2;
+	  o2.SetScale(Vector3F(3, 3, 3));
+	  o2.SetTranslation(Vector3F(-15.0f, 0.7f, 0.0));
+	  engine->pScene->Insert(obj2);
+	  auto obj1 = engine->renderer.CreateObject("EggWhite", Material(Color4B(255, 255, 255, 64), -0.5f, 0), "defaultWithAlpha");
+	  Object& o1 = *obj1;
+	  o1.SetScale(Vector3F(3, 3, 3));
+	  o1.SetTranslation(Vector3F(-15, 1, 0));
+	  engine->pScene->Insert(obj1);
+	}
 
-	engine->obj[1] = engine->renderer.CreateObject("Sphere", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(1.0f)), "default");
-	engine->obj[1].SetTranslation(Vector3F(-1.0f, 0.5f, 0.0f));
+#if 0
+	for (int i = 0; i < 5; ++i) {
+	  const int cloudCount = i * i / 2 + 1;
+	  const int heightMax = 2600 - i * 400;
+	  const int heightMin = heightMax - 400;
+	  const int radiusMax = (i * i + 4) * 50;
+	  const int radiusMax2 = radiusMax * radiusMax;
+	  for (int j = 0; j < cloudCount; ++j) {
+		static const char* const idList[] = { "cloud0", "cloud1", "cloud2", "cloud3" };
+		const int index = boost::random::uniform_int_distribution<>(0, 3)(engine->random);
+		const int y = boost::random::uniform_int_distribution<>(heightMin, heightMax)(engine->random);
+		int r = boost::random::uniform_int_distribution<>(10, radiusMax)(engine->random);
+		//r = radiusMax - r * r / radiusMax2;
+		const int a0 = boost::random::uniform_int_distribution<>(0, 359)(engine->random);
+		const int a1 = boost::random::uniform_int_distribution<>(30, 60)(engine->random);
+		const float scale = boost::random::uniform_int_distribution<>(10, 30)(engine->random) *  0.1f;
+		auto obj = engine->renderer.CreateObject(idList[index], Material(Color4B(255, 255, 255, 64), 0, 0), "cloud");
+		Object& o = *obj;
+		const Quaternion rot0(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
+		const Quaternion rot1(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
+		const Vector3F trans = rot0.Apply(Vector3F(0, y, r));
+		o.SetTranslation(trans);
+		o.SetRotation(rot1);
+		o.SetScale(Vector3F(scale, scale, scale));
+		engine->pScene->Insert(obj);
+	  }
+	}
+#endif
 
-	engine->obj[2] = engine->renderer.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(1.0f)), "default");
-	engine->obj[2].SetTranslation(Vector3F(0.0f, 4.0f, -6.0f));
+#ifdef SHOW_DEBUG_SENSOR_OBJECT
+	engine->debugSensorObj = engine->renderer.CreateObject("octahedron", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+#endif // SHOW_DEBUG_SENSOR_OBJECT
 
-	engine->obj[3] = engine->renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.04f), FloatToFix8(0.3f)), "default");
-	engine->obj[3].SetTranslation(Vector3F(0.0f, 5.0f, 0));
-
-	engine->obj[4] = engine->renderer.CreateObject("Sphere", Material(Color4B(255, 255, 255, 255), FloatToFix8(0.05f), FloatToFix8(0.1f)), "default");
-	engine->obj[4].SetTranslation(Vector3F(1.0f, 0.5f, 0));
-
+	LOGI("engine_init_display");
+	engine->initialized = true;
 	return 0;
 }
 
@@ -185,12 +484,129 @@ static int engine_init_display(struct engine* engine) {
 */
 
 static void engine_draw_frame(struct engine* engine) {
-	if (!engine->renderer.HasDisplay()) {
-		// ディスプレイがありません。
-		return;
+  if (!engine->renderer.HasDisplay() || !engine->initialized) {
+	// ディスプレイがありません。
+	return;
+  }
+
+  std::vector<ObjectPtr> objList;
+  objList.reserve(10 * 10);
+#if 0
+  float posY = engine->debugCamera.Position().y;
+  if (engine->debugCamera.EyeVector().y >= 0.0f) {
+	posY = std::max(region.min.y, posY - unitRegionSize * 2);
+	for (int i = 0; i < 6; ++i) {
+	  const Cell& cell = engine->pScene->GetCell(posY);
+	  for (auto& e : cell.objects) {
+		objList.push_back(e.object);
+	  }
+	  posY += unitRegionSize;
+	  if (posY >= region.max.y) {
+		break;
+	  }
 	}
-	engine->renderer.Render(engine->obj, engine->obj + sizeof(engine->obj)/sizeof(engine->obj[0]));
-	engine->renderer.Swap();
+  } else {
+	posY = std::min(region.max.y, posY + unitRegionSize * 2);
+	for (int i = 0; i < 6; ++i) {
+	  const Cell& cell = engine->pScene->GetCell(posY);
+	  for (auto& e : cell.objects) {
+		objList.push_back(e.object);
+	  }
+	  posY -= unitRegionSize;
+	  if (posY < region.min.y) {
+		break;
+	  }
+	}
+  }
+
+  const Position3F eyePos = engine->debugCamera.Position();
+  const Vector3F eyeVec = engine->debugCamera.EyeVector();
+  objList.erase(
+	std::remove_if(
+	  objList.begin(),
+	  objList.end(),
+	  [eyePos, eyeVec](const ObjectPtr& n) {
+		const Vector3F tmp = n->Position() - eyePos;
+		return (tmp.LengthSq() > 15.0f * 15.0f) && (eyeVec.Dot(Vector3F(tmp).Normalize()) < 0.0f);
+	  }
+	),
+	objList.end()
+  );
+  std::sort(
+	objList.begin(),
+	objList.end(),
+	[eyePos](const ObjectPtr& lhs, const ObjectPtr& rhs) {
+	  const Vector3F v0 = lhs->Position() - eyePos;
+	  const Vector3F v1 = rhs->Position() - eyePos;
+	  return v0.LengthSq() < v1.LengthSq();
+	}
+  );
+#else
+  for (auto itr = engine->pScene->Begin(); itr != engine->pScene->End(); ++itr) {
+	for (auto& e : itr->objects) {
+	  objList.push_back(e.object);
+	}
+  }
+#endif
+
+#ifdef SHOW_DEBUG_SENSOR_OBJECT
+  {
+	Position3F pos = engine->debugCamera.Position();
+	const Vector3F ev = engine->debugCamera.EyeVector();
+	const Vector3F uv = engine->debugCamera.UpVector();
+	const Vector3F sv = ev.Cross(uv);
+	pos += ev * 4.0f;
+	pos += -uv * 1.5f;
+	pos += sv * 0.9f;
+	engine->debugSensorObj->SetTranslation(Vector3F(pos.x, pos.y, pos.z));
+
+	// fusedOrientation has each axis range of x(+pi, -pi), y(+pi/2, -pi/2), z(+pi, -pi).
+	const float rx = (engine->fusedOrientation.x + boost::math::constants::pi<float>()) * 0.5f;
+	const float ry = -engine->fusedOrientation.y + boost::math::constants::pi<float>() * 0.5f;
+	const float rz = (engine->fusedOrientation.z + boost::math::constants::pi<float>()) * 0.5f;
+	Matrix4x4 mRot = LookAt(Position3F(0, 0, 0), Position3F(ev.x, ev.y, ev.z), uv);
+	mRot = Matrix4x4::RotationX(rx) * Matrix4x4::RotationX(ry) * Matrix4x4::RotationX(rz) * mRot;
+	Quaternion q;
+	mRot.Decompose(&q, nullptr, nullptr);
+	engine->debugSensorObj->SetRotation(q);
+	objList.push_back(engine->debugSensorObj);
+  }
+#endif // SHOW_DEBUG_SENSOR_OBJECT
+
+  engine->renderer.ClearDebugString();
+  char buf[32];
+  sprintf(buf, "OX:%1.3f", engine->fusedOrientation.x);
+  engine->renderer.AddDebugString(8, 800 - 16 * 9, buf);
+  sprintf(buf, "OY:%1.3f", engine->fusedOrientation.y);
+  engine->renderer.AddDebugString(8, 800 - 16 * 8, buf);
+  sprintf(buf, "OZ:%1.3f", engine->fusedOrientation.z);
+  engine->renderer.AddDebugString(8, 800 - 16 * 7, buf);
+
+  sprintf(buf, "MX:%1.3f", engine->magnet.x);
+  engine->renderer.AddDebugString(8, 800 - 16 * 6, buf);
+  sprintf(buf, "MY:%1.3f", engine->magnet.y);
+  engine->renderer.AddDebugString(8, 800 - 16 * 5, buf);
+  sprintf(buf, "MZ:%1.3f", engine->magnet.z);
+  engine->renderer.AddDebugString(8, 800 - 16 * 4, buf);
+
+  sprintf(buf, "AX:%1.3f", engine->accel.x);
+  engine->renderer.AddDebugString(8, 800 - 16 * 3, buf);
+  sprintf(buf, "AY:%1.3f", engine->accel.y);
+  engine->renderer.AddDebugString(8, 800 - 16 * 2, buf);
+  sprintf(buf, "AZ:%1.3f", engine->accel.z);
+  engine->renderer.AddDebugString(8, 800 - 16 * 1, buf);
+
+  sprintf(buf, "FPS:%02d", engine->latestFps);
+  engine->renderer.AddDebugString(8, 8, buf);
+  sprintf(buf, "AVG:%02.1f", engine->avgFps);
+  engine->renderer.AddDebugString(8, 24, buf);
+  if (engine->rigidCamera) {
+	sprintf(buf, "%03.1fKm/h", engine->rigidCamera->accel.Length() * 3.6f);
+	engine->renderer.AddDebugString(8, 40, buf);
+  }
+
+  engine->renderer.Render(&objList[0], &objList[0] + objList.size());
+  engine->renderer.Swap();
 }
 
 
@@ -198,7 +614,10 @@ static void engine_draw_frame(struct engine* engine) {
 * 現在ディスプレイに関連付けられている EGL コンテキストを削除します。
 */
 static void engine_term_display(struct engine* engine) {
+	engine->initialized = false;
 	engine->renderer.Unload();
+	engine->pScene->Clear();
+	LOGI("engine_term_display");
 }
 
 /**
@@ -234,17 +653,21 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
 		break;
 	case APP_CMD_GAINED_FOCUS:
 		// アプリがフォーカスを取得すると、加速度計の監視を開始します。
-		if (engine->accelerometerSensor != NULL) {
-			ASensorEventQueue_enableSensor(engine->sensorEventQueue, engine->accelerometerSensor);
-			// 目標は 1 秒ごとに 60 のイベントを取得することです (米国)。
-			ASensorEventQueue_setEventRate(engine->sensorEventQueue, engine->accelerometerSensor, (1000L / 60) * 1000);
+		for (int i = 0; i < engine::SensorType_MAX; ++i) {
+			if (engine->sensor[i]) {
+				ASensorEventQueue_enableSensor(engine->sensorEventQueue[i], engine->sensor[i]);
+				// 目標は 1 秒ごとに 60 のイベントを取得することです (米国)。
+				ASensorEventQueue_setEventRate(engine->sensorEventQueue[i], engine->sensor[i], (1000L / 60) * 1000);
+			}
 		}
 		break;
 	case APP_CMD_LOST_FOCUS:
 		// アプリがフォーカスを失うと、加速度計の監視を停止します。
 		// これにより、使用していないときのバッテリーを節約できます。
-		if (engine->accelerometerSensor != NULL) {
-			ASensorEventQueue_disableSensor(engine->sensorEventQueue, engine->accelerometerSensor);
+		for (int i = 0; i < engine::SensorType_MAX; ++i) {
+			if (engine->sensor[i]) {
+				ASensorEventQueue_disableSensor(engine->sensorEventQueue[i], engine->sensor[i]);
+			}
 		}
 		engine_draw_frame(engine);
 		break;
@@ -252,6 +675,11 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
 }
 
 int_fast64_t get_time() {
+#if 1
+	timespec tmp;
+	clock_gettime(CLOCK_MONOTONIC, &tmp);
+	return tmp.tv_sec * (1000UL * 1000UL * 1000UL) + tmp.tv_nsec;
+#else
 	static int sfd = -1;
 	if (sfd == -1) {
 		sfd = open("/dev/alarm", O_RDONLY);
@@ -265,6 +693,7 @@ int_fast64_t get_time() {
 		}
 	}
 	return ts.tv_sec * (1000 * 1000 * 1000) + ts.tv_nsec;
+#endif
 }
 
 float time_to_sec(int_fast64_t time) { return static_cast<float>(static_cast<double>(time) / (1000 * 1000 * 1000));  }
@@ -283,18 +712,25 @@ void android_main(struct android_app* state) {
 
 	ANativeActivity_setWindowFlags(state->activity, AWINDOW_FLAG_FULLSCREEN | AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
 
-	// 加速度計の監視の準備
+	// センサーの監視の準備
+	static const int sensorTypeList[] = {
+		ASENSOR_TYPE_ACCELEROMETER,
+		ASENSOR_TYPE_MAGNETIC_FIELD,
+		ASENSOR_TYPE_GYROSCOPE,
+	};
 	engine.sensorManager = ASensorManager_getInstance();
-	engine.accelerometerSensor = ASensorManager_getDefaultSensor(engine.sensorManager, ASENSOR_TYPE_ACCELEROMETER);
-	engine.sensorEventQueue = ASensorManager_createEventQueue(engine.sensorManager, state->looper, LOOPER_ID_USER, NULL, NULL);
-
+	for (int i = engine::SensorType_Accel; i < engine::SensorType_MAX; ++i) {
+		engine.sensor[i] = ASensorManager_getDefaultSensor(engine.sensorManager, sensorTypeList[i]);
+		if (engine.sensor[i]) {
+			engine.sensorEventQueue[i] = ASensorManager_createEventQueue(engine.sensorManager, state->looper, LOOPER_ID_USER + i, NULL, NULL);
+		}
+	}
 	if (state->savedState != NULL) {
 		// 以前の保存状態で開始します。復元してください。
 		engine.state = *(struct saved_state*)state->savedState;
 	}
 
 	engine.animating = 1;
-	uint_fast64_t prevTime = get_time();
 
 	// ループはスタッフによる開始を待っています。
 
@@ -315,16 +751,44 @@ void android_main(struct android_app* state) {
 			}
 
 			// センサーにデータがある場合、今すぐ処理します。
-			if (ident == LOOPER_ID_USER) {
-				if (engine.accelerometerSensor != NULL) {
+			switch (ident) {
+			case engine::LooperId_Accel:
+				if (engine.sensor[ident - LOOPER_ID_USER]) {
 					ASensorEvent event;
-					while (ASensorEventQueue_getEvents(engine.sensorEventQueue, &event, 1) > 0) {
-//						LOGI("accelerometer: x=%f y=%f z=%f",
-//							event.acceleration.x, event.acceleration.y,
-//							event.acceleration.z);
+					float timestamp = 0.0f;
+					while (ASensorEventQueue_getEvents(engine.sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
+						if (timestamp == 0.0f) {
+							timestamp = event.timestamp;
+						}
+						engine.accel.x = event.acceleration.x;
+						engine.accel.y = event.acceleration.y;
+						engine.accel.z = event.acceleration.z;
+						engine.CalcAccMagOrientation();
+						break;
 					}
 				}
-			}
+				break;
+			case engine::LooperId_Magnet:
+				if (engine.sensor[ident - LOOPER_ID_USER]) {
+					ASensorEvent event;
+					while (ASensorEventQueue_getEvents(engine.sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
+						engine.magnet.x = event.magnetic.x;
+						engine.magnet.y = event.magnetic.y;
+						engine.magnet.z = event.magnetic.z;
+						break;
+					}
+				}
+				break;
+			case engine::LooperId_Gyro:
+				if (engine.sensor[ident - LOOPER_ID_USER]) {
+					ASensorEvent event;
+					while (ASensorEventQueue_getEvents(engine.sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
+						engine.GyroFunction(Vector3F(event.vector.x, event.vector.y, event.vector.z), event.timestamp);
+						break;
+					}
+				}
+				break;
+			};
 
 			// 終了するかどうか確認します。
 			if (state->destroyRequested != 0) {
@@ -332,28 +796,95 @@ void android_main(struct android_app* state) {
 				return;
 			}
 		}
+		engine.CalcFusedOrientation();
 
 		if (engine.animating) {
 			// イベントが完了したら次のアニメーション フレームを描画します。
-#if 0
-			const uint_fast64_t currentTime = get_time();
-			const float deltaTime = time_to_sec(currentTime - prevTime);
-			prevTime = currentTime;
-#else
-			const float deltaTime = 1.0f / 30.0f;
+#if 1
+			++engine.frames;
+			const int64_t curTime = get_time();
+			if (curTime < engine.startTime) {
+			  engine.startTime = curTime;
+			  engine.frames = 0;
+			} else if (curTime - engine.startTime >= (1000UL * 1000UL * 1000UL)) {
+			  engine.latestFps = std::min(engine.frames, 60);
+			  engine.startTime = curTime;
+			  engine.frames = 0;
+			  if (engine.latestFps > engine.avgFps * 0.3f) { // 低すぎるFPSはノイズとみなす.
+				engine.avgFps = (engine.avgFps + engine.latestFps) * 0.5f;
+				engine.deltaTime = (engine.deltaTime + 1.0f / engine.latestFps) * 0.5f;
+			  }
+			}
 #endif
-			engine.debugCamera.Update(deltaTime);
-			engine.renderer.Update(deltaTime, engine.debugCamera.Position(), engine.debugCamera.EyeVector());
-			for (auto&& e : engine.obj) {
-				e.Update(deltaTime);
-				while (e.GetCurrentTime() >= 1.0f) {
-					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
+#if 1
+			engine.debugCamera.Update(engine.deltaTime, engine.fusedOrientation);
+			engine.pScene->Update(engine.deltaTime);
+#else
+			const Position3F prevCamPos = engine.debugCamera.Position();
+			engine.debugCamera.Update(engine.deltaTime, engine.fusedOrientation);
+			Vector3F camVec = engine.debugCamera.Position() - prevCamPos;
+			if (engine.rigidCamera) {
+			  if (camVec.LengthSq() == 0.0f) {
+				Vector3F v = engine.rigidCamera->accel;
+				v.y = 0;
+				if (v.LengthSq() < 0.1f) {
+				  v = Vector3F::Unit();
+				} else {
+				  v.Normalize();
+				  v *= 0.1f;
 				}
+				engine.rigidCamera->accel -= v;
+			  } else {
+				engine.rigidCamera->accel = camVec * 10.0f;
+			  }
+			  if (engine.rigidCamera->Position().y < 5.0f && engine.debugCamera.Direction() == TouchSwipeCamera::MoveDir_Back) {
+				engine.debugCamera.Direction(TouchSwipeCamera::MoveDir_Newtral);
+				engine.rigidCamera->Position(Position3F(0, 4000, 0));
+			  }
+			}
+			engine.pScene->Update(engine.deltaTime);
+			if (engine.rigidCamera) {
+			  Position3F pos = engine.rigidCamera->Position();
+			  pos.y += 10.0f;
+			  engine.debugCamera.Position(pos);
+			}
+#endif
+			engine.renderer.Update(engine.deltaTime, engine.debugCamera.Position(), engine.debugCamera.EyeVector(), engine.debugCamera.UpVector());
+			//			for (auto&& e : engine.obj) {
+//				e.Update(engine.deltaTime);
+//				while (e.GetCurrentTime() >= 1.0f) {
+//					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
+//				}
+//			}
+
+			if (engine.debugObj[0]) {
+			  Object& o = *engine.debugObj[0];
+			  static float rot = 90, accel = 0.0f;
+			  rot += accel;
+			  if (rot >= 360) {
+				rot -= 360;
+			  } else if (rot < 0) {
+				rot += 360;
+			  }
+			  static int target = 2;
+			  if (target == 0) {
+				o.SetRotation(degreeToRadian<float>(rot), degreeToRadian<float>(0), degreeToRadian<float>(0));
+			  } else if (target == 1) {
+				o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(rot), degreeToRadian<float>(0));
+			  } else {
+				o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(rot));
+			  }
+			}
+			if (engine.debugObj[1]) {
+			  Object& o = *engine.debugObj[1];
+			  static float roughness = 0, metallic = 0;
+			  o.SetRoughness(roughness);
+			  o.SetMetallic(metallic);
 			}
 #if 0
 			static float roughness = 1.0f;
 			static float step = 0.005;
-			engine.obj[1].SetRoughness(FloatToFix8(roughness));
+			engine.obj[1].SetRoughness(roughness);
 			roughness += step;
 			if (roughness >= 1.0) {
 				step = -0.005f;

@@ -2,7 +2,7 @@ uniform sampler2D texDiffuse;
 
 varying mediump vec4 texCoord[2];
 
-#define invLDRRange (255.0/240.0)
+#define invLDRRange 1.0//(255.0/240.0)
 #if 1
 // HDTV with BT.709
 #define luminance(tex) dot(tex, vec4(0.2126, 0.7152, 0.0722, 0.0) * invLDRRange)

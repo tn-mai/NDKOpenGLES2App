@@ -63,19 +63,28 @@
     </AntPackage>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Content Include="assets\accelerator.dae" />
     <Content Include="assets\block1.dae" />
-    <Content Include="assets\cubes.dae">
-      <SubType>Designer</SubType>
-    </Content>
+    <Content Include="assets\brokenegg.dae" />
+    <Content Include="assets\chickenegg.dae" />
+    <Content Include="assets\cubes.dae" />
+    <Content Include="assets\flyingpan.dae" />
     <Content Include="assets\flyingrock.dae" />
+    <Content Include="assets\Meshes\block1.msh" />
+    <Content Include="assets\Meshes\chickenegg.msh" />
+    <Content Include="assets\Meshes\flyingpan.msh" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
     <Content Include="assets\Shaders\bitmapfont.frag" />
     <Content Include="assets\Shaders\bitmapfont.vert" />
+    <Content Include="assets\Shaders\cloud.frag" />
+    <Content Include="assets\Shaders\cloud.vert" />
     <Content Include="assets\Shaders\default.frag" />
     <Content Include="assets\Shaders\default.vert" />
     <Content Include="assets\Shaders\default2D.frag" />
     <Content Include="assets\Shaders\default2D.vert" />
+    <Content Include="assets\Shaders\defaultWithAlpha.frag" />
+    <Content Include="assets\Shaders\defaultWithAlpha.vert" />
     <Content Include="assets\Shaders\gaussian3x3.frag" />
     <Content Include="assets\Shaders\gaussian3x3.vert" />
     <Content Include="assets\Shaders\hdrdiff.frag" />
@@ -92,34 +101,59 @@
     <Content Include="assets\Shaders\bilinear4x4.vert" />
     <Content Include="assets\Shaders\skybox.frag" />
     <Content Include="assets\Shaders\skybox.vert" />
-    <Content Include="assets\sphere.dae">
-      <SubType>Designer</SubType>
-    </Content>
+    <Content Include="assets\Shaders\tbn.frag" />
+    <Content Include="assets\Shaders\tbn.vert" />
+    <Content Include="assets\sphere.dae" />
+    <Content Include="assets\sunnysideup.dae" />
+    <Content Include="assets\Textures\Adreno\accelerator.ktx" />
+    <Content Include="assets\Textures\Adreno\acceleratorNR.ktx" />
     <Content Include="assets\Textures\Adreno\block1.ktx" />
     <Content Include="assets\Textures\Adreno\block1NR.ktx" />
+    <Content Include="assets\Textures\Adreno\brokenegg.ktx" />
+    <Content Include="assets\Textures\Adreno\brokeneggNR.ktx" />
+    <Content Include="assets\Textures\Adreno\chickenegg.ktx" />
+    <Content Include="assets\Textures\Adreno\chickeneggNR.ktx" />
     <Content Include="assets\Textures\Adreno\floor.ktx" />
     <Content Include="assets\Textures\Adreno\floorNR.ktx" />
+    <Content Include="assets\Textures\Adreno\flyingpan.ktx" />
+    <Content Include="assets\Textures\Adreno\flyingpanNR.ktx" />
     <Content Include="assets\Textures\Adreno\flyingrock.ktx" />
     <Content Include="assets\Textures\Adreno\flyingrockNR.ktx" />
     <Content Include="assets\Textures\Adreno\irradiance.ktx" />
+    <Content Include="assets\Textures\Adreno\landscapeNR.ktx" />
     <Content Include="assets\Textures\Adreno\skybox_high.ktx" />
     <Content Include="assets\Textures\Adreno\skybox_low.ktx" />
     <Content Include="assets\Textures\Adreno\sphere.ktx" />
     <Content Include="assets\Textures\Adreno\sphereNR.ktx" />
+    <Content Include="assets\Textures\Adreno\sunnysideup.ktx" />
+    <Content Include="assets\Textures\Adreno\sunnysideupNR.ktx" />
     <Content Include="assets\Textures\Adreno\wood.ktx" />
     <Content Include="assets\Textures\Adreno\woodNR.ktx" />
     <Content Include="assets\Textures\Common\ascii.ktx" />
+    <Content Include="assets\Textures\Common\cloud.ktx" />
+    <Content Include="assets\Textures\Common\landscape.ktx" />
+    <Content Include="assets\Textures\Others\accelerator.ktx" />
+    <Content Include="assets\Textures\Others\acceleratorNR.ktx" />
     <Content Include="assets\Textures\Others\block1.ktx" />
     <Content Include="assets\Textures\Others\block1NR.ktx" />
+    <Content Include="assets\Textures\Others\brokenegg.ktx" />
+    <Content Include="assets\Textures\Others\brokeneggNR.ktx" />
+    <Content Include="assets\Textures\Others\chickenegg.ktx" />
+    <Content Include="assets\Textures\Others\chickeneggNR.ktx" />
     <Content Include="assets\Textures\Others\floor.ktx" />
     <Content Include="assets\Textures\Others\floorNR.ktx" />
+    <Content Include="assets\Textures\Others\flyingpan.ktx" />
+    <Content Include="assets\Textures\Others\flyingpanNR.ktx" />
     <Content Include="assets\Textures\Others\flyingrock.ktx" />
     <Content Include="assets\Textures\Others\flyingrockNR.ktx" />
     <Content Include="assets\Textures\Others\irradiance.ktx" />
+    <Content Include="assets\Textures\Others\landscapeNR.ktx" />
     <Content Include="assets\Textures\Others\skybox_high.ktx" />
     <Content Include="assets\Textures\Others\skybox_low.ktx" />
     <Content Include="assets\Textures\Others\sphere.ktx" />
     <Content Include="assets\Textures\Others\sphereNR.ktx" />
+    <Content Include="assets\Textures\Others\sunnysideup.ktx" />
+    <Content Include="assets\Textures\Others\sunnysideupNR.ktx" />
     <Content Include="assets\Textures\Others\wood.ktx" />
     <Content Include="assets\Textures\Others\woodNR.ktx" />
     <Content Include="res\values\strings.xml" />

@@ -23,9 +23,7 @@ varying mediump vec4 lightVectorAndDistance;
 varying mediump vec3 eyeVector;
 varying mediump vec3 halfVector;
 varying mediump vec4 posW;
-varying mediump vec3 normalW;
-varying mediump vec3 tangentW;
-varying mediump vec3 binormalW;
+varying mediump mat3 matTBN;
 
 varying mediump vec4 texCoord;
 varying mediump vec4 posForShadow;
@@ -57,24 +55,22 @@ void main()
   // But in most case, the matrix is orthonormal(when not include the scale factor).
   // Therefore, we can be used it to transform the normal.
   // note: In the orthonormal matrix, inverse(M) equals transpose(M), thus transpose(inverse(M)) equals transpose(transpose(M)). That result equals M.
-  mat3 m3 = mat3(m);
-  normalW = normalize(m3 * vNormal);
-  tangentW = normalize(m3 * vTangent.xyz);
-  binormalW = cross(normalW, tangentW) *vTangent.w;
+  //matTBN = mat3(m) * mat3(vTangent.xyz, normalize(cross(vNormal, vTangent.xyz)) * vTangent.w, vNormal);
+  mediump mat3 m3 = mat3(m);
+  mediump vec3 normalW = normalize(m3 * vNormal);
+  mediump vec3 tangentW = normalize(m3 * vTangent.xyz);
+  mediump vec3 binormalW = normalize(cross(normalW, tangentW)) * vTangent.w;
+  matTBN = mat3(tangentW, binormalW, normalW);
 
   posW = m * vec4(vPosition, 1);
 
   mediump vec3 lightVec = lightPos - posW.xyz;
-  lightVectorAndDistance.x = dot(lightVec, tangentW);
-  lightVectorAndDistance.y = dot(lightVec, binormalW);
-  lightVectorAndDistance.z = dot(lightVec, normalW);
+  lightVectorAndDistance.xyz = matTBN * lightVec;
   lightVectorAndDistance.w = length(lightVectorAndDistance.xyz);
   lightVectorAndDistance.xyz = normalize(lightVectorAndDistance.xyz);
 
-  vec3 eyeVec = eyePos - posW.xyz;
-  eyeVector.x = dot(eyeVec, tangentW);
-  eyeVector.y = dot(eyeVec, binormalW);
-  eyeVector.z = dot(eyeVec, normalW);
+  mediump vec3 eyeVec = eyePos - posW.xyz;
+  eyeVector = matTBN * eyeVec;
   eyeVector = normalize(eyeVector);
 
   halfVector = normalize(eyeVector + lightVectorAndDistance.xyz);

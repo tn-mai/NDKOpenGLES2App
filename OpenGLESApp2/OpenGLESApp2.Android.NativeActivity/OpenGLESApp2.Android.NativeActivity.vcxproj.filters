@@ -6,6 +6,10 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="TouchSwipeCamera.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="Collision.h" />
+    <ClInclude Include="TangentSpaceData.h" />
+    <ClInclude Include="Mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
@@ -13,5 +17,8 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="TouchSwipeCamera.cpp" />
+    <ClCompile Include="Collision.cpp" />
+    <ClCompile Include="TangentSpaceData.cpp" />
+    <ClCompile Include="Mesh.cpp" />
   </ItemGroup>
 </Project>

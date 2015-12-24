@@ -4,11 +4,19 @@
 #include "texture.h"
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
+#include <boost/random/mersenne_twister.hpp>
 #include <vector>
 #include <map>
 #include <string>
 #include <math.h>
 #include <float.h>
+
+
+#ifndef NDEBUG
+#define SUNNYSIDEUP_DEBUG
+//#define SHOW_TANGENT_SPACE
+#endif // NDEBUG
+#define USE_HDR_BLOOM
 
 struct Matrix4x3;
 struct Matrix4x4;
@@ -24,6 +32,7 @@ struct Position3F {
 	constexpr Position3F(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}
 	bool operator==(const Position3F& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; }
 	bool operator!=(const Position3F& rhs) const { return !(*this == rhs); }
+	Position3F operator-() const { return Position3F(-x, -y, -z); }
 	Position3F& operator*=(GLfloat rhs) { x *= rhs; y *= rhs; z *= rhs; return *this; }
 	Position3F operator*(GLfloat rhs) const { return Position3F(*this) *= rhs; }
 	Position3F& operator+=(const Vector3F& rhs);
@@ -34,6 +43,7 @@ struct Position3F {
 	Position3F operator*(const Vector3F& rhs) const;
 	Position3F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; return *this; }
 	Position3F operator/(GLfloat rhs) const { return Position3F(*this) /= rhs; }
+	constexpr GLfloat Dot(const Position3F& rhs) const { return x * rhs.x + y * rhs.y; }
 };
 
 /**
@@ -92,11 +102,11 @@ struct Vector2F {
   Vector2F operator/(GLfloat rhs) const { return Vector2F(*this) /= rhs; }
   Vector2F& operator/=(const Vector2F& rhs) { x /= rhs.x; y /= rhs.y; return *this; }
   Vector2F operator/(const Vector2F& rhs) const { return Vector2F(*this) /= rhs; }
-  GLfloat Length() const { return sqrtf(x * x + y * y); }
+  constexpr GLfloat Length() const { return std::sqrt(x * x + y * y); }
   Vector2F& Normalize() { return operator/=(Length()); }
-  GLfloat Cross(const Vector2F& rhs) const { return x * rhs.y - y * rhs.x; }
-  GLfloat Dot(const Vector2F& rhs) const { return x * rhs.x + y * rhs.y; }
-  Position2F ToPos() const { return Position2F(x, y); }
+  constexpr GLfloat Cross(const Vector2F& rhs) const { return x * rhs.y - y * rhs.x; }
+  constexpr GLfloat Dot(const Vector2F& rhs) const { return x * rhs.x + y * rhs.y; }
+  constexpr Position2F ToPos() const { return Position2F(x, y); }
   static constexpr Vector2F Unit() { return Vector2F(0, 0); }
 };
 
@@ -104,6 +114,7 @@ struct Vector3F {
 	GLfloat x, y, z;
 	Vector3F() {}
 	constexpr Vector3F(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}
+	constexpr explicit Vector3F(const Position3F& p) : x(p.x), y(p.y), z(p.z) {}
 	bool operator==(const Vector3F& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; }
 	bool operator!=(const Vector3F& rhs) const { return !(*this == rhs); }
 	Vector3F operator-() const { return Vector3F(-x, -y, -z); }
@@ -118,7 +129,10 @@ struct Vector3F {
 	Vector3F operator*(const Vector3F& rhs) const { return Vector3F(*this) *= rhs; }
 	Vector3F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; return *this; }
 	Vector3F operator/(GLfloat rhs) const { return Vector3F(*this) /= rhs; }
-	GLfloat Length() const { return sqrtf(x * x + y * y + z * z); }
+	Vector3F& operator/=(const Vector3F& rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z; return *this; }
+	Vector3F operator/(const Vector3F& rhs) const { return Vector3F(*this) /= rhs; }
+	constexpr GLfloat LengthSq() const { return Dot(*this); }
+	constexpr GLfloat Length() const { return std::sqrt(LengthSq()); }
 	Vector3F& Normalize() {
 	  const float l = Length();
 	  if (l > FLT_EPSILON) {
@@ -126,18 +140,21 @@ struct Vector3F {
 	  }
 	  return *this;
 	}
-	Vector3F Cross(const Vector3F& rhs) const { return Vector3F(y * rhs.z - z * rhs.y, z * rhs.x - x * rhs.z, x * rhs.y - y * rhs.x); }
-	GLfloat Dot(const Vector3F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z; }
+	constexpr Vector3F Cross(const Vector3F& rhs) const { return Vector3F(y * rhs.z - z * rhs.y, z * rhs.x - x * rhs.z, x * rhs.y - y * rhs.x); }
+	constexpr GLfloat Dot(const Vector3F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z; }
 	static constexpr Vector3F Unit() { return Vector3F(0, 0, 0); }
+	constexpr Position3F ToPosition3F() const { return Position3F(x, y, z); }
 };
+inline GLfloat Dot(const Vector3F& lhs, const Position3F& rhs) { return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z; }
+inline GLfloat Dot(const Position3F& lhs, const Vector3F& rhs) { return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z; }
 
 struct Vector4F {
 	GLfloat x, y, z, w;
 	Vector4F() {}
 	constexpr Vector4F(const Vector3F& v, GLfloat d = 1.0f) : x(v.x), y(v.y), z(v.z), w(d) {}
 	constexpr Vector4F(GLfloat a, GLfloat b, GLfloat c, GLfloat d) : x(a), y(b), z(c), w(d) {}
-	bool operator==(const Vector4F& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
-	bool operator!=(const Vector4F& rhs) const { return !(*this == rhs); }
+	constexpr bool operator==(const Vector4F& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
+	constexpr bool operator!=(const Vector4F& rhs) const { return !(*this == rhs); }
 	Vector4F& operator+=(const Vector4F& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; w += rhs.w; return *this; }
 	Vector4F operator+(const Vector4F& rhs) const { return Vector4F(*this) += rhs; }
 	Vector4F& operator-=(const Vector4F& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; w -= rhs.w;  return *this; }
@@ -147,7 +164,7 @@ struct Vector4F {
 	friend Vector4F operator*(GLfloat lhs, const Vector4F& rhs) { return rhs * lhs; }
 	Vector4F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; w /= rhs;  return *this; }
 	Vector4F operator/(GLfloat rhs) const { return Vector4F(*this) /= rhs; }
-	GLfloat Length() const { return sqrtf(x * x + y * y + z * z + w * w); }
+	constexpr GLfloat Length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
 	Vector4F& Normalize() {
 	  const float l = Length();
 	  if (l > FLT_EPSILON) {
@@ -155,11 +172,11 @@ struct Vector4F {
 	  }
 	  return *this;
 	}
-	Vector4F Cross(const Vector4F& rhs) const { return Vector4F(y * rhs.z - z * rhs.y, z * rhs.w - w * rhs.z, w * rhs.x - x * rhs.w, x * rhs.y - y * rhs.x); }
-	GLfloat Dot(const Vector4F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z + w * rhs.w; }
-	GLfloat Dot3(const Vector4F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z; }
+	constexpr Vector4F Cross(const Vector4F& rhs) const { return Vector4F(y * rhs.z - z * rhs.y, z * rhs.w - w * rhs.z, w * rhs.x - x * rhs.w, x * rhs.y - y * rhs.x); }
+	constexpr GLfloat Dot(const Vector4F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z + w * rhs.w; }
+	constexpr GLfloat Dot3(const Vector4F& rhs) const { return x * rhs.x + y * rhs.y + z * rhs.z; }
 	Vector4F& operator*=(const Matrix4x4& rhs);
-	Vector3F ToVec3() const { return Vector3F(x, y, z); }
+	constexpr Vector3F ToVec3() const { return Vector3F(x, y, z); }
 	static constexpr Vector4F Unit() { return Vector4F(0, 0, 0, 1); }
 };
 
@@ -181,6 +198,7 @@ struct Color4B {
 		return *this;
 	}
 	friend Color4B operator*(Color4B lhs, Color4B rhs) { return Color4B(lhs) *= rhs; }
+	Vector4F ToVector4F() const { return Vector4F(r, g, b, a) * (1.0f / 255.0f); }
 };
 
 struct Quaternion {
@@ -209,7 +227,7 @@ struct Quaternion {
 	Quaternion operator*(GLfloat rhs) const { return Quaternion(*this) *= rhs; }
 	friend Quaternion operator*(GLfloat lhs, const Quaternion& rhs) { return rhs * lhs; }
 	Quaternion& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; w /= rhs;  return *this; }
-	Quaternion operator/(GLfloat rhs) const { return Quaternion(*this) /= rhs; }
+	constexpr Quaternion operator/(GLfloat rhs) const { return Quaternion(x / rhs, y / rhs, z / rhs, w / rhs); }
 	Quaternion& operator+=(const Quaternion& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; w += rhs.w;  return *this; }
 	Quaternion operator+(const Quaternion& rhs) const { return Quaternion(*this) += rhs; }
 	Quaternion& operator*=(const Quaternion& rhs) { *this = *this * rhs; return *this; }
@@ -217,11 +235,11 @@ struct Quaternion {
 		return Quaternion(
 			w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y,
 			w * rhs.y + y * rhs.w + z * rhs.x - x * rhs.z,
-			w * rhs.z + z * rhs.w + x * rhs.y - y * rhs.z,
+			w * rhs.z + z * rhs.w + x * rhs.y - y * rhs.x,
 			w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z);
 	}
-	GLfloat Dot(const Quaternion& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
-	GLfloat Length() const { return sqrtf(x * x + y * y + z * z + w * w); }
+	constexpr GLfloat Dot(const Quaternion& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
+	constexpr GLfloat Length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
 	Quaternion& Normalize() {
 	  const float l = Length();
 	  if (l > FLT_EPSILON) {
@@ -229,7 +247,8 @@ struct Quaternion {
 	  }
 	  return *this;
 	}
-	Quaternion Conjugate() const { return Quaternion(-x, -y, -z, w); }
+	constexpr Quaternion Conjugate() const { return Quaternion(-x, -y, -z, w); }
+	constexpr Quaternion Inverse() const { return Conjugate() / Length(); }
 	Vector3F Apply(const Vector3F& v) const {
 		const Vector3F xyz(x, y, z);
 		Vector3F uv = xyz.Cross(v);
@@ -237,6 +256,34 @@ struct Quaternion {
 		uv *= 2.0f * w;
 		uuv *= 2.0f;
 		return v + uv + uuv;
+	}
+	// @ref http://nic-gamedev.blogspot.jp/2011/11/quaternion-math-getting-local-axis.html
+	constexpr Vector3F ForwardVector() const {
+	  return Vector3F(
+		2 * (x * z - w * y),
+		2 * (y * x + w * x),
+		1 - 2 * (x * x + y * y)
+	  );
+	}
+	constexpr Vector3F UpVector() const {
+	  return Vector3F(
+		2 * (x * y + w * z),
+		1 - 2 * (x * x + z * z),
+		2 * (y * z - w * x)
+	  );
+	}
+	constexpr Vector3F RightVector() const {
+	  return Vector3F(
+		1 - 2 * (y * y + z * z),
+		2 * (x * y - w * z),
+		2 * (x * z + w * y)
+	  );
+	}
+	std::pair<Vector3F, float> GetAxisAngle() const {
+	  const float angle = 2.0f * std::acos(w);
+	  const float n = 1.0f / std::sqrt(1.0f - w * w);
+	  const Vector3F axis(x * n, y * n, z * n);
+	  return std::make_pair(axis, angle);
 	}
 	friend Quaternion Sleap(const Quaternion& qa, const Quaternion& qb, float t);
 	static constexpr Quaternion Unit() { return Quaternion(0, 0, 0, 1); }
@@ -299,6 +346,26 @@ struct Matrix4x4 {
 	  m.SetVector(0, Vector4F(1, 0, 0, 0));
 	  m.SetVector(1, Vector4F(0, c, -s, 0));
 	  m.SetVector(2, Vector4F(0, s, c, 0));
+	  m.SetVector(3, Vector4F(0, 0, 0, 1));
+	  return m;
+	}
+	static Matrix4x4 RotationY(float angle/* radian */) {
+	  const float c = cos(angle);
+	  const float s = sin(angle);
+	  Matrix4x4 m;
+	  m.SetVector(0, Vector4F(c, 0, s, 0));
+	  m.SetVector(1, Vector4F(0, 1, 0, 0));
+	  m.SetVector(2, Vector4F(-s, 0, c, 0));
+	  m.SetVector(3, Vector4F(0, 0, 0, 1));
+	  return m;
+	}
+	static Matrix4x4 RotationZ(float angle/* radian */) {
+	  const float c = cos(angle);
+	  const float s = sin(angle);
+	  Matrix4x4 m;
+	  m.SetVector(0, Vector4F(c, -s, 0, 0));
+	  m.SetVector(1, Vector4F(s, c, 0, 0));
+	  m.SetVector(2, Vector4F(0, 0, 1, 0));
 	  m.SetVector(3, Vector4F(0, 0, 0, 1));
 	  return m;
 	}
@@ -370,15 +437,58 @@ struct Vertex {
 	Vertex() {}
 };
 
+template<typename T=int16_t, int F=10, typename U=int32_t>
+class FixedNum {
+public:
+  FixedNum() {}
+  constexpr FixedNum(const FixedNum& n) : value(n.value) {}
+  template<typename X> constexpr static FixedNum From(const X& n) { return FixedNum(static_cast<T>(n * fractional)); }
+  template<typename X> constexpr X To() const { return static_cast<X>(value) / fractional; }
+  template<typename X> void Set(const X& n) { value = n * fractional; }
+
+  FixedNum& operator+=(FixedNum n) { value += n.value; return *this; }
+  FixedNum& operator-=(FixedNum n) { value -= n.value; return *this; }
+  FixedNum& operator*=(FixedNum n) { U tmp = value * n.value; value = tmp / fractional;  return *this; }
+  FixedNum& operator/=(FixedNum n) { U tmp = value * fractional; tmp /= n.value; value = tmp;  return *this; }
+  constexpr FixedNum operator+(FixedNum n) const { return FixedNum(value) += n; }
+  constexpr FixedNum operator-(FixedNum n) const { return FixedNum(value) -= n; }
+  constexpr FixedNum operator*(FixedNum n) const { return FixedNum(value) *= n; }
+  constexpr FixedNum operator/(FixedNum n) const { return FixedNum(value) /= n; }
+
+  FixedNum operator+=(int n) { value += n * fractional; return *this; }
+  FixedNum operator-=(int n) { value -= n * fractional; return *this; }
+  FixedNum operator*=(int n) { U tmp = value * (n * fractional); value = tmp / fractional;  return *this; }
+  FixedNum operator/=(int n) { U tmp = value * fractional; tmp /= n; value = tmp / fractional;  return *this; }
+  friend constexpr int operator+=(int lhs, FixedNum rhs) { return lhs += rhs.ToInt(); }
+  friend constexpr int operator-=(int lhs, FixedNum rhs) { return lhs -= rhs.ToInt(); }
+  friend constexpr int operator*=(int lhs, FixedNum rhs) { return lhs = (lhs * rhs.value) / rhs.fractional; }
+  friend constexpr int operator/=(int lhs, FixedNum rhs) { return lhs = (lhs * rhs.fractional) / rhs.value; }
+  friend constexpr FixedNum operator+(FixedNum lhs, int rhs) { return FixedNum(lhs) += rhs; }
+  friend constexpr FixedNum operator-(FixedNum lhs, int rhs) { return FixedNum(lhs) -= rhs; }
+  friend constexpr FixedNum operator*(FixedNum lhs, int rhs) { return FixedNum(lhs) *= rhs; }
+  friend constexpr FixedNum operator/(FixedNum lhs, int rhs) { return FixedNum(lhs) /= rhs; }
+  friend constexpr int operator+(int lhs, FixedNum rhs) { return lhs + rhs.ToInt(); }
+  friend constexpr int operator-(int lhs, FixedNum rhs) { return lhs - rhs.ToInt(); }
+  friend constexpr int operator*(int lhs, FixedNum rhs) { return (lhs * rhs) / rhs.fractional; }
+  friend constexpr int operator/(int lhs, FixedNum rhs) { return (lhs  * rhs.fractional) / rhs; }
+
+  static const int fractional = 2 << F;
+
+private:
+  constexpr FixedNum(int n) : value(n) {}
+  T value;
+};
+typedef FixedNum<> Fixed16;
+
 /**
 * モデルの材質.
 */
 struct Material {
 	Color4B color;
-	GLubyte metallic;
-	GLubyte roughness;
+	Fixed16 metallic;
+	Fixed16 roughness;
 	Material() {}
-	constexpr Material(Color4B c, GLubyte m, GLubyte r) : color(c), metallic(m), roughness(r) {}
+	constexpr Material(Color4B c, GLfloat m, GLfloat r) : color(c), metallic(Fixed16::From(m)), roughness(Fixed16::From(r)) {}
 };
 
 struct RotTrans {
@@ -388,6 +498,7 @@ struct RotTrans {
 		const Vector3F v = rhs.rot.Apply(trans);
 		trans = v + rhs.trans;
 		rot *= rhs.rot;
+		rot.Normalize();
 		return *this;
 	}
 	friend RotTrans operator*(const RotTrans& lhs, const RotTrans& rhs) { return RotTrans(lhs) *= rhs; }
@@ -407,12 +518,14 @@ Matrix4x3 ToMatrix(const RotTrans& rt);
   3. モデルローカルな変換行列に逆バインドポーズ行列を掛け、最終的な変換行列を得る.
      この変換行列は、モデルローカル座標系にある頂点をジョイントローカル座標系に移動し、
 	 現在の姿勢によって変換し、再びモデルローカル座標系に戻すという操作を行う.
+
+  逆バインドポーズ行列 = Inverse(初期姿勢行列)
 */
 struct Joint {
 	RotTrans invBindPose;
 	RotTrans initialPose;
-	int offChild;
-	int offSibling;
+	int offChild; ///< 0: no child.
+	int offSibling; ///< 0: no sibling.
 };
 typedef std::vector<Joint> JointList;
 
@@ -425,6 +538,8 @@ struct Animation {
 	typedef std::pair<const Element*, const Element*> ElementPair;
 
 	std::string id;
+	GLfloat totalTime;
+	bool loopFlag;
 	std::vector<ElementList> data;
 
 	ElementPair GetElementByTime(int index, float t) const;
@@ -461,7 +576,10 @@ struct Mesh {
 	JointList jointList;
 	Texture::TexturePtr texDiffuse;
 	Texture::TexturePtr texNormal;
-	Texture::TexturePtr texRoughnessAndMetallic;
+#ifdef SHOW_TANGENT_SPACE
+	int32_t vboTBNOffset;
+	int32_t vboTBNCount;
+#endif // SHOW_TANGENT_SPACE
 };
 
 /**
@@ -494,6 +612,8 @@ struct Shader
 	GLint matLightForShadow;
 	GLint bones;
 
+	GLint debug;
+
 	std::string id;
 };
 
@@ -504,6 +624,7 @@ enum VertexAttribLocation {
     VertexAttribLocation_TexCoord01,
 	VertexAttribLocation_Weight,
 	VertexAttribLocation_BoneID,
+	VertexAttribLocation_Color,
 };
 
 /**
@@ -513,28 +634,34 @@ class Object
 {
 public:
 	Object() : shader(0) {}
-	Object(const RotTrans& rt, const Mesh* m, const Material& mat, const Shader* s) : material(mat), mesh(m), shader(s), rotTrans(rt), scale(Vector3F(1, 1, 1)), color(255, 255, 255, 255) {
+	Object(const RotTrans& rt, const Mesh* m, const Material& mat, const Shader* s) : material(mat), mesh(m), shader(s), rotTrans(rt), scale(Vector3F(1, 1, 1)) {
+	  if (mesh) {
 		bones.resize(mesh->jointList.size(), Matrix4x3::Unit());
+	  }
 	}
-	void Color(Color4B c) { color = c; }
-	Color4B Color() const { return color; }
-	Color4B ActualColor() const { return color * material.color; }
-	GLubyte Metallic() const { return material.metallic; }
-	GLubyte Roughness() const { return material.roughness; }
+	void Color(Color4B c) { material.color = c; }
+	Color4B Color() const { return material.color; }
+	float Metallic() const { return material.metallic.To<float>(); }
+	float Roughness() const { return material.roughness.To<float>(); }
+	void SetRoughness(float r) { material.roughness.Set(r); }
+	void SetMetallic(float r) { material.metallic.Set(r); }
 	const RotTrans& RotTrans() const { return rotTrans; }
-	void SetRoughness(GLubyte r) { material.roughness = r; }
 	const Mesh* Mesh() const { return mesh; }
 	const Shader* Shader() const { return shader; }
 	const GLfloat* GetBoneMatirxArray() const { return bones[0].f; }
 	size_t GetBoneCount() const { return bones.size(); }
-	bool IsValid() const { return shader; }
+	bool IsValid() const { return mesh && shader; }
 	void Update(float t);
 	void SetAnimation(const Animation* p) { animationPlayer.SetAnimation(p); }
 	void SetCurrentTime(float t) { animationPlayer.SetCurrentTime(t); }
 	float GetCurrentTime() const { return animationPlayer.GetCurrentTime(); }
 	void SetRotation(const Quaternion& r) { rotTrans.rot = r; }
+	void SetRotation(float x, float y, float z) {
+	  (Matrix4x4::RotationZ(z) * Matrix4x4::RotationY(y) * Matrix4x4::RotationX(x)).Decompose(&rotTrans.rot, nullptr, nullptr);
+	}
 	void SetTranslation(const Vector3F& t) { rotTrans.trans = t; }
-	void Scale(const Vector3F& s) { scale = s; }
+	void SetScale(const Vector3F& s) { scale = s; }
+	Position3F Position() const { return rotTrans.trans.ToPosition3F(); }
 	const Vector3F& Scale() const { return scale; }
 
 private:
@@ -544,9 +671,17 @@ private:
 
 	::RotTrans rotTrans;
 	Vector3F scale;
-	Color4B color;
 	AnimationPlayer animationPlayer;
 	std::vector<Matrix4x3>  bones;
+};
+typedef std::shared_ptr<Object> ObjectPtr;
+
+class DebugStringObject
+{
+public:
+	DebugStringObject(int x, int y, const char* s) : pos(x, y), str(s) {}
+	Position2S pos;
+	std::string str;
 };
 
 struct android_app;
@@ -560,14 +695,17 @@ public:
 	explicit Renderer(android_app*);
 	Renderer() = delete;
 	~Renderer();
-	Object CreateObject(const char* meshName, const Material& m, const char* shaderName);
+	ObjectPtr CreateObject(const char* meshName, const Material& m, const char* shaderName);
 	const Animation* GetAnimation(const char* name);
 	void Initialize();
-	void Render(const Object*, const Object*);
-	void Update( float dTime, const Vector3F&, const Vector3F&);
+	void Render(const ObjectPtr*, const ObjectPtr*);
+	void Update( float dTime, const Position3F&, const Vector3F&, const Vector3F&);
 	void Unload();
 	void InitMesh();
 	void InitTexture();
+
+	void ClearDebugString() { debugStringList.clear(); }
+	void AddDebugString(int x, int y, const char* s) { debugStringList.push_back(DebugStringObject(x, y, s)); }
 
 	bool HasDisplay() const { return display; }
 	bool HasSurface() const { return surface; }
@@ -595,11 +733,14 @@ private:
 		GLuint* p;
 	};
 	FBOInfo GetFBOInfo(int) const;
-	void LoadMesh(const char*, const char* = nullptr, const char* = nullptr);
+	void LoadMesh(const char*, const void*, const char* = nullptr, const char* = nullptr);
+	void LoadFBX(const char* filename, const char* diffuse, const char* normal);
 	void CreateSkyboxMesh();
+	void CreateOctahedronMesh();
 	void CreateBoardMesh(const char*, const Vector3F&);
-	void CreateFloorMesh(const char*, const Vector3F&);
+	void CreateFloorMesh(const char*, const Vector3F&, int);
 	void CreateAsciiMesh(const char*);
+	void CreateCloudMesh(const char*, const Vector3F&);
 	void DrawFont(const Position2F&, const char*);
 
 private:
@@ -611,15 +752,15 @@ private:
 	EGLContext context;
 	int32_t width;
 	int32_t height;
+	GLint viewport[4];
 
 	std::string texBaseDir;
 
-	Vector3F cameraPos;
-	Vector3F cameraDir;
+	boost::random::mt19937 random;
 
-	uint64_t startTime;
-	uint32_t frames;
-	uint32_t prevFrames;
+	Position3F cameraPos;
+	Vector3F cameraDir;
+	Vector3F cameraUp;
 
 	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR[5];
 	GLuint depth;
@@ -628,10 +769,18 @@ private:
 	GLintptr vboEnd;
 	GLuint ibo;
 	GLintptr iboEnd;
+
+#ifdef SHOW_TANGENT_SPACE
+	GLuint vboTBN;
+	GLintptr vboTBNEnd;
+#endif // SHOW_TANGENT_SPACE
+
 	std::map<std::string, Shader> shaderList;
 	std::map<std::string, Mesh> meshList;
 	std::map<std::string, Animation> animationList;
 	std::map<std::string, Texture::TexturePtr> textureList;
+
+	std::vector<DebugStringObject> debugStringList;
 };
 
 inline Position2F& Position2F::operator+=(const Vector2F& rhs) { x += rhs.x; y += rhs.y; return *this; }
@@ -694,7 +843,12 @@ inline void Matrix4x4::Decompose(Quaternion* q, Vector3F* scale, Vector3F* trans
 	}
 }
 
+Matrix4x4 LookAt(const Position3F& eyePos, const Position3F& targetPos, const Vector3F& upVector);
 inline uint8_t FloatToFix8(float f) { return static_cast<uint8_t>(std::max<float>(0, std::min<float>(255, f * 255.0f + 0.5f))); }
 inline float Fix8ToFloat(uint8_t n) { return static_cast<float>(n) * (1.0f / 255.0f); }
+
+template<typename T> constexpr T Normalize(const T v) { return v * (1.0f / v.Length()); }
+template<typename T> constexpr T Cross(const T& lhs, const T& rhs) { return lhs.Cross(rhs); }
+template<typename T> constexpr float Dot(const T& lhs, const T& rhs) { return lhs.Dot(rhs); }
 
 #endif // MT_RENDERER_H_INCLUDED

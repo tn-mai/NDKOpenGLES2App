@@ -75,7 +75,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsCpp</CompileAs>
-      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_58_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_59_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>
       </PreprocessorDefinitions>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -92,7 +92,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsCpp</CompileAs>
-      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_58_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_59_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ExceptionHandling>Enabled</ExceptionHandling>
       <CppLanguageStandard>c++11</CppLanguageStandard>
@@ -107,7 +107,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsCpp</CompileAs>
-      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_58_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_59_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ExceptionHandling>Enabled</ExceptionHandling>
       <CppLanguageStandard>c++11</CppLanguageStandard>
@@ -121,7 +121,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsCpp</CompileAs>
-      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_58_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_59_0;$(VS_NdkRoot)\sources\android\ndk_helper;$(VS_NdkRoot)/sources/android/native_app_glue;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <ExceptionHandling>Enabled</ExceptionHandling>
       <CppLanguageStandard>c++11</CppLanguageStandard>
@@ -131,6 +131,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Collision.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="TangentSpaceData.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="android_native_app_glue.h" />
@@ -139,6 +143,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="Collision.cpp" />
+    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="TangentSpaceData.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />

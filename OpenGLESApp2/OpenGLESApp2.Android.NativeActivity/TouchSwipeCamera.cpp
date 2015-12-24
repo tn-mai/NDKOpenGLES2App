@@ -18,9 +18,9 @@ TouchSwipeCamera::~TouchSwipeCamera()
 
 void TouchSwipeCamera::Reset()
 {
-  position = Vector3F(2, 2, 0);
-  eyeVector = Vector3F(0, 0, 1);
-  upVector = Vector3F(0, 1, 0);
+  position = Position3F(0, 4000, 0);
+  eyeVector = Vector3F(0, -1, 0);
+  upVector = Vector3F(0, 0, 1);
   dir = MoveDir_Newtral;
   dragging = false;
 }
@@ -116,7 +116,7 @@ bool TouchSwipeCamera::HandleEvent(AInputEvent* event)
   return consumed;
 }
 
-void TouchSwipeCamera::Update(float /*delta*/)
+void TouchSwipeCamera::Update(float delta, const Vector3F& orientation)
 {
   if (dragging) {
 	const float r = std::max(sw, sh);
@@ -129,7 +129,6 @@ void TouchSwipeCamera::Update(float /*delta*/)
 	const float l2 = v2.Length();
 	if (l2 > 0.0f) {
 	  v2 /= std::max(l2, r);
-	  static const Vector3F vz(0, 0, 1);
 	  const Vector3F leftVector = dragStartEyeVector.Cross(dragStartUpVector).Normalize();
 	  eyeVector = (Quaternion(dragStartUpVector, v2.x) * Quaternion(leftVector, v2.y)).Apply(dragStartEyeVector).Normalize();
 	  upVector = Quaternion(leftVector, v2.y).Apply(dragStartUpVector).Normalize();
@@ -138,18 +137,32 @@ void TouchSwipeCamera::Update(float /*delta*/)
 
   switch (dir) {
   case MoveDir_Front1:
-	position += eyeVector * 0.025f;
+	position += eyeVector * 2.0f * delta;
 	break;
   case MoveDir_Front2:
-	position += eyeVector * 0.05f;
+	position += eyeVector * 40.0f * delta;
 	break;
   case MoveDir_Back:
-	position -= eyeVector * 0.025f;
+	position -= eyeVector * 2.0f * delta;
 	break;
   default:
   case MoveDir_Newtral:
 	// ‰½‚à‚µ‚È‚¢.
 	break;
+  }
+
+  static const float margin = 0.11f;
+  const float y = orientation.y + 0.2f;
+  if (y > margin) {
+	position += upVector * (y - margin) * 3.0f;
+  } else if (y < -margin) {
+	position += upVector * (y + margin) * 3.0f;
+  }
+  const Vector3F sideVector = eyeVector.Cross(upVector);
+  if (orientation.z > margin) {
+	position += sideVector * (orientation.z - margin) * 3.0f;
+  } else if (orientation.z < -margin) {
+	position += sideVector * (orientation.z + margin) * 3.0f;
   }
 }
 
@@ -163,12 +176,12 @@ void TouchSwipeCamera::Resume()
   suspending = false;
 }
 
-void TouchSwipeCamera::Position(const Vector3F& pos)
+void TouchSwipeCamera::Position(const Position3F& pos)
 {
   position = pos;
 }
 
-Vector3F TouchSwipeCamera::Position() const
+Position3F TouchSwipeCamera::Position() const
 {
   return position;
 }
@@ -183,7 +196,17 @@ Vector3F TouchSwipeCamera::EyeVector() const
   return eyeVector;
 }
 
-void TouchSwipeCamera::LookAt(const Vector3F& at)
+void TouchSwipeCamera::UpVector(const Vector3F& vec)
+{
+  upVector = vec;
+}
+
+Vector3F TouchSwipeCamera::UpVector() const
+{
+  return upVector;
+}
+
+void TouchSwipeCamera::LookAt(const Position3F& at)
 {
   eyeVector = (at - position).Normalize();
 }

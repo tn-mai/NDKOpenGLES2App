@@ -3,6 +3,7 @@
 #include <android/log.h>
 #include <vector>
 
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "texture.cpp", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "texture.cpp", __VA_ARGS__))
 
 namespace Texture {
@@ -255,6 +256,7 @@ namespace Texture {
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glBindTexture(tex.Target(), 0);
+		LOGI("Load %s(ID:%x).", filename, tex.texId);
 		return p;
 	}
 }

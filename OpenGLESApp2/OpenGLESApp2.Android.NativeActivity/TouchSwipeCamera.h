@@ -20,19 +20,22 @@ public:
   void ScreenSize(int w, int h) { sw = w; sh = h; }
   void Reset();
   bool HandleEvent(AInputEvent*);
-  void Update(float);
+  void Update(float, const Vector3F&);
   void Suspend();
   void Resume();
-  void Position(const Vector3F&);
-  Vector3F Position() const;
+  void Position(const Position3F&);
+  Position3F Position() const;
   void EyeVector(const Vector3F&);
   Vector3F EyeVector() const;
-  void LookAt(const Vector3F&);
+  void UpVector(const Vector3F&);
+  Vector3F UpVector() const;
+  void LookAt(const Position3F&);
   MoveDir Direction() const { return dir; }
+  void Direction(MoveDir d) { dir = d; }
 
 private:
   int sw, sh;
-  Vector3F position;
+  Position3F position;
   Vector3F eyeVector;
   Vector3F upVector;
   MoveDir dir;
