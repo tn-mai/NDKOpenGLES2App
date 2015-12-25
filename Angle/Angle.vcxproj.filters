@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.cpp" />
+    <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.cpp" />
+    <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.cpp" />
+    <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.cpp" />
+    <ClCompile Include="..\Common\File.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.h" />
+    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.h" />
+    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.h" />
+    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Scene.h" />
+    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.h" />
+    <ClInclude Include="..\Common\File.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{4408fe5d-1c73-4c38-a083-7e2bae452df0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

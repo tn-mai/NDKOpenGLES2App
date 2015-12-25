@@ -131,6 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Common\File.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Scene.h" />
@@ -142,6 +143,7 @@
     <ClInclude Include="TouchSwipeCamera.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Common\File.cpp" />
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Mesh.cpp" />
