@@ -1,9 +1,12 @@
 #include "Renderer.h"
 #include "Mesh.h"
+#ifdef __ANDROID__
 #include "android_native_app_glue.h"
 #include <android/log.h>
+#endif // __ANDROID__
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -13,14 +16,20 @@
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/lexical_cast.hpp>
 #include <vector>
+#include <numeric>
 #include <streambuf>
 #include <math.h>
-#include <GLES2/gl2ext.h>
+#include <chrono>
 
 namespace BPT = boost::property_tree;
 
+#ifdef __ANDROID__
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#else
+#define LOGI(...) ((void)printf(__VA_ARGS__))
+#define LOGE(...) ((void)printf(__VA_ARGS__))
+#endif // __ANDROID__
 
 #define FBO_MAIN_WIDTH 512.0
 #define FBO_MAIN_HEIGHT 800.0
@@ -35,47 +44,49 @@ namespace BPT = boost::property_tree;
 
 namespace {
 
-  PFNGLDELETEFENCESNVPROC glDeleteFencesNV;
-  PFNGLGENFENCESNVPROC glGenFencesNV;
-  PFNGLGETFENCEIVNVPROC glGetFenceivNV;
-  PFNGLISFENCENVPROC glIsFenceNV;
-  PFNGLFINISHFENCENVPROC glFinishFenceNV;
-  PFNGLSETFENCENVPROC glSetFenceNV;
-  PFNGLTESTFENCENVPROC glTestFenceNV;
-
-  GLvoid dummy_glDeleteFencesNV(GLsizei, const GLuint*) {}
-  GLvoid dummy_glGenFencesNV(GLsizei, GLuint*) {}
-  GLvoid dummy_glGetFenceivNV(GLuint, GLenum, GLint*) {}
-  GLboolean dummy_glIsFenceNV(GLuint) { return false; }
-  GLvoid dummy_glFinishFenceNV(GLuint) {}
-  GLvoid dummy_glSetFenceNV(GLuint, GLenum) {}
-  GLboolean dummy_glTestFenceNV(GLuint) { return false; }
+  namespace Local {
+	PFNGLDELETEFENCESNVPROC glDeleteFencesNV;
+	PFNGLGENFENCESNVPROC glGenFencesNV;
+	PFNGLGETFENCEIVNVPROC glGetFenceivNV;
+	PFNGLISFENCENVPROC glIsFenceNV;
+	PFNGLFINISHFENCENVPROC glFinishFenceNV;
+	PFNGLSETFENCENVPROC glSetFenceNV;
+	PFNGLTESTFENCENVPROC glTestFenceNV;
+  }
+  GLvoid GL_APIENTRY dummy_glDeleteFencesNV(GLsizei, const GLuint*) {}
+  GLvoid GL_APIENTRY dummy_glGenFencesNV(GLsizei, GLuint*) {}
+  GLvoid GL_APIENTRY dummy_glGetFenceivNV(GLuint, GLenum, GLint*) {}
+  GLboolean GL_APIENTRY dummy_glIsFenceNV(GLuint) { return false; }
+  GLvoid GL_APIENTRY dummy_glFinishFenceNV(GLuint) {}
+  GLvoid GL_APIENTRY dummy_glSetFenceNV(GLuint, GLenum) {}
+  GLboolean GL_APIENTRY dummy_glTestFenceNV(GLuint) { return false; }
 
   void InitNVFenceExtention(bool hasNVfenceExtension)
   {
 	if (hasNVfenceExtension) {
-	  glDeleteFencesNV = (PFNGLDELETEFENCESNVPROC)eglGetProcAddress("glDeleteFencesNV");
-	  glGenFencesNV = (PFNGLGENFENCESNVPROC)eglGetProcAddress("glGenFencesNV");
-	  glGetFenceivNV = (PFNGLGETFENCEIVNVPROC)eglGetProcAddress("glGetFenceivNV");
-	  glIsFenceNV = (PFNGLISFENCENVPROC)eglGetProcAddress("glIsFenceNV");
-	  glFinishFenceNV = (PFNGLFINISHFENCENVPROC)eglGetProcAddress("glFinishFenceNV");
-	  glSetFenceNV = (PFNGLSETFENCENVPROC)eglGetProcAddress("glSetFenceNV");
-	  glTestFenceNV = (PFNGLTESTFENCENVPROC)eglGetProcAddress("glTestFenceNV");
+	  Local::glDeleteFencesNV = (PFNGLDELETEFENCESNVPROC)eglGetProcAddress("glDeleteFencesNV");
+	  Local::glGenFencesNV = (PFNGLGENFENCESNVPROC)eglGetProcAddress("glGenFencesNV");
+	  Local::glGetFenceivNV = (PFNGLGETFENCEIVNVPROC)eglGetProcAddress("glGetFenceivNV");
+	  Local::glIsFenceNV = (PFNGLISFENCENVPROC)eglGetProcAddress("glIsFenceNV");
+	  Local::glFinishFenceNV = (PFNGLFINISHFENCENVPROC)eglGetProcAddress("glFinishFenceNV");
+	  Local::glSetFenceNV = (PFNGLSETFENCENVPROC)eglGetProcAddress("glSetFenceNV");
+	  Local::glTestFenceNV = (PFNGLTESTFENCENVPROC)eglGetProcAddress("glTestFenceNV");
 	  LOGI("Enable GL_NV_fence");
 	} else {
-	  glDeleteFencesNV = dummy_glDeleteFencesNV;
-	  glGenFencesNV = dummy_glGenFencesNV;
-	  glGetFenceivNV = dummy_glGetFenceivNV;
-	  glIsFenceNV = dummy_glIsFenceNV;
-	  glFinishFenceNV = dummy_glFinishFenceNV;
-	  glSetFenceNV = dummy_glSetFenceNV;
-	  glTestFenceNV = dummy_glTestFenceNV;
+	  Local::glDeleteFencesNV = dummy_glDeleteFencesNV;
+	  Local::glGenFencesNV = dummy_glGenFencesNV;
+	  Local::glGetFenceivNV = dummy_glGetFenceivNV;
+	  Local::glIsFenceNV = dummy_glIsFenceNV;
+	  Local::glFinishFenceNV = dummy_glFinishFenceNV;
+	  Local::glSetFenceNV = dummy_glSetFenceNV;
+	  Local::glTestFenceNV = dummy_glTestFenceNV;
 	  LOGI("Disable GL_NV_fence");
 	}
   }
 
-  int64_t GetCurrentTime(android_app* s)
+  int64_t GetCurrentTime()
   {
+#ifdef __ANDROID__
 #if 1
 	timespec tmp;
 	clock_gettime(CLOCK_MONOTONIC, &tmp);
@@ -84,20 +95,11 @@ namespace {
 	struct timeval tmp;
 	gettimeofday(&tmp, nullptr);
 	return tmp.tv_sec * 1000UL * 1000UL * 1000UL + tmp.tv_usec * 1000UL;
-#else
-	static bool once = true;
-	static jclass javaClassRef;
-	static jmethodID javaMethodRef;
-	static JNIEnv* env;
-	if (once) {
-	  s->activity->vm->AttachCurrentThread(&env, nullptr);
-	  jclass c = env->FindClass("java/lang/System");
-	  javaClassRef = (jclass)env->NewGlobalRef(c);
-	  javaMethodRef = env->GetStaticMethodID(javaClassRef, "nanoTime", "()J");
-	  once = false;
-	}
-	return env->CallStaticLongMethod(javaClassRef, javaMethodRef);
 #endif
+#else
+	const auto t = std::chrono::high_resolution_clock::now();
+	return std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count();
+#endif // __ANDROID__
   }
 
   template<typename T, typename F>
@@ -126,6 +128,7 @@ namespace {
 	boost::optional<RawBufferType> LoadFile(android_app* state, const char* filename, int mode = 0)
 	{
 		RawBufferType buf;
+#ifdef __ANDROID__
 		AAsset* pAsset = AAssetManager_open(state->activity->assetManager, filename, mode);
 		if (!pAsset) {
 		  LOGI("LoadFile: %s not found.", filename);
@@ -139,6 +142,21 @@ namespace {
 		  LOGI("LoadFile: %s can't read.", filename);
 		  return boost::none;
 		}
+#else
+		std::string path("OpenGLESApp2/OpenGLESApp2.Android.Packaging/assets/");
+		path += filename;
+		FILE* fp;
+		fopen_s(&fp, path.c_str(), "rb");
+		if (!fp) {
+		  return boost::none;
+		}
+		std::fseek(fp, 0L, SEEK_END);
+		const size_t size = std::ftell(fp);
+		std::rewind(fp);
+		buf.resize(size);
+		std::fread(buf.data(), size, 1, fp);
+		std::fclose(fp);
+#endif // __ANDROID__
 		return buf;
 	}
 
@@ -195,7 +213,7 @@ namespace {
 			if (infoLen) {
 				std::vector<char> buf;
 				buf.resize(infoLen);
-				if (buf.size() >= infoLen) {
+				if (static_cast<int>(buf.size()) >= infoLen) {
 					glGetShaderInfoLog(shader, infoLen, NULL, &buf[0]);
 					LOGE("Could not compile shader %d:\n%s\n", shaderType, &buf[0]);
 				}
@@ -290,13 +308,13 @@ namespace {
 		return m;
 	}
 
-	Matrix4x4 Olthographic(float width, float height, float near, float far)
+	Matrix4x4 Olthographic(float width, float height, float nearPlane, float farPlane)
 	{
 	  Matrix4x4 m;
-	  m.SetVector(0, Vector4F(2.0f / width,             0,                           0, 0));
-	  m.SetVector(1, Vector4F(           0, 2.0f / height,                           0, 0));
-	  m.SetVector(2, Vector4F(           0,             0,        -2.0f / (far - near), 0));
-	  m.SetVector(3, Vector4F(           0,             0, -(far + near) / (far - near), 1));
+	  m.SetVector(0, Vector4F(2.0f / width, 0, 0, 0));
+	  m.SetVector(1, Vector4F(0.0f, 2.0f / height, 0, 0));
+	  m.SetVector(2, Vector4F(0, 0, -2.0f / (farPlane - nearPlane), 0));
+	  m.SetVector(3, Vector4F(0.0f, 0.0f, -(farPlane + nearPlane) / (farPlane - nearPlane), 1.0f));
 	  return m;
 	}
 
@@ -489,7 +507,7 @@ std::vector<RotTrans> AnimationPlayer::Update(const JointList& jointList, float 
 	  currentTime = std::fmod(currentTime, pAnime->totalTime);
 	}
 	result.reserve(jointList.size());
-	for (int i = 0; i < jointList.size(); ++i) {
+	for (int i = 0; i < static_cast<int>(jointList.size()); ++i) {
 		const Animation::ElementPair p = pAnime->GetElementByTime(i, currentTime);
 		const float timeRange = p.second->time - p.first->time;
 		const float ratio = timeRange > 0.0f ? (currentTime - p.first->time) / timeRange : 0.0f;
@@ -536,7 +554,7 @@ Renderer::Renderer(android_app* s)
   : state(s)
   , isInitialized(false)
   , texBaseDir("Textures/Others/")
-  , random(time(nullptr))
+  , random(static_cast<uint32_t>(time(nullptr)))
   , fboMain(0)
   , fboSub(0)
   , fboShadow0(0)
@@ -854,7 +872,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	static const int FENCE_ID_HDR_PATH = 3;
 	static const int FENCE_ID_FINAL_PATH = 4;
 	GLuint fences[5];
-	glGenFencesNV(5, fences);
+	Local::glGenFencesNV(5, fences);
 
 	// shadow path.
 
@@ -985,7 +1003,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
 
-		glSetFenceNV(fences[FENCE_ID_SHADOW_PATH], GL_ALL_COMPLETED_NV);
+		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_PATH], GL_ALL_COMPLETED_NV);
 	}
 
 	// fboMain ->(bilinear4x4)-> fboShadow0
@@ -1038,7 +1056,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		const Mesh& mesh = meshList["board2D"];
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 
-		glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
+		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 #endif
@@ -1101,7 +1119,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindTexture(GL_TEXTURE_2D, 0);
 	  const Mesh& mesh = meshList["skybox"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-	  glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
+	  Local::glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
 	}
 
 	GLuint currentProgramId = 0;
@@ -1338,7 +1356,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  }
 	}
 #endif // USE_HDR_BLOOM
-	glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
+	Local::glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
 
 	// final path.
 	{
@@ -1376,16 +1394,16 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  const Mesh& mesh = meshList["board2D"];
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 
-	  glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
+	  Local::glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
 	}
 
 	// ÉpÉtÉHÅ[É}ÉìÉXåvë™.
 	{
 	  int64_t fenceTimes[6];
-	  fenceTimes[0] = GetCurrentTime(state);
+	  fenceTimes[0] = GetCurrentTime();
 	  for (int i = 0; i < 5; ++i) {
-		glFinishFenceNV(fences[i]);
-		fenceTimes[i + 1] = GetCurrentTime(state);
+		Local::glFinishFenceNV(fences[i]);
+		fenceTimes[i + 1] = GetCurrentTime();
 	  }
 	  int64_t diffTimes[6];
 	  for (int i = 0; i < 5; ++i) {
@@ -1403,23 +1421,23 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  static const float targetTime = 1000000000.0f / 30.0f;
 	  for (int i = 0; i < 6; ++i) {
 		std::string s(fenceNameList[i]);
-		const int percentage = (static_cast<float>(diffTimes[i]) * 1000.0f) / targetTime;// totalTime;
+		const int percentage = static_cast<int>((static_cast<float>(diffTimes[i]) * 1000.0f) / targetTime);// totalTime;
 		s += '0' + percentage / 1000;
 		s += '0' + (percentage % 1000) / 100;
 		s += '0' + (percentage % 100) / 10;
 		s += '.';
 		s += '0' + percentage % 10;
 //		s += boost::lexical_cast<std::string>(diffTimes[i]);
-		DrawFont(Position2F(16, 64 + 16 * i), s.c_str());
+		DrawFont(Position2F(16, static_cast<float>(64 + 16 * i)), s.c_str());
 	  }
-	  glDeleteFencesNV(5, fences);
+	  Local::glDeleteFencesNV(5, fences);
 	}
 
 	{
 	  auto f = [this](int pos, char c, float value) {
 		char buf[16] = { 0 };
 		buf[0] = c; buf[1] = ':'; buf[2] = value >= 0.0f ? ' ' : '-';
-		const int x = std::abs<int>(value * 100.0f);
+		const int x = std::abs<int>(static_cast<int>(value * 100.0f));
 		for (int i = 3, s = 100000; i < 10; ++i) {
 		  if (i == 7) {
 			buf[i] = '.';
@@ -1429,7 +1447,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  }
 		}
 		buf[10] = '\0';
-		DrawFont(Position2F(392, pos), buf);
+		DrawFont(Position2F(392.0f, pos), buf);
 	  };
 	  f( 4, 'X', cameraPos.x);
 	  f(20, 'Y', cameraPos.y);
@@ -1683,7 +1701,7 @@ void Renderer::CreateSkyboxMesh()
 		7, 3, 0, 0, 4, 7,
 //		1, 2, 6, 6, 5, 1,
 	};
-	const GLushort offset = vboEnd / sizeof(Vertex);
+	const GLushort offset = static_cast<GLushort>(vboEnd / sizeof(Vertex));
 	for (auto e : cubeIndices) {
 		indices.push_back(e + offset);
 	}
@@ -1722,7 +1740,7 @@ void Renderer::CreateOctahedronMesh()
 	{ 0, 4, 1 }, { 1, 4, 5 },
   };
   static const float texCoordList[][2] = { { 0, 0 }, { 0, 1 }, { 1, 1 } };
-  const GLushort offset = vboEnd / sizeof(Vertex);
+  const GLushort offset = static_cast<GLushort>(vboEnd / sizeof(Vertex));
   int index = 0;
   for (auto& e : indexList) {
 	const Position3F p[3] = {
@@ -1776,7 +1794,7 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 		0, 1, 2, 2, 3, 0,
 		2, 1, 0, 0, 3, 2,
 	};
-	const GLushort offset = vboEnd / sizeof(Vertex);
+	const GLushort offset = static_cast<GLushort>(vboEnd / sizeof(Vertex));
 	for (auto e : cubeIndices) {
 		indices.push_back(e + offset);
 	}
@@ -1822,7 +1840,7 @@ void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale, int subdiv
 
   std::vector<GLushort> indices;
   indices.reserve((subdivideCount * subdivideCount) * 2 * 3);
-  const GLushort offset = vboEnd / sizeof(Vertex);
+  const GLushort offset = static_cast<GLushort>(vboEnd / sizeof(Vertex));
   for (int y = 0; y < subdivideCount; ++y) {
 	const int y0 = (y + 0) * (subdivideCount + 1) + offset;
 	const int y1 = (y + 1) * (subdivideCount + 1) + offset;
@@ -1884,7 +1902,7 @@ void Renderer::CreateAsciiMesh(const char* id)
   static const GLushort rectIndices[] = {
 	0, 1, 2, 2, 3, 0,
   };
-  const GLushort offset = vboEnd / sizeof(Vertex);
+  const GLushort offset = static_cast<GLushort>(vboEnd / sizeof(Vertex));
   for (int y = 0; y < 8; ++y) {
 	for (int x = 0; x < 16; ++x) {
 	  for (auto e : rectIndices) {
@@ -1985,7 +2003,7 @@ void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
 		  if (!hasCloud) {
 			continue;
 		  }
-		  const float cloudType = hasCloud == 3 ? 3 : boost::random::uniform_int_distribution<>(0, 2)(random);
+		  const float cloudType = static_cast<float>(hasCloud == 3 ? 3 : boost::random::uniform_int_distribution<>(0, 2)(random));
 		  const Vector2F cloudScale = Vector2F(boxelSize.x, boxelSize.y) * (boost::random::uniform_int_distribution<>(85, 100)(random) * 0.01f);
 		  const Quaternion rot0 = rot1 * Quaternion(Vector3F(0, 0, 1), degreeToRadian<float>(hasCloud == 3 ? 0 : boost::random::uniform_int_distribution<>(-45, 45)(random)));
 		  const Vector3F offsetRnd(
@@ -2037,8 +2055,8 @@ void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
 #endif
   }
 
-  const GLushort offset = vboEnd / sizeof(Vertex);
-  for (int i = 0; i < vertecies.size(); i += 4) {
+  const GLushort offset = static_cast<GLushort>(vboEnd / sizeof(Vertex));
+  for (GLushort i = 0; i < vertecies.size(); i += 4) {
 	indices.push_back(i + 0 + offset);
 	indices.push_back(i + 1 + offset);
 	indices.push_back(i + 2 + offset);
@@ -2242,7 +2260,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 						}
 						const std::vector<int> vcount = split<int>(weightsElem.get<std::string>("vcount"), ' ', [](const std::string& s) { return atoi(s.c_str()); });
 						const std::vector<int> indexList = split<int>(weightsElem.get<std::string>("v"), ' ', [](const std::string& s) { return atoi(s.c_str()); });
-						int offset = 0;
+						size_t offset = 0;
 						for (auto& e : vcount) {
 							std::array<int, 4> boneId = { { 0, 0, 0, 0 } };
 							std::array<float, 4> weight = { { 0, 0, 0, 0 } };
@@ -2309,7 +2327,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 								break;
 							}
 						}
-						const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return atof(s.c_str()); });
+						const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return static_cast<float>(atof(s.c_str())); });
 						posArray.shrink_to_fit();
 						posArray.reserve(tmp.size() / 3);
 						for (size_t i = 0; i + 2 < tmp.size(); i += 3) {
@@ -2323,7 +2341,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 						LOGI("NORMAL FOUND");
 						const std::string srcId = e.second.get<std::string>("<xmlattr>.source").substr(1);
 						LOGI("NORMAL SOURCE: #%s", srcId.c_str());
-						const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return atof(s.c_str()); });
+						const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return static_cast<float>(atof(s.c_str())); });
 						normalArray.shrink_to_fit();
 						normalArray.reserve(tmp.size() / 3);
 						for (size_t i = 0; i + 2 < tmp.size(); i += 3) {
@@ -2339,7 +2357,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 						if (index < VERTEX_TEXTURE_COUNT_MAX) {
 							const std::string srcId = e.second.get<std::string>("<xmlattr>.source").substr(1);
 							LOGI("TEXCOORD[%d] SOURCE: #%s", index, srcId.c_str());
-							const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return atof(s.c_str()); });
+							const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return static_cast<float>(atof(s.c_str())); });
 							auto& list = texcoordArray[index];
 							list.shrink_to_fit();
 							list.reserve(tmp.size() / 2);
@@ -2363,8 +2381,8 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 				std::vector<uint_fast64_t> vertIdList;
 				vertIdList.reserve(indexCount);
 				const std::vector<int> indexList = split<int>(trianglesNode.get<std::string>("p"), ' ', [](const std::string& s)->int { return atoi(s.c_str()); });
-				for (int i = 0; i < indexList.size(); i += stride) {
-					const uint_fast64_t posId = indexList[i + vertexOff];
+				for (size_t i = 0; i < indexList.size(); i += stride) {
+					const uint_fast64_t posId64 = indexList[i + vertexOff];
 					const uint_fast64_t idNormal = (normalOff != -1) ? indexList[i + normalOff] : 0xfff;
 					uint_fast64_t idTexcoord[VERTEX_TEXTURE_COUNT_MAX];
 					for (int j = 0; j < VERTEX_TEXTURE_COUNT_MAX; ++j) {
@@ -2375,7 +2393,8 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 						idTexcoord[j] = 0xfff;
 					  }
 					}
-					const uint_fast64_t vertId = (posId << 0) | (idNormal << 12) | (idTexcoord[0] << 24) | (idTexcoord[1] << 36);
+					const uint_fast64_t vertId = (posId64 << 0) | (idNormal << 12) | (idTexcoord[0] << 24) | (idTexcoord[1] << 36);
+					const size_t posId = static_cast<size_t>(posId64);
 					// LOGI("vertId: %llx", vertId);
 					auto itr = std::find(vertIdList.begin(), vertIdList.end(), vertId);
 					if (itr != vertIdList.end()) {
@@ -2383,10 +2402,10 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 					} else {
 						Vertex v;
 						v.position = (vertexOff != -1) ? posArray[posId] : Position3F(0, 0, 0);
-						v.normal = (normalOff != -1) ? normalArray[idNormal] : Vector3F(0, 0, 1);
+						v.normal = (normalOff != -1) ? normalArray[static_cast<size_t>(idNormal)] : Vector3F(0, 0, 1);
 						v.tangent = Vector3F(0, 0, 0);
 						for (int j = 0; j < VERTEX_TEXTURE_COUNT_MAX; ++j) {
-							v.texCoord[j] = (texcoordOff[j] != -1) ? texcoordArray[j][idTexcoord[j]].second : Position2S(0, 0);
+							v.texCoord[j] = (texcoordOff[j] != -1) ? texcoordArray[j][static_cast<size_t>(idTexcoord[j])].second : Position2S(0, 0);
 						}
 						// TODO: transformÇ…Ç®ÇØÇÈó éqâªÇÃåãâ ÅAçáåvÇ™255(=1.0)Ç…Ç»ÇÁÇ»Ç¢Ç±Ç∆Ç™Ç†ÇÈÇΩÇﬂÅAï‚ê≥èàóùÇ™ïKóv.
 						if (boneNameList.empty()) {
@@ -2398,7 +2417,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 							std::transform(skinInfo.weightList[posId].begin(), skinInfo.weightList[posId].end(), v.weight, [](float w) { return static_cast<GLubyte>(w * 255.0f + 0.5f); });
 							std::copy(skinInfo.boneIdList[posId].begin(), skinInfo.boneIdList[posId].end(), v.boneID);
 						}
-						indices.push_back(vertIdList.size() + baseVertexOffset);
+						indices.push_back(static_cast<GLushort>(vertIdList.size() + baseVertexOffset));
 						vertecies.push_back(v);
 						vertIdList.push_back(vertId);
 					}
@@ -2459,7 +2478,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 				if (!boneNameList.empty()) {
 					std::vector<Joint> joints;
 					joints.resize(boneNameList.size());
-					for (int i = 0; i < joints.size(); ++i) {
+					for (size_t i = 0; i < joints.size(); ++i) {
 						skinInfo.invBindPoseMatrixList[i].Decompose(&joints[i].invBindPose.rot, nullptr, &joints[i].invBindPose.trans);
 					}
 					local::AddJoint(joints, scenesNode, boneNameList);
@@ -2568,7 +2587,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 							itrData->first = index;
 						}
 						const Vector3F axis = jointSid == "rotateX" ? Vector3F(1, 0, 0) : (jointSid == "rotateY" ? Vector3F(0, 1, 0) : Vector3F(0, 0, 1));
-						for (int i = 0; i < timeList.size(); ++i) {
+						for (size_t i = 0; i < timeList.size(); ++i) {
 							const auto itr = std::lower_bound(itrData->second.begin(), itrData->second.end(), timeList[i], [](const Animation::Element& lhs, float rhs) { return lhs.time < rhs; });
 							if (itr != itrData->second.end() && itr->time == timeList[i]) {
 								itr->pose.rot *= Quaternion(axis, degreeToRadian(angleList[i]));
@@ -2592,13 +2611,13 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 }
 void Renderer::InitTexture()
 {
-	textureList.insert({ "fboMain", Texture::CreateEmpty2D(FBO_MAIN_WIDTH, FBO_MAIN_HEIGHT) }); // âeèâä˙ï`âÊ & ÉJÉâÅ[ï`âÊ
-	textureList.insert({ "fboSub", Texture::CreateEmpty2D(MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4) }); // ÉJÉâÅ[(1/4)
-	textureList.insert({ "fboShadow0", Texture::CreateEmpty2D(SHADOWMAP_SUB_WIDTH, SHADOWMAP_SUB_HEIGHT) }); // âeèkè¨
-	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(SHADOWMAP_SUB_WIDTH, SHADOWMAP_SUB_HEIGHT) }); // âeÇ⁄Ç©Çµ
+	textureList.insert({ "fboMain", Texture::CreateEmpty2D(static_cast<int>(FBO_MAIN_WIDTH), static_cast<int>(FBO_MAIN_HEIGHT)) }); // âeèâä˙ï`âÊ & ÉJÉâÅ[ï`âÊ
+	textureList.insert({ "fboSub", Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / 4)) }); // ÉJÉâÅ[(1/4)
+	textureList.insert({ "fboShadow0", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // âeèkè¨
+	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // âeÇ⁄Ç©Çµ
 	int scale = 4;
 	for (int i = FBO_HDR0; i <= FBO_HDR4; ++i) {
-	  textureList.insert({ GetFBOInfo(i).name, Texture::CreateEmpty2D(MAIN_RENDERING_PATH_WIDTH / scale, MAIN_RENDERING_PATH_HEIGHT / scale) }); // HDR
+	  textureList.insert({ GetFBOInfo(i).name, Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / scale), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / scale)) }); // HDR
 	  scale *= 2;
 	}
 

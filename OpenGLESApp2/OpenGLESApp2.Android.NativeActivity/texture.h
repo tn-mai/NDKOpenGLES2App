@@ -1,6 +1,7 @@
 #ifndef ETC1_HEADER_INCLUDED
 #define ETC1_HEADER_INCLUDED
 #include <memory>
+#include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
 struct android_app;

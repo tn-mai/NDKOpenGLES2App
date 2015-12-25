@@ -69,7 +69,7 @@ struct Position2S {
 	bool operator==(const Position2S& rhs) const { return x == rhs.x && y == rhs.y; }
 	bool operator!=(const Position2S& rhs) const { return !(*this == rhs); }
 	static constexpr Position2S FromFloat(float a, float b) {
-		return Position2S(a * static_cast<float>(0xffff), b * static_cast<float>(0xffff));
+		return Position2S(static_cast<GLushort>(a * static_cast<float>(0xffff)), static_cast<GLushort>(b * static_cast<float>(0xffff)));
 	}
 	Position2F ToFloat() const { return Position2F(static_cast<float>(x) / 0xffff, static_cast<float>(y) / 0xffff); }
 };
@@ -102,7 +102,7 @@ struct Vector2F {
   Vector2F operator/(GLfloat rhs) const { return Vector2F(*this) /= rhs; }
   Vector2F& operator/=(const Vector2F& rhs) { x /= rhs.x; y /= rhs.y; return *this; }
   Vector2F operator/(const Vector2F& rhs) const { return Vector2F(*this) /= rhs; }
-  constexpr GLfloat Length() const { return std::sqrt(x * x + y * y); }
+  GLfloat Length() const { return std::sqrt(x * x + y * y); }
   Vector2F& Normalize() { return operator/=(Length()); }
   constexpr GLfloat Cross(const Vector2F& rhs) const { return x * rhs.y - y * rhs.x; }
   constexpr GLfloat Dot(const Vector2F& rhs) const { return x * rhs.x + y * rhs.y; }
@@ -132,7 +132,7 @@ struct Vector3F {
 	Vector3F& operator/=(const Vector3F& rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z; return *this; }
 	Vector3F operator/(const Vector3F& rhs) const { return Vector3F(*this) /= rhs; }
 	constexpr GLfloat LengthSq() const { return Dot(*this); }
-	constexpr GLfloat Length() const { return std::sqrt(LengthSq()); }
+	GLfloat Length() const { return std::sqrt(LengthSq()); }
 	Vector3F& Normalize() {
 	  const float l = Length();
 	  if (l > FLT_EPSILON) {
@@ -164,7 +164,7 @@ struct Vector4F {
 	friend Vector4F operator*(GLfloat lhs, const Vector4F& rhs) { return rhs * lhs; }
 	Vector4F& operator/=(GLfloat rhs) { x /= rhs; y /= rhs; z /= rhs; w /= rhs;  return *this; }
 	Vector4F operator/(GLfloat rhs) const { return Vector4F(*this) /= rhs; }
-	constexpr GLfloat Length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
+	GLfloat Length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
 	Vector4F& Normalize() {
 	  const float l = Length();
 	  if (l > FLT_EPSILON) {
@@ -184,8 +184,8 @@ struct Color4B {
 	GLubyte r, g, b, a;
 	Color4B() {}
 	constexpr Color4B(GLubyte rr, GLubyte gg, GLubyte bb, GLubyte aa = 255) : r(rr), g(gg), b(bb), a(aa) {}
-	Color4B& operator*=(float n) { r *= n; g *= n; b *= n; a *= n; return *this; }
-	Color4B& operator/=(float n) { r /= n; g /= n; b /= n; a /= n; return *this; }
+	Color4B& operator*=(float n) { r = static_cast<GLubyte>(r * n); g = static_cast<GLubyte>(g * n); b = static_cast<GLubyte>(b * n); a = static_cast<GLubyte>(a * n); return *this; }
+	Color4B& operator/=(float n) { return operator*=(1.0f / n); }
 	Color4B& operator*=(Color4B rhs) {
 		const int nr = r * rhs.r;
 		const int ng = g * rhs.g;
@@ -239,7 +239,7 @@ struct Quaternion {
 			w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z);
 	}
 	constexpr GLfloat Dot(const Quaternion& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
-	constexpr GLfloat Length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
+	GLfloat Length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
 	Quaternion& Normalize() {
 	  const float l = Length();
 	  if (l > FLT_EPSILON) {
@@ -248,7 +248,7 @@ struct Quaternion {
 	  return *this;
 	}
 	constexpr Quaternion Conjugate() const { return Quaternion(-x, -y, -z, w); }
-	constexpr Quaternion Inverse() const { return Conjugate() / Length(); }
+	Quaternion Inverse() const { return Conjugate() / Length(); }
 	Vector3F Apply(const Vector3F& v) const {
 		const Vector3F xyz(x, y, z);
 		Vector3F uv = xyz.Cross(v);
@@ -444,7 +444,7 @@ public:
   constexpr FixedNum(const FixedNum& n) : value(n.value) {}
   template<typename X> constexpr static FixedNum From(const X& n) { return FixedNum(static_cast<T>(n * fractional)); }
   template<typename X> constexpr X To() const { return static_cast<X>(value) / fractional; }
-  template<typename X> void Set(const X& n) { value = n * fractional; }
+  template<typename X> void Set(const X& n) { value = static_cast<T>(n * fractional); }
 
   FixedNum& operator+=(FixedNum n) { value += n.value; return *this; }
   FixedNum& operator-=(FixedNum n) { value -= n.value; return *this; }
@@ -707,9 +707,9 @@ public:
 	void ClearDebugString() { debugStringList.clear(); }
 	void AddDebugString(int x, int y, const char* s) { debugStringList.push_back(DebugStringObject(x, y, s)); }
 
-	bool HasDisplay() const { return display; }
-	bool HasSurface() const { return surface; }
-	bool HasContext() const { return context; }
+	bool HasDisplay() const { return display != nullptr; }
+	bool HasSurface() const { return surface != nullptr; }
+	bool HasContext() const { return context != nullptr; }
 	int32_t Width() const { return width; }
 	int32_t Height() const { return height; }
 	void Swap();

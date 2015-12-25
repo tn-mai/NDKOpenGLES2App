@@ -1,10 +1,17 @@
 #include "texture.h"
+#ifdef __ANDROID__
 #include "android_native_app_glue.h"
 #include <android/log.h>
+#endif // __ANDROID__
 #include <vector>
 
+#ifdef __ANDROID__
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "texture.cpp", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "texture.cpp", __VA_ARGS__))
+#else
+#define LOGI(...) ((void)printf("texture.cpp" __VA_ARGS__))
+#define LOGW(...) ((void)printf("texture.cpp" __VA_ARGS__))
+#endif // __ANDROID__
 
 namespace Texture {
 

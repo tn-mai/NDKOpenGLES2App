@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include <GLES2/gl2.h>
 #include <algorithm>
 
 namespace {
@@ -130,7 +131,7 @@ ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd
 	joints.resize(boneCount);
 	std::vector<std::vector<int>> parentIndexList;
 	parentIndexList.resize(boneCount);
-	for (int i = 0; i < boneCount; ++i) {
+	for (uint32_t i = 0; i < boneCount; ++i) {
 	  if (p >= pEnd) {
 		return ImportMeshResult();
 	  }
@@ -164,7 +165,7 @@ ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd
 		parentIndexList[parentIndex].push_back(i);
 	  }
 	}
-	for (int i = 0; i < boneCount; ++i) {
+	for (uint32_t i = 0; i < boneCount; ++i) {
 	  const auto& e = parentIndexList[i];
 	  if (!e.empty()) {
 		int current = e[0];
@@ -185,7 +186,7 @@ ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd
 
   if (animationCount) {
 	result.animations.reserve(animationCount);
-	for (int i = 0; i < animationCount; ++i) {
+	for (uint32_t i = 0; i < animationCount; ++i) {
 	  Animation anm;
 	  const uint32_t nameLength = GetValue(p++, 1);
 	  char name[24];
@@ -194,15 +195,15 @@ ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd
 	  }
 	  anm.id.assign(name, name + nameLength);
 	  anm.data.resize(boneCount);
-	  for (int bone = 0; bone < boneCount; ++bone) {
+	  for (uint32_t bone = 0; bone < boneCount; ++bone) {
 		anm.data[bone].first = bone;
 	  }
-	  anm.loopFlag = static_cast<bool>(GetValue(p++, 1));
+	  anm.loopFlag = static_cast<bool>(GetValue(p++, 1) != 0);
 	  const uint32_t keyframeCount = GetValue(p, 2); p += 2;
 	  anm.totalTime = GetFloat(p);
-	  for (int keyframe = 0; keyframe < keyframeCount; ++keyframe) {
+	  for (uint32_t keyframe = 0; keyframe < keyframeCount; ++keyframe) {
 		const float time = GetFloat(p);
-		for (int bone = 0; bone < boneCount; ++bone) {
+		for (uint32_t bone = 0; bone < boneCount; ++bone) {
 		  if (p >= pEnd) {
 			return ImportMeshResult();
 		  }
