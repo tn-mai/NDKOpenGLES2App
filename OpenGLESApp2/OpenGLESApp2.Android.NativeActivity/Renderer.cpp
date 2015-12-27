@@ -33,8 +33,8 @@ namespace BPT = boost::property_tree;
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #else
-#define LOGI(...) ((void)printf(__VA_ARGS__))
-#define LOGE(...) ((void)printf(__VA_ARGS__))
+#define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
 
 #define FBO_MAIN_WIDTH 512.0
