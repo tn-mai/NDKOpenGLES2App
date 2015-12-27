@@ -94,7 +94,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libEGL.lib;libEGLv2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libEGL.lib;libGLESv2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\bin\angle\build\Debug_Win32\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -153,19 +153,31 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\File.cpp" />
+    <ClCompile Include="..\Common\Matrix.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.cpp" />
+    <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Win32Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\Event.h" />
     <ClInclude Include="..\Common\File.h" />
+    <ClInclude Include="..\Common\Keyboard.h" />
+    <ClInclude Include="..\Common\Matrix.h" />
+    <ClInclude Include="..\Common\Mouse.h" />
+    <ClInclude Include="..\Common\Quaternion.h" />
+    <ClInclude Include="..\Common\Vector.h" />
+    <ClInclude Include="..\Common\Window.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Scene.h" />
+    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.h" />
+    <ClInclude Include="Win32Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

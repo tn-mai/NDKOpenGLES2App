@@ -13,6 +13,28 @@
     <ClInclude Include="..\..\Common\File.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Common\Window.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="AndroidWindow.h" />
+    <ClInclude Include="..\..\Common\Event.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\Keyboard.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\Matrix.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\Mouse.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\Quaternion.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\Vector.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
@@ -24,6 +46,10 @@
     <ClCompile Include="TangentSpaceData.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="..\..\Common\File.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="AndroidWindow.cpp" />
+    <ClCompile Include="..\..\Common\Matrix.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>

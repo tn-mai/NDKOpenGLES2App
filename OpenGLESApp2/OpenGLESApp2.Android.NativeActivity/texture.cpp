@@ -1,4 +1,5 @@
 #include "texture.h"
+#include "../../Common/File.h"
 #ifdef __ANDROID__
 #include "android_native_app_glue.h"
 #include <android/log.h>
@@ -175,26 +176,20 @@ namespace Texture {
 
 	/** KTXƒtƒ@ƒCƒ‹‚ð“Ç‚Ýž‚Þ.
 	*/
-	TexturePtr LoadKTX(android_app* state, const char* filename) {
-		struct Finalizer {
-			Finalizer(AAsset* a) : p(a) {}
-			~Finalizer() { AAsset_close(p); }
-			AAsset* p;
-		};
-		AAsset* pAsset = AAssetManager_open(state->activity->assetManager, filename, 0);
-		if (!pAsset) {
+	TexturePtr LoadKTX(const char* filename) {
+		auto file = Mai::FileSystem::Open(filename);
+		if (!file) {
 			LOGW("cannot open:'%s'", filename);
 			return nullptr;
 		}
 
-		const Finalizer finalizer(pAsset);
-		const off_t size = AAsset_getLength(pAsset);
+		const size_t size = file->Size();
 		if (size <= sizeof(KTXHeader)) {
 			LOGW("illegal size:'%s'", filename);
 			return nullptr;
 		}
 		KTXHeader header;
-		int result = AAsset_read(pAsset, &header, sizeof(KTXHeader));
+		int result = file->Read(&header, sizeof(KTXHeader));
 		if (result < 0 || !IsKTXHeader(header)) {
 			LOGW("illegal header:'%s'", filename);
 			return nullptr;
@@ -212,7 +207,7 @@ namespace Texture {
 		tex.target = faceCount == 6 ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
 
 		const uint32_t off = GetValue(&header.bytesOfKeyValueData, endianness);
-		AAsset_seek(pAsset, off, SEEK_CUR);
+		file->Seek(file->Position() + off);
 
 		glGenTextures(1, &tex.texId);
 		glBindTexture(tex.Target(), tex.texId);
@@ -221,7 +216,7 @@ namespace Texture {
 		GLsizei curHeight = tex.Height();
 		for (int mipLevel = 0; mipLevel < (mipCount ? mipCount : 1); ++mipLevel) {
 			uint32_t imageSize;
-			result = AAsset_read(pAsset, &imageSize, 4);
+			result = file->Read(&imageSize, 4);
 			if (result < 0) {
 				LOGW("can't read(miplevel=%d):'%s'", mipLevel, filename);
 				return nullptr;
@@ -229,7 +224,7 @@ namespace Texture {
 			imageSize = GetValue(&imageSize, endianness);
 			const uint32_t imageSizeWithPadding = (imageSize + 3) & ~3;
 			data.resize(imageSizeWithPadding * faceCount);
-			result = AAsset_read(pAsset, &data[0], data.size());
+			result = file->Read(&data[0], data.size());
 			if (result < 0) {
 				LOGW("can't read(miplevel=%d):'%s'", mipLevel, filename);
 				return nullptr;

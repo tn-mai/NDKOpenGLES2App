@@ -1,9 +1,13 @@
 #include "Renderer.h"
 #include "Mesh.h"
+#include "TangentSpaceData.h"
+#include "../../Common/File.h"
+#include "../../Common/Window.h"
 #ifdef __ANDROID__
 #include "android_native_app_glue.h"
 #include <android/log.h>
 #endif // __ANDROID__
+
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -20,6 +24,8 @@
 #include <streambuf>
 #include <math.h>
 #include <chrono>
+
+namespace Mai {
 
 namespace BPT = boost::property_tree;
 
@@ -108,7 +114,7 @@ namespace {
 	std::istringstream ss(str);
 	std::string item;
 	while (std::getline(ss, item, delim)) {
-	  v.push_back(func(item));
+	  v.push_back(static_cast<T>(func(item)));
 	}
 	return v;
   }
@@ -124,45 +130,9 @@ namespace {
 		}
 	}
 
-	typedef std::vector<uint8_t> RawBufferType;
-	boost::optional<RawBufferType> LoadFile(android_app* state, const char* filename, int mode = 0)
-	{
-		RawBufferType buf;
-#ifdef __ANDROID__
-		AAsset* pAsset = AAssetManager_open(state->activity->assetManager, filename, mode);
-		if (!pAsset) {
-		  LOGI("LoadFile: %s not found.", filename);
-		  return boost::none;
-		}
-		const off_t size = AAsset_getLength(pAsset);
-		buf.resize(size);
-		const int result = AAsset_read(pAsset, &buf[0], AAsset_getLength(pAsset));
-		AAsset_close(pAsset);
-		if (result < 0) {
-		  LOGI("LoadFile: %s can't read.", filename);
-		  return boost::none;
-		}
-#else
-		std::string path("OpenGLESApp2/OpenGLESApp2.Android.Packaging/assets/");
-		path += filename;
-		FILE* fp;
-		fopen_s(&fp, path.c_str(), "rb");
-		if (!fp) {
-		  return boost::none;
-		}
-		std::fseek(fp, 0L, SEEK_END);
-		const size_t size = std::ftell(fp);
-		std::rewind(fp);
-		buf.resize(size);
-		std::fread(buf.data(), size, 1, fp);
-		std::fclose(fp);
-#endif // __ANDROID__
-		return buf;
-	}
-
-	GLuint LoadShader(android_app* state, GLenum shaderType, const char* path) {
+	GLuint LoadShader(GLenum shaderType, const char* path) {
 		GLuint shader = 0;
-		if (auto buf = LoadFile(state, path)) {
+		if (auto buf = FileSystem::LoadFile(path)) {
 			static const GLchar version[] = "#version 100\n";
 #define MAKE_DEFINE_0(str, val) "#define " str " " #val "\n"
 #define MAKE_DEFINE(def) MAKE_DEFINE_0(#def, def)
@@ -224,13 +194,13 @@ namespace {
 		return shader;
 	}
 
-	boost::optional<Shader> CreateShaderProgram(android_app* state, const char* name, const char* vshPath, const char* fshPath) {
-		GLuint vertexShader = LoadShader(state, GL_VERTEX_SHADER, vshPath);
+	boost::optional<Shader> CreateShaderProgram(const char* name, const char* vshPath, const char* fshPath) {
+		GLuint vertexShader = LoadShader(GL_VERTEX_SHADER, vshPath);
 		if (!vertexShader) {
 			return boost::none;
 		}
 
-		GLuint pixelShader = LoadShader(state, GL_FRAGMENT_SHADER, fshPath);
+		GLuint pixelShader = LoadShader(GL_FRAGMENT_SHADER, fshPath);
 		if (!pixelShader) {
 			return boost::none;
 		}
@@ -352,94 +322,6 @@ Shader::~Shader()
 {
 }
 
-Matrix4x4& Matrix4x4::Inverse()
-{
-  Matrix4x4 ret;
-  float det_1;
-  float pos = 0;
-  float neg = 0;
-  float temp;
-
-  temp = f[0] * f[5] * f[10];
-  if (temp >= 0)
-	pos += temp;
-  else
-	neg += temp;
-  temp = f[4] * f[9] * f[2];
-  if (temp >= 0)
-	pos += temp;
-  else
-	neg += temp;
-  temp = f[8] * f[1] * f[6];
-  if (temp >= 0)
-	pos += temp;
-  else
-	neg += temp;
-  temp = -f[8] * f[5] * f[2];
-  if (temp >= 0)
-	pos += temp;
-  else
-	neg += temp;
-  temp = -f[4] * f[1] * f[10];
-  if (temp >= 0)
-	pos += temp;
-  else
-	neg += temp;
-  temp = -f[0] * f[9] * f[6];
-  if (temp >= 0)
-	pos += temp;
-  else
-	neg += temp;
-  det_1 = pos + neg;
-
-  if (det_1 == 0.0) {
-	//Error
-  } else {
-	det_1 = 1.0f / det_1;
-	ret.f[0] =  (f[5] * f[10] - f[9] * f[6]) * det_1;
-	ret.f[1] = -(f[1] * f[10] - f[9] * f[2]) * det_1;
-	ret.f[2] =  (f[1] * f[ 6] - f[5] * f[2]) * det_1;
-	ret.f[4] = -(f[4] * f[10] - f[8] * f[6]) * det_1;
-	ret.f[5] =  (f[0] * f[10] - f[8] * f[2]) * det_1;
-	ret.f[6] = -(f[0] * f[ 6] - f[4] * f[2]) * det_1;
-	ret.f[8] =  (f[4] * f[ 9] - f[8] * f[5]) * det_1;
-	ret.f[9] = -(f[0] * f[ 9] - f[8] * f[1]) * det_1;
-	ret.f[10] = (f[0] * f[ 5] - f[4] * f[1]) * det_1;
-
-	/* Calculate -C * inverse(A) */
-	ret.f[12] = -(f[12] * ret.f[0] + f[13] * ret.f[4] + f[14] * ret.f[8]);
-	ret.f[13] = -(f[12] * ret.f[1] + f[13] * ret.f[5] + f[14] * ret.f[9]);
-	ret.f[14] = -(f[12] * ret.f[2] + f[13] * ret.f[6] + f[14] * ret.f[10]);
-
-	ret.f[3] = 0.0f;
-	ret.f[7] = 0.0f;
-	ret.f[11] = 0.0f;
-	ret.f[15] = 1.0f;
-  }
-
-  *this = ret;
-  return *this;
-}
-
-/** クォータニオンを4x3行列に変換する.
-*/
-Matrix4x3 ToMatrix(const Quaternion& q) {
-	Matrix4x3 m;
-	const GLfloat xx = 2.0f * q.x * q.x;
-	const GLfloat xy = 2.0f * q.x * q.y;
-	const GLfloat xz = 2.0f * q.x * q.z;
-	const GLfloat xw = 2.0f * q.x * q.w;
-	const GLfloat yy = 2.0f * q.y * q.y;
-	const GLfloat yz = 2.0f * q.y * q.z;
-	const GLfloat yw = 2.0f * q.y * q.w;
-	const GLfloat zz = 2.0f * q.z * q.z;
-	const GLfloat zw = 2.0f * q.z * q.w;
-	m.SetVector(0, Vector4F(1.0f - yy - zz, xy + zw, xz - yw, 0.0f));
-	m.SetVector(1, Vector4F(xy - zw, 1.0f - xx - zz, yz + xw, 0.0f));
-	m.SetVector(2, Vector4F(xz + yw, yz - xw, 1.0f - xx - yy, 0.0f));
-	return m;
-}
-
 /** RotTransを4x3行列に変換する.
 */
 Matrix4x3 ToMatrix(const RotTrans& rt) {
@@ -542,17 +424,16 @@ void Object::Update(float t)
 	return;
   }
   if (!mesh->jointList.empty()) {
-	std::vector<::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
-	UpdateJointRotTrans(rtList, &mesh->jointList[0], &mesh->jointList[0], ::RotTrans::Unit());
-	std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const ::RotTrans& rt) { return ToMatrix(rt * this->rotTrans); });
+	std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
+	UpdateJointRotTrans(rtList, &mesh->jointList[0], &mesh->jointList[0], Mai::RotTrans::Unit());
+	std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) { return ToMatrix(rt * this->rotTrans); });
   }
 }
 
 /** コンストラクタ.
 */
-Renderer::Renderer(android_app* s)
-  : state(s)
-  , isInitialized(false)
+Renderer::Renderer()
+  : isInitialized(false)
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
   , fboMain(0)
@@ -593,7 +474,7 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 /** 描画環境の初期設定.
 * OpenGL環境の再構築が必要になった場合、その都度この関数を呼び出す必要がある.
 */
-void Renderer::Initialize()
+void Renderer::Initialize(const Window& window)
 {
 	display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 	eglInitialize(display, 0, 0);
@@ -614,8 +495,10 @@ void Renderer::Initialize()
 
 	EGLint format;
 	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-	ANativeWindow_setBuffersGeometry(state->window, 0, 0, format);
-	surface = eglCreateWindowSurface(display, config, state->window, nullptr);
+#ifdef __ANDROID__
+	ANativeWindow_setBuffersGeometry(window.GetWindowType(), 0, 0, format);
+#endif // __ANDROID__
+	surface = eglCreateWindowSurface(display, config, window.GetWindowType(), nullptr);
 	static const EGLint contextAttribs[] = {
 		EGL_CONTEXT_CLIENT_VERSION, 2,
 		EGL_NONE
@@ -734,7 +617,7 @@ void Renderer::Initialize()
 	for (const auto e : shaderNameList) {
 		const std::string vert = std::string("Shaders/") + std::string(e) + std::string(".vert");
 		const std::string frag = std::string("Shaders/") + std::string(e) + std::string(".frag");
-		if (boost::optional<Shader> s = CreateShaderProgram(state, e, vert.c_str(), frag.c_str())) {
+		if (boost::optional<Shader> s = CreateShaderProgram(e, vert.c_str(), frag.c_str())) {
 			shaderList.insert({ s->id, *s });
 		}
 	}
@@ -930,7 +813,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glBlendFunc(GL_ONE, GL_ZERO);
 		glCullFace(GL_FRONT);
 
-		glViewport(0, 0, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT);
+		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_MAIN_WIDTH), static_cast<GLsizei>(SHADOWMAP_MAIN_HEIGHT));
 		glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1014,7 +897,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow0);
-		glViewport(0, 0, SHADOWMAP_SUB_WIDTH, SHADOWMAP_SUB_HEIGHT);
+		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_SUB_WIDTH), static_cast<GLsizei>(SHADOWMAP_SUB_HEIGHT));
 		glDisable(GL_DEPTH_TEST);
 		glBlendFunc(GL_ONE, GL_ZERO);
 		glCullFace(GL_BACK);
@@ -1037,7 +920,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	// fboShadow0 ->(gaussian3x3)-> fboShadow1
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow1);
-		glViewport(0, 0, SHADOWMAP_SUB_WIDTH, SHADOWMAP_SUB_HEIGHT);
+		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_SUB_WIDTH), static_cast<GLsizei>(SHADOWMAP_SUB_HEIGHT));
 		glDisable(GL_DEPTH_TEST);
 		glBlendFunc(GL_ONE, GL_ZERO);
 		glCullFace(GL_BACK);
@@ -1064,7 +947,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	// color path.
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fboMain);
-	glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT);
+	glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH), static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT));
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1086,9 +969,13 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	glEnableVertexAttribArray(VertexAttribLocation_BoneID);
 	glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
 
-	static const float near = 1.0f;
-	static const float far = 5000.0f;
-	const Matrix4x4 mProj = Perspective(fov, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT, near, far);
+	const Matrix4x4 mProj = Perspective(
+	  fov,
+	  MAIN_RENDERING_PATH_WIDTH,
+	  MAIN_RENDERING_PATH_HEIGHT,
+	  1.0f,
+	  5000.0f
+	);
 
 	// 適当にライトを置いてみる.
 	const Vector4F lightPos(50, 50, 50, 1.0);
@@ -1274,7 +1161,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	// fboMain ->(reduceLum)-> fboSub
 	{
 	  glBindFramebuffer(GL_FRAMEBUFFER, fboSub);
-	  glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4);
+	  glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / 4, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / 4);
 	  glDisable(GL_DEPTH_TEST);
 	  glBlendFunc(GL_ONE, GL_ZERO);
 	  glCullFace(GL_BACK);
@@ -1295,7 +1182,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	// fboSub ->(hdrdiff)-> fboHDR[0]
 	{
 	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR[0]);
-	  glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4);
+	  glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / 4, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / 4);
 
 	  const Shader& shader = shaderList["hdrdiff"];
 	  glUseProgram(shader.program);
@@ -1326,7 +1213,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  int scale = 8;
 	  for (int i = FBO_HDR0; i < FBO_HDR4; ++i, scale *= 2) {
 		glBindFramebuffer(GL_FRAMEBUFFER, *GetFBOInfo(i + 1).p);
-		glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / scale, MAIN_RENDERING_PATH_HEIGHT / scale);
+		glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / scale, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / scale);
 		glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.25f / static_cast<float>(MAIN_RENDERING_PATH_WIDTH / scale), 0.25f / static_cast<float>(MAIN_RENDERING_PATH_HEIGHT / scale));
 		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
@@ -1350,7 +1237,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  int scale = 32;
 	  for (int i = FBO_HDR4; i > FBO_HDR0; --i, scale /= 2) {
 		glBindFramebuffer(GL_FRAMEBUFFER, *GetFBOInfo(i - 1).p);
-		glViewport(0, 0, MAIN_RENDERING_PATH_WIDTH / scale, MAIN_RENDERING_PATH_HEIGHT / scale);
+		glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / scale, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / scale);
 		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	  }
@@ -1434,7 +1321,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	}
 
 	{
-	  auto f = [this](int pos, char c, float value) {
+	  auto f = [this](float pos, char c, float value) {
 		char buf[16] = { 0 };
 		buf[0] = c; buf[1] = ':'; buf[2] = value >= 0.0f ? ' ' : '-';
 		const int x = std::abs<int>(static_cast<int>(value * 100.0f));
@@ -1617,11 +1504,9 @@ namespace {
 	}
 }
 
-#include "TangentSpaceData.h"
-
 void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* normal)
 {
-  if (auto pBuf = LoadFile(state, filename)) {
+  if (auto pBuf = FileSystem::LoadFile(filename)) {
 	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd);
 	for (auto m : result.meshes) {
 	  const auto itr = textureList.find(diffuse);
@@ -2005,11 +1890,11 @@ void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
 		  }
 		  const float cloudType = static_cast<float>(hasCloud == 3 ? 3 : boost::random::uniform_int_distribution<>(0, 2)(random));
 		  const Vector2F cloudScale = Vector2F(boxelSize.x, boxelSize.y) * (boost::random::uniform_int_distribution<>(85, 100)(random) * 0.01f);
-		  const Quaternion rot0 = rot1 * Quaternion(Vector3F(0, 0, 1), degreeToRadian<float>(hasCloud == 3 ? 0 : boost::random::uniform_int_distribution<>(-45, 45)(random)));
+		  const Quaternion rot0 = rot1 * Quaternion(Vector3F(0, 0, 1), degreeToRadian<float>(static_cast<float>(hasCloud == 3 ? 0 : boost::random::uniform_int_distribution<>(-45, 45)(random))));
 		  const Vector3F offsetRnd(
-			boost::random::uniform_int_distribution<>(boxelSize.x * 0.25f, boxelSize.x * 0.75f)(random),
-			boost::random::uniform_int_distribution<>(boxelSize.y * 0.25f, boxelSize.y * 0.75f)(random),
-			boost::random::uniform_int_distribution<>(boxelSize.z * 0.25f, boxelSize.z * 0.75f)(random)
+			static_cast<float>(boost::random::uniform_int_distribution<>(static_cast<int>(boxelSize.x * 0.25f), static_cast<int>(boxelSize.x * 0.75f))(random)),
+			static_cast<float>(boost::random::uniform_int_distribution<>(static_cast<int>(boxelSize.y * 0.25f), static_cast<int>(boxelSize.y * 0.75f))(random)),
+			static_cast<float>(boost::random::uniform_int_distribution<>(static_cast<int>(boxelSize.z * 0.25f), static_cast<int>(boxelSize.z * 0.75f))(random))
 		  );
 		  for (int i = 0; i < 4; ++i) {
 			Vector3F pos(basePos[i][0] * cloudScale.x, basePos[i][1] * cloudScale.y, 0);
@@ -2082,9 +1967,9 @@ void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
 
 void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDiffuse, const char* texNormal)
 {
-	if (auto pBuf = LoadFile(state, filename)) {
+	if (auto pBuf = FileSystem::LoadFile(filename)) {
 		// property_treeを使ってCOLLADAファイルを解析.
-		RawBufferType& buf = *pBuf;
+		FileSystem::RawBufferType& buf = *pBuf;
 		struct membuf : public std::streambuf {
 			explicit membuf(char* b, char* e) { this->setg(b, b, e); }
 		};
@@ -2543,7 +2428,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 			iboEnd += indices.size() * sizeof(GLushort);
 		}
 		catch (BPT::ptree_bad_path& e) {
-			LOGI("BAD PATH");
+			LOGI("BAD PATH: %s", e.what());
 		}
 
 		// アニメーションデータを取得する.
@@ -2603,7 +2488,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 				}
 			}
 			catch (BPT::ptree_bad_path& e) {
-				LOGI("BAD PATH");
+				LOGI("BAD PATH: %s", e.what());
 			}
 		}
 		LOGI("Success loading %s", filename);
@@ -2623,34 +2508,34 @@ void Renderer::InitTexture()
 
 	textureList.insert({ "dummyCubeMap", Texture::CreateDummyCubeMap() });
 	textureList.insert({ "dummy", Texture::CreateDummy2D() });
-	textureList.insert({ "ascii", Texture::LoadKTX(state, "Textures/Common/ascii.ktx") });
+	textureList.insert({ "ascii", Texture::LoadKTX("Textures/Common/ascii.ktx") });
 
-	textureList.insert({ "skybox_high", Texture::LoadKTX(state, (texBaseDir + "skybox_high.ktx").c_str()) });
-	textureList.insert({ "skybox_low", Texture::LoadKTX(state, (texBaseDir + "skybox_low.ktx").c_str()) });
-	textureList.insert({ "irradiance", Texture::LoadKTX(state, (texBaseDir + "irradiance.ktx").c_str()) });
-	textureList.insert({ "wood", Texture::LoadKTX(state, (texBaseDir + "wood.ktx").c_str()) });
-	textureList.insert({ "wood_nml", Texture::LoadKTX(state, (texBaseDir + "woodNR.ktx").c_str()) });
-	textureList.insert({ "Sphere", Texture::LoadKTX(state, (texBaseDir + "sphere.ktx").c_str()) });
-	textureList.insert({ "Sphere_nml", Texture::LoadKTX(state, (texBaseDir + "sphereNR.ktx").c_str()) });
-//	textureList.insert({ "floor", Texture::LoadKTX(state, (texBaseDir + "floor.ktx").c_str()) });
-//	textureList.insert({ "floor_nml", Texture::LoadKTX(state, (texBaseDir + "floorNR.ktx").c_str()) });
-	textureList.insert({ "floor", Texture::LoadKTX(state, "Textures/Common/landscape.ktx") });
-	textureList.insert({ "floor_nml", Texture::LoadKTX(state, (texBaseDir + "landscapeNR.ktx").c_str()) });
-	textureList.insert({ "flyingrock", Texture::LoadKTX(state, (texBaseDir + "flyingrock.ktx").c_str()) });
-	textureList.insert({ "flyingrock_nml", Texture::LoadKTX(state, (texBaseDir + "flyingrockNR.ktx").c_str()) });
-	textureList.insert({ "block1", Texture::LoadKTX(state, (texBaseDir + "block1.ktx").c_str()) });
-	textureList.insert({ "block1_nml", Texture::LoadKTX(state, (texBaseDir + "block1NR.ktx").c_str()) });
-	textureList.insert({ "chickenegg", Texture::LoadKTX(state, (texBaseDir + "chickenegg.ktx").c_str()) });
-	textureList.insert({ "chickenegg_nml", Texture::LoadKTX(state, (texBaseDir + "chickeneggNR.ktx").c_str()) });
-	textureList.insert({ "sunnysideup", Texture::LoadKTX(state, (texBaseDir + "sunnysideup.ktx").c_str()) });
-	textureList.insert({ "sunnysideup_nml", Texture::LoadKTX(state, (texBaseDir + "sunnysideupNR.ktx").c_str()) });
-	textureList.insert({ "brokenegg", Texture::LoadKTX(state, (texBaseDir + "brokenegg.ktx").c_str()) });
-	textureList.insert({ "brokenegg_nml", Texture::LoadKTX(state, (texBaseDir + "brokeneggNR.ktx").c_str()) });
-	textureList.insert({ "flyingpan", Texture::LoadKTX(state, (texBaseDir + "flyingpan.ktx").c_str()) });
-	textureList.insert({ "flyingpan_nml", Texture::LoadKTX(state, (texBaseDir + "flyingpanNR.ktx").c_str()) });
-	textureList.insert({ "accelerator", Texture::LoadKTX(state, (texBaseDir + "accelerator.ktx").c_str()) });
-	textureList.insert({ "accelerator_nml", Texture::LoadKTX(state, (texBaseDir + "acceleratorNR.ktx").c_str()) });
-	textureList.insert({ "cloud", Texture::LoadKTX(state, "Textures/Common/cloud.ktx") });
+	textureList.insert({ "skybox_high", Texture::LoadKTX((texBaseDir + "skybox_high.ktx").c_str()) });
+	textureList.insert({ "skybox_low", Texture::LoadKTX((texBaseDir + "skybox_low.ktx").c_str()) });
+	textureList.insert({ "irradiance", Texture::LoadKTX((texBaseDir + "irradiance.ktx").c_str()) });
+	textureList.insert({ "wood", Texture::LoadKTX((texBaseDir + "wood.ktx").c_str()) });
+	textureList.insert({ "wood_nml", Texture::LoadKTX((texBaseDir + "woodNR.ktx").c_str()) });
+	textureList.insert({ "Sphere", Texture::LoadKTX((texBaseDir + "sphere.ktx").c_str()) });
+	textureList.insert({ "Sphere_nml", Texture::LoadKTX((texBaseDir + "sphereNR.ktx").c_str()) });
+//	textureList.insert({ "floor", Texture::LoadKTX((texBaseDir + "floor.ktx").c_str()) });
+//	textureList.insert({ "floor_nml", Texture::LoadKTX((texBaseDir + "floorNR.ktx").c_str()) });
+	textureList.insert({ "floor", Texture::LoadKTX("Textures/Common/landscape.ktx") });
+	textureList.insert({ "floor_nml", Texture::LoadKTX((texBaseDir + "landscapeNR.ktx").c_str()) });
+	textureList.insert({ "flyingrock", Texture::LoadKTX((texBaseDir + "flyingrock.ktx").c_str()) });
+	textureList.insert({ "flyingrock_nml", Texture::LoadKTX((texBaseDir + "flyingrockNR.ktx").c_str()) });
+	textureList.insert({ "block1", Texture::LoadKTX((texBaseDir + "block1.ktx").c_str()) });
+	textureList.insert({ "block1_nml", Texture::LoadKTX((texBaseDir + "block1NR.ktx").c_str()) });
+	textureList.insert({ "chickenegg", Texture::LoadKTX((texBaseDir + "chickenegg.ktx").c_str()) });
+	textureList.insert({ "chickenegg_nml", Texture::LoadKTX((texBaseDir + "chickeneggNR.ktx").c_str()) });
+	textureList.insert({ "sunnysideup", Texture::LoadKTX((texBaseDir + "sunnysideup.ktx").c_str()) });
+	textureList.insert({ "sunnysideup_nml", Texture::LoadKTX((texBaseDir + "sunnysideupNR.ktx").c_str()) });
+	textureList.insert({ "brokenegg", Texture::LoadKTX((texBaseDir + "brokenegg.ktx").c_str()) });
+	textureList.insert({ "brokenegg_nml", Texture::LoadKTX((texBaseDir + "brokeneggNR.ktx").c_str()) });
+	textureList.insert({ "flyingpan", Texture::LoadKTX((texBaseDir + "flyingpan.ktx").c_str()) });
+	textureList.insert({ "flyingpan_nml", Texture::LoadKTX((texBaseDir + "flyingpanNR.ktx").c_str()) });
+	textureList.insert({ "accelerator", Texture::LoadKTX((texBaseDir + "accelerator.ktx").c_str()) });
+	textureList.insert({ "accelerator_nml", Texture::LoadKTX((texBaseDir + "acceleratorNR.ktx").c_str()) });
+	textureList.insert({ "cloud", Texture::LoadKTX("Textures/Common/cloud.ktx") });
 }
 
 ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)
@@ -2680,3 +2565,5 @@ const Animation* Renderer::GetAnimation(const char* name)
 	}
 	return nullptr;
 }
+
+} // namespace Mai;

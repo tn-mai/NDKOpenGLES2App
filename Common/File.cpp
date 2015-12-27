@@ -21,7 +21,7 @@ namespace Mai {
 		AAsset_seek(pAsset, n, SEEK_SET);
 	  }
 	}
-	virtual size_t Read(void* p, size_t n) {
+	virtual int Read(void* p, size_t n) {
 	  return pAsset ? AAsset_read(pAsset, p, n) : 0;
 	}
 	virtual void Close() {
@@ -53,7 +53,7 @@ namespace Mai {
 		std::fseek(fp, n, SEEK_SET);
 	  }
 	}
-	virtual size_t Read(void* p, size_t n) {
+	virtual int Read(void* p, size_t n) {
 	  return fp ? std::fread(p, n, 1, fp) : 0;
 	}
 	virtual void Close() {
@@ -92,12 +92,30 @@ namespace Mai {
 
 	FilePtr Open(const char* filepath) {
 	  FILE* fp;
-	  fopen_s(&fp, filepath, "rb");
+	  std::string path("OpenGLESApp2/OpenGLESApp2.Android.Packaging/assets/");
+	  path += filepath;
+	  fopen_s(&fp, path.c_str(), "rb");
 	  if (fp) {
 		return std::make_shared<Win32File>(fp);
 	  }
 	  return nullptr;
 	}
 #endif
+
+	boost::optional<RawBufferType> LoadFile(const char* filepath) {
+	  RawBufferType buf;
+	  auto file = Open(filepath);
+	  if (file) {
+		return boost::none;
+	  }
+	  const size_t size = file->Size();
+	  buf.resize(size);
+	  const int result = file->Read(&buf[0], size);
+	  file->Close();
+	  if (result < 0) {
+		return boost::none;
+	  }
+	  return buf;
+	}
   }
 }

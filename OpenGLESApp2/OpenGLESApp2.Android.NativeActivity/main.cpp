@@ -19,6 +19,7 @@
 #include "Renderer.h"
 #include "android_native_app_glue.h"
 #include "TouchSwipeCamera.h"
+#include "../../Common/File.h"
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <android/sensor.h>
@@ -320,6 +321,7 @@ static int engine_init_display(struct engine* engine) {
 	engine->state.angle = 0;
 #endif
 	// GL ‚Ìó‘Ô‚ð‰Šú‰»‚µ‚Ü‚·B
+	Mai::FileSystem::Initialize(engine->app->activity->assetManager);
 	engine->renderer.Initialize();
 	engine->debugCamera.Reset();
 	engine->debugCamera.ScreenSize(engine->renderer.Width(), engine->renderer.Height());

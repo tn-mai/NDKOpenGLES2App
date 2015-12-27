@@ -24,7 +24,7 @@ namespace Texture {
 	TexturePtr CreateEmpty2D(int, int);
 	TexturePtr CreateDummy2D();
 	TexturePtr CreateDummyCubeMap();
-	TexturePtr LoadKTX(android_app*, const char*);
+	TexturePtr LoadKTX(const char*);
 }
 
 #endif // ETC1_HEADER_INCLUDED
