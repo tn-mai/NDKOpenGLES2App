@@ -1973,7 +1973,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 		struct membuf : public std::streambuf {
 			explicit membuf(char* b, char* e) { this->setg(b, b, e); }
 		};
-		membuf mb((char*)&buf[0], (char*)&buf[buf.size()]);
+		membuf mb((char*)&buf[0], (char*)&buf[0] + buf.size());
 		std::istream is(&mb);
 		BPT::ptree collada;
 		try {
