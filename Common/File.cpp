@@ -92,7 +92,7 @@ namespace Mai {
 
 	FilePtr Open(const char* filepath) {
 	  FILE* fp;
-	  std::string path("OpenGLESApp2/OpenGLESApp2.Android.Packaging/assets/");
+	  std::string path("../OpenGLESApp2/OpenGLESApp2.Android.Packaging/assets/");
 	  path += filepath;
 	  fopen_s(&fp, path.c_str(), "rb");
 	  if (fp) {
@@ -105,7 +105,7 @@ namespace Mai {
 	boost::optional<RawBufferType> LoadFile(const char* filepath) {
 	  RawBufferType buf;
 	  auto file = Open(filepath);
-	  if (file) {
+	  if (!file) {
 		return boost::none;
 	  }
 	  const size_t size = file->Size();
