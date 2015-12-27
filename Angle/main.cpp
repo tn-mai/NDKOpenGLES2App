@@ -17,13 +17,12 @@ int main() {
 	  if (e->Type == Event::EVENT_CLOSED) {
 		exit(0);
 	  }
-	  if (renderer.HasDisplay()) {
-		renderer.Render(nullptr, nullptr);
-		renderer.Swap();
-	  }
-	  window.MessageLoop();
 	}
+	if (renderer.HasDisplay()) {
+	  renderer.Render(nullptr, nullptr);
+	  renderer.Swap();
+	}
+	window.MessageLoop();
   }
-
   return 0;
 }
