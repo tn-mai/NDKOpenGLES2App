@@ -15,6 +15,7 @@ public:
   virtual void MessageLoop() = 0;
   virtual bool Initialize(const char* name, size_t width, size_t height) = 0;
   virtual void Destroy() = 0;
+  virtual void SetVisible(bool isVisible) = 0;
   virtual void PushEvent(const Event& e) {
 	switch (e.Type) {
 	case Event::EVENT_MOVED:

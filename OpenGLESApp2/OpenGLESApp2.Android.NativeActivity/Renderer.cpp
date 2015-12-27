@@ -688,6 +688,10 @@ void Renderer::Initialize(const Window& window)
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#ifdef __ANDROID__
+#else
+	eglSwapInterval(display, 1);
+#endif // __ANDROID__
 	isInitialized = true;
 }
 

@@ -602,4 +602,11 @@ namespace Mai {
 	}
   }
 
+  void Win32Window::SetVisible(bool isVisible)
+  {
+	const int flag = isVisible ? SW_SHOW : SW_HIDE;
+	ShowWindow(parentWindow, flag);
+	ShowWindow(nativeWindow, flag);
+  }
+
 } // namespace Mai

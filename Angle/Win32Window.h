@@ -13,7 +13,9 @@ namespace Mai {
 	virtual void MessageLoop();
 	virtual bool Initialize(const char* name, size_t width, size_t height);
 	virtual void Destroy();
+	virtual void SetVisible(bool isVisible);
 	virtual void PushEvent(const Event&);
+
   public:
 	void IsMouseInWindow(bool b) { isMouseInWindow = b; }
 	bool IsMouseInWindow() const { return isMouseInWindow; }
