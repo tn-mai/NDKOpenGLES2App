@@ -287,8 +287,6 @@ namespace Mai {
 	std::string str;
   };
 
-  struct android_app;
-
   /**
   * •`‰æˆ—ƒNƒ‰ƒX.
   */
