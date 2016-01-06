@@ -15,6 +15,7 @@
 *
 */
 
+#include "AndroidWindow.h"
 #include "Scene.h"
 #include "Renderer.h"
 #include "android_native_app_glue.h"
@@ -43,99 +44,50 @@
 
 namespace BPT = boost::property_tree;
 
+namespace Mai {
+
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
-//#define SHOW_DEBUG_SENSOR_OBJECT
+  //#define SHOW_DEBUG_SENSOR_OBJECT
 
-static const Region region = { Position3F(-100, 200, -100), Position3F(100, 3800, 100) };
-static const float unitRegionSize = 100.0f;
-static const size_t maxObject = 1000;
+  static const Region region = { Position3F(-100, 200, -100), Position3F(100, 3800, 100) };
+  static const float unitRegionSize = 100.0f;
+  static const size_t maxObject = 1000;
 
-/**
-* 保存状態のデータです。
-*/
-struct saved_state {
+  /**
+  * 保存状態のデータです。
+  */
+  struct saved_state {
 	float angle;
 	int32_t x;
 	int32_t y;
 	saved_state() : angle(0), x(0), y(0) {}
-};
+  };
 
-/**
-* アプリの保存状態です。
-*
-* A sensor managiment code was referring to http://plaw.info/2012/03/android-sensor-fusion-tutorial/
-*/
-struct engine {
-	engine(android_app* a)
-		: app(a)
-		, sensorManager(0)
-		, animating(0)
-		, initialized(false)
-//		, display(0)
-//		, surface(0)
-//		, context(0)
-//		, width(0)
-//		, height(0)
-		, state()
-	    , debugCamera(a)
-		, renderer(a)
-		, pScene(new Scene(region.min, region.max, unitRegionSize, maxObject))
-		, random(time(nullptr))
-		, avgFps(30.0f)
-		, deltaTime(1.0f / avgFps)
-		, frames(0)
-		, latestFps(30)
-		, startTime(0)
+  /**
+  * アプリの保存状態です。
+  *
+  * A sensor managiment code was referring to http://plaw.info/2012/03/android-sensor-fusion-tutorial/
+  */
+  struct Engine {
+	Engine(android_app* app)
+	  : initialized(false)
+	  , window(app)
+	  , renderer()
+	  , pScene(new Scene(region.min, region.max, unitRegionSize, maxObject))
+	  , random(time(nullptr))
+	  , avgFps(30.0f)
+	  , deltaTime(1.0f / avgFps)
+	  , frames(0)
+	  , latestFps(30)
+	  , startTime(0)
 	{
-		for (int i = 0; i < SensorType_MAX; ++i) {
-			sensor[i] = 0;
-			sensorEventQueue[i] = 0;
-		}
-		gyro = Vector3F::Unit();
-		gyroMatrix = Matrix4x4::Unit();
-		gyroOrientation = Vector3F::Unit();
-		magnet = Vector3F::Unit();
-		accel = Vector3F::Unit();
-		accMagOrientation = Vector3F::Unit();
-		fusedOrientation = Vector3F::Unit();
 	}
 
-	struct android_app* app;
-
-	enum SensorType {
-	  SensorType_Accel,
-	  SensorType_Magnet,
-	  SensorType_Gyro,
-	  SensorType_MAX
-	};
-	enum LooperId {
-	  LooperId_Accel = LOOPER_ID_USER,
-	  LooperId_Magnet,
-	  LooperId_Gyro
-	};
-	ASensorManager* sensorManager;
-	const ASensor* sensor[SensorType_MAX];
-	ASensorEventQueue* sensorEventQueue[SensorType_MAX];
-	Vector3F gyro;
-	Matrix4x4 gyroMatrix;
-	Vector3F gyroOrientation;
-	Vector3F magnet;
-	Vector3F accel;
-	Vector3F accMagOrientation;
-	Vector3F fusedOrientation;
-
-	int animating;
 	bool initialized;
-//	EGLDisplay display;
-//	EGLSurface surface;
-//	EGLContext context;
-//	int32_t width;
-//	int32_t height;
-	struct saved_state state;
 
-	TouchSwipeCamera debugCamera;
+	AndroidWindow window;
 	Renderer renderer;
 	std::unique_ptr<Scene> pScene;
 	boost::random::mt19937 random;
@@ -150,121 +102,17 @@ struct engine {
 	int frames;
 	int latestFps;
 	int64_t startTime;
+  };
 
-	static bool GetRotationMatrix(Matrix4x4* m, const Vector3F& gravity, const Vector3F& geomagnetic) {
-		Vector3F A(gravity);
-		const Vector3F E(geomagnetic);
-		Vector3F H = E.Cross(A);
-		const float normH = H.Length();
-		if (normH < 0.1f) {
-			return false;
-		}
-		H.Normalize();
-		A.Normalize();
-		const Vector3F M = A.Cross(H);
+  template<typename T>
+  T degreeToRadian(T d) {
+	return d * boost::math::constants::pi<T>() / static_cast<T>(180);
+  }
 
-		m->SetVector(0, Vector4F(H, 0));
-		m->SetVector(1, Vector4F(M, 0));
-		m->SetVector(2, Vector4F(A, 0));
-		m->SetVector(3, Vector4F::Unit());
-		return true;
-	}
-
-	static void GetOrientation(Vector3F* v, const Matrix4x4& m) {
-	  v->x = std::atan2(m.At(0, 1), m.At(1, 1));
-	  v->y = std::asin(-m.At(2, 1));
-	  v->z = std::atan2(-m.At(2, 0), m.At(2, 2));
-	}
-
-	void CalcAccMagOrientation() {
-		Matrix4x4 m;
-		if (GetRotationMatrix(&m, accel, magnet)) {
-			GetOrientation(&accMagOrientation, m);
-		} else {
-			accMagOrientation = accel;
-		}
-	}
-
-	void GetQuaternionFromGyro(Quaternion* deltaRotationVector, Vector3F gyro, float timeFactor) {
-		const float omegaMagnitude = gyro.Length();
-		const float epsilon = 0.000000001f;
-		if (omegaMagnitude > epsilon) {
-		  gyro.Normalize();
-		}
-		*deltaRotationVector = Quaternion(gyro, omegaMagnitude *  timeFactor);
-	}
-
-	static void GetRotationMatrixFromOrientation(Matrix4x4* m, const Vector3F& o) {
-		*m = Matrix4x4::RotationX(o.x) * Matrix4x4::RotationY(o.y) * Matrix4x4::RotationZ(o.z);
-	}
-	
-	static void GetRotationMatrixFromQuaternion(Matrix4x4* m, const Quaternion& r) {
-		const Quaternion q(r.x, r.y, r.z, std::sqrt(1.0f - r.Length()));
-		const Matrix4x3 mm = ToMatrix(q);
-		m->SetVector(0, mm.GetVector(0));
-		m->SetVector(1, mm.GetVector(1));
-		m->SetVector(2, mm.GetVector(2));
-		m->SetVector(0, Vector4F::Unit());
-	}
-
-	void GyroFunction(const Vector3F& vector, float timestamp) {
-		static bool initState = true;
-		static float timeStamp = 0.0f;
-		if (initState) {
-			Matrix4x4 m;
-			GetRotationMatrixFromOrientation(&m, accMagOrientation);
-			gyroMatrix *= m;
-			initState = false;
-		}
-		Quaternion delta = Quaternion::Unit();
-		if (timeStamp != 0.0f) {
-			const float NS2S = 1.0f / 1000000000.0f;
-			const float dt = (timestamp - timeStamp) * NS2S;
-			gyro = Vector3F(vector.x, vector.y, vector.z);
-			GetQuaternionFromGyro(&delta, gyro, dt);
-		}
-		timeStamp = timestamp;
-		Matrix4x4 deltaMatrix;
-		GetRotationMatrixFromQuaternion(&deltaMatrix, delta);
-		gyroMatrix *= deltaMatrix;
-		GetOrientation(&gyroOrientation, gyroMatrix);
-	}
-
-	void CalcFusedOrientation() {
-		const float coeff = 0.98f;
-		const float oneMinusCoeff = 1.0f - coeff;
-		if (sensor[SensorType_Gyro]) {
-			fusedOrientation = gyroOrientation * coeff + accMagOrientation * oneMinusCoeff;
-			GetRotationMatrixFromOrientation(&gyroMatrix, fusedOrientation);
-		} else if (sensor[SensorType_Magnet]) {
-			fusedOrientation = accMagOrientation;
-		} else {
-		  /* 003SHの動作仕様から適当に設定.
-		  accel: デバイスのupベクトル.
-		  デバイス垂直時 x=水平軸(右が+), y=垂直軸(上が+), z=前後軸(前が+).
-		  垂直軸周りの回転を検出できない.
-		  */
-		  fusedOrientation.x = 0.0f;
-		  fusedOrientation.y = -accel.y * 0.1f * boost::math::constants::pi<float>() * 0.5f;
-		  fusedOrientation.z = std::atan(accel.z / accel.x);
-		  if (fusedOrientation.z >= 0.0f) {
-			fusedOrientation.z -= boost::math::constants::pi<float>() * 0.5f;
-		  } else {
-			fusedOrientation.z += boost::math::constants::pi<float>() * 0.5f;
-		  }
-		}
-	}
-};
-
-template<typename T>
-T degreeToRadian(T d) {
-  return d * boost::math::constants::pi<T>() / static_cast<T>(180);
-}
-
-/**
-* 現在の表示の EGL コンテキストを初期化します。
-*/
-static int engine_init_display(struct engine* engine) {
+  /**
+  * 現在の表示の EGL コンテキストを初期化します。
+  */
+  static int engine_init_display(Engine* engine) {
 	// OpenGL ES と EGL の初期化
 #if 0
 	/*4
@@ -306,8 +154,8 @@ static int engine_init_display(struct engine* engine) {
 	context = eglCreateContext(display, config, NULL, NULL);
 
 	if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
-		LOGW("Unable to eglMakeCurrent");
-		return -1;
+	  LOGW("Unable to eglMakeCurrent");
+	  return -1;
 	}
 
 	eglQuerySurface(display, surface, EGL_WIDTH, &w);
@@ -321,13 +169,7 @@ static int engine_init_display(struct engine* engine) {
 	engine->state.angle = 0;
 #endif
 	// GL の状態を初期化します。
-	Mai::FileSystem::Initialize(engine->app->activity->assetManager);
-	engine->renderer.Initialize();
-	engine->debugCamera.Reset();
-	engine->debugCamera.ScreenSize(engine->renderer.Width(), engine->renderer.Height());
-	engine->debugCamera.Position(Position3F(0, 100, 0));
-	engine->debugCamera.LookAt(Position3F(-1, 100, 0));
-	engine->debugCamera.UpVector(Vector3F(0, 1, 0));
+	engine->renderer.Initialize(engine->window);
 #if 0
 	// ランダムにオブジェクトを発生させてみる.
 	const int regionCount = std::ceil((region.max.y - region.min.y) / unitRegionSize);
@@ -358,7 +200,7 @@ static int engine_init_display(struct engine* engine) {
 		  Object& o = *obj;
 		  const Vector3F trans(tx, ty + i * unitRegionSize, tz);
 		  o.SetTranslation(trans);
-//		  o.SetScale(Vector3F(2, 2, 2));
+		  //		  o.SetScale(Vector3F(2, 2, 2));
 		  const float rx = degreeToRadian<float>(engine->random() % 360);
 		  const float ry = degreeToRadian<float>(engine->random() % 360);
 		  const float rz = degreeToRadian<float>(engine->random() % 360);
@@ -395,7 +237,7 @@ static int engine_init_display(struct engine* engine) {
 	{
 	  engine->debugObj[0] = engine->renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 	  Object& o = *engine->debugObj[0];
-//	  o.SetScale(Vector3F(2, 2, 2));
+	  //	  o.SetScale(Vector3F(2, 2, 2));
 	  o.SetTranslation(Vector3F(-15, 100, 0));
 	  o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
 	  engine->pScene->Insert(engine->debugObj[0]);
@@ -479,204 +321,205 @@ static int engine_init_display(struct engine* engine) {
 	LOGI("engine_init_display");
 	engine->initialized = true;
 	return 0;
-}
-
-/**
-* ディスプレイ内の現在のフレームのみ。
-*/
-
-static void engine_draw_frame(struct engine* engine) {
-  if (!engine->renderer.HasDisplay() || !engine->initialized) {
-	// ディスプレイがありません。
-	return;
   }
 
-  std::vector<ObjectPtr> objList;
-  objList.reserve(10 * 10);
+  /**
+  * ディスプレイ内の現在のフレームのみ。
+  */
+  static void engine_draw_frame(Engine* engine) {
+	if (!engine->renderer.HasDisplay() || !engine->initialized) {
+	  // ディスプレイがありません。
+	  return;
+	}
+
+	std::vector<ObjectPtr> objList;
+	objList.reserve(10 * 10);
 #if 0
-  float posY = engine->debugCamera.Position().y;
-  if (engine->debugCamera.EyeVector().y >= 0.0f) {
-	posY = std::max(region.min.y, posY - unitRegionSize * 2);
-	for (int i = 0; i < 6; ++i) {
-	  const Cell& cell = engine->pScene->GetCell(posY);
-	  for (auto& e : cell.objects) {
-		objList.push_back(e.object);
+	float posY = engine->debugCamera.Position().y;
+	if (engine->debugCamera.EyeVector().y >= 0.0f) {
+	  posY = std::max(region.min.y, posY - unitRegionSize * 2);
+	  for (int i = 0; i < 6; ++i) {
+		const Cell& cell = engine->pScene->GetCell(posY);
+		for (auto& e : cell.objects) {
+		  objList.push_back(e.object);
+		}
+		posY += unitRegionSize;
+		if (posY >= region.max.y) {
+		  break;
+		}
 	  }
-	  posY += unitRegionSize;
-	  if (posY >= region.max.y) {
-		break;
+	} else {
+	  posY = std::min(region.max.y, posY + unitRegionSize * 2);
+	  for (int i = 0; i < 6; ++i) {
+		const Cell& cell = engine->pScene->GetCell(posY);
+		for (auto& e : cell.objects) {
+		  objList.push_back(e.object);
+		}
+		posY -= unitRegionSize;
+		if (posY < region.min.y) {
+		  break;
+		}
 	  }
 	}
-  } else {
-	posY = std::min(region.max.y, posY + unitRegionSize * 2);
-	for (int i = 0; i < 6; ++i) {
-	  const Cell& cell = engine->pScene->GetCell(posY);
-	  for (auto& e : cell.objects) {
-		objList.push_back(e.object);
-	  }
-	  posY -= unitRegionSize;
-	  if (posY < region.min.y) {
-		break;
-	  }
-	}
-  }
 
-  const Position3F eyePos = engine->debugCamera.Position();
-  const Vector3F eyeVec = engine->debugCamera.EyeVector();
-  objList.erase(
-	std::remove_if(
+	const Position3F eyePos = engine->debugCamera.Position();
+	const Vector3F eyeVec = engine->debugCamera.EyeVector();
+	objList.erase(
+	  std::remove_if(
+		objList.begin(),
+		objList.end(),
+		[eyePos, eyeVec](const ObjectPtr& n) {
+	  const Vector3F tmp = n->Position() - eyePos;
+	  return (tmp.LengthSq() > 15.0f * 15.0f) && (eyeVec.Dot(Vector3F(tmp).Normalize()) < 0.0f);
+	}
+		),
+	  objList.end()
+	  );
+	std::sort(
 	  objList.begin(),
 	  objList.end(),
-	  [eyePos, eyeVec](const ObjectPtr& n) {
-		const Vector3F tmp = n->Position() - eyePos;
-		return (tmp.LengthSq() > 15.0f * 15.0f) && (eyeVec.Dot(Vector3F(tmp).Normalize()) < 0.0f);
-	  }
-	),
-	objList.end()
-  );
-  std::sort(
-	objList.begin(),
-	objList.end(),
-	[eyePos](const ObjectPtr& lhs, const ObjectPtr& rhs) {
+	  [eyePos](const ObjectPtr& lhs, const ObjectPtr& rhs) {
 	  const Vector3F v0 = lhs->Position() - eyePos;
 	  const Vector3F v1 = rhs->Position() - eyePos;
 	  return v0.LengthSq() < v1.LengthSq();
 	}
-  );
+	);
 #else
-  for (auto itr = engine->pScene->Begin(); itr != engine->pScene->End(); ++itr) {
-	for (auto& e : itr->objects) {
-	  objList.push_back(e.object);
+	for (auto itr = engine->pScene->Begin(); itr != engine->pScene->End(); ++itr) {
+	  for (auto& e : itr->objects) {
+		objList.push_back(e.object);
+	  }
 	}
-  }
 #endif
 
 #ifdef SHOW_DEBUG_SENSOR_OBJECT
-  {
-	Position3F pos = engine->debugCamera.Position();
-	const Vector3F ev = engine->debugCamera.EyeVector();
-	const Vector3F uv = engine->debugCamera.UpVector();
-	const Vector3F sv = ev.Cross(uv);
-	pos += ev * 4.0f;
-	pos += -uv * 1.5f;
-	pos += sv * 0.9f;
-	engine->debugSensorObj->SetTranslation(Vector3F(pos.x, pos.y, pos.z));
+	{
+	  Position3F pos = engine->debugCamera.Position();
+	  const Vector3F ev = engine->debugCamera.EyeVector();
+	  const Vector3F uv = engine->debugCamera.UpVector();
+	  const Vector3F sv = ev.Cross(uv);
+	  pos += ev * 4.0f;
+	  pos += -uv * 1.5f;
+	  pos += sv * 0.9f;
+	  engine->debugSensorObj->SetTranslation(Vector3F(pos.x, pos.y, pos.z));
 
-	// fusedOrientation has each axis range of x(+pi, -pi), y(+pi/2, -pi/2), z(+pi, -pi).
-	const float rx = (engine->fusedOrientation.x + boost::math::constants::pi<float>()) * 0.5f;
-	const float ry = -engine->fusedOrientation.y + boost::math::constants::pi<float>() * 0.5f;
-	const float rz = (engine->fusedOrientation.z + boost::math::constants::pi<float>()) * 0.5f;
-	Matrix4x4 mRot = LookAt(Position3F(0, 0, 0), Position3F(ev.x, ev.y, ev.z), uv);
-	mRot = Matrix4x4::RotationX(rx) * Matrix4x4::RotationX(ry) * Matrix4x4::RotationX(rz) * mRot;
-	Quaternion q;
-	mRot.Decompose(&q, nullptr, nullptr);
-	engine->debugSensorObj->SetRotation(q);
-	objList.push_back(engine->debugSensorObj);
-  }
+	  // fusedOrientation has each axis range of x(+pi, -pi), y(+pi/2, -pi/2), z(+pi, -pi).
+	  const float rx = (engine->fusedOrientation.x + boost::math::constants::pi<float>()) * 0.5f;
+	  const float ry = -engine->fusedOrientation.y + boost::math::constants::pi<float>() * 0.5f;
+	  const float rz = (engine->fusedOrientation.z + boost::math::constants::pi<float>()) * 0.5f;
+	  Matrix4x4 mRot = LookAt(Position3F(0, 0, 0), Position3F(ev.x, ev.y, ev.z), uv);
+	  mRot = Matrix4x4::RotationX(rx) * Matrix4x4::RotationX(ry) * Matrix4x4::RotationX(rz) * mRot;
+	  Quaternion q;
+	  mRot.Decompose(&q, nullptr, nullptr);
+	  engine->debugSensorObj->SetRotation(q);
+	  objList.push_back(engine->debugSensorObj);
+	}
 #endif // SHOW_DEBUG_SENSOR_OBJECT
 
-  engine->renderer.ClearDebugString();
-  char buf[32];
-  sprintf(buf, "OX:%1.3f", engine->fusedOrientation.x);
-  engine->renderer.AddDebugString(8, 800 - 16 * 9, buf);
-  sprintf(buf, "OY:%1.3f", engine->fusedOrientation.y);
-  engine->renderer.AddDebugString(8, 800 - 16 * 8, buf);
-  sprintf(buf, "OZ:%1.3f", engine->fusedOrientation.z);
-  engine->renderer.AddDebugString(8, 800 - 16 * 7, buf);
+	engine->renderer.ClearDebugString();
+	char buf[32];
+#if 0
+	sprintf(buf, "OX:%1.3f", engine->fusedOrientation.x);
+	engine->renderer.AddDebugString(8, 800 - 16 * 9, buf);
+	sprintf(buf, "OY:%1.3f", engine->fusedOrientation.y);
+	engine->renderer.AddDebugString(8, 800 - 16 * 8, buf);
+	sprintf(buf, "OZ:%1.3f", engine->fusedOrientation.z);
+	engine->renderer.AddDebugString(8, 800 - 16 * 7, buf);
 
-  sprintf(buf, "MX:%1.3f", engine->magnet.x);
-  engine->renderer.AddDebugString(8, 800 - 16 * 6, buf);
-  sprintf(buf, "MY:%1.3f", engine->magnet.y);
-  engine->renderer.AddDebugString(8, 800 - 16 * 5, buf);
-  sprintf(buf, "MZ:%1.3f", engine->magnet.z);
-  engine->renderer.AddDebugString(8, 800 - 16 * 4, buf);
+	sprintf(buf, "MX:%1.3f", engine->magnet.x);
+	engine->renderer.AddDebugString(8, 800 - 16 * 6, buf);
+	sprintf(buf, "MY:%1.3f", engine->magnet.y);
+	engine->renderer.AddDebugString(8, 800 - 16 * 5, buf);
+	sprintf(buf, "MZ:%1.3f", engine->magnet.z);
+	engine->renderer.AddDebugString(8, 800 - 16 * 4, buf);
 
-  sprintf(buf, "AX:%1.3f", engine->accel.x);
-  engine->renderer.AddDebugString(8, 800 - 16 * 3, buf);
-  sprintf(buf, "AY:%1.3f", engine->accel.y);
-  engine->renderer.AddDebugString(8, 800 - 16 * 2, buf);
-  sprintf(buf, "AZ:%1.3f", engine->accel.z);
-  engine->renderer.AddDebugString(8, 800 - 16 * 1, buf);
+	sprintf(buf, "AX:%1.3f", engine->accel.x);
+	engine->renderer.AddDebugString(8, 800 - 16 * 3, buf);
+	sprintf(buf, "AY:%1.3f", engine->accel.y);
+	engine->renderer.AddDebugString(8, 800 - 16 * 2, buf);
+	sprintf(buf, "AZ:%1.3f", engine->accel.z);
+	engine->renderer.AddDebugString(8, 800 - 16 * 1, buf);
+#endif
+	sprintf(buf, "FPS:%02d", engine->latestFps);
+	engine->renderer.AddDebugString(8, 8, buf);
+	sprintf(buf, "AVG:%02.1f", engine->avgFps);
+	engine->renderer.AddDebugString(8, 24, buf);
+	if (engine->rigidCamera) {
+	  sprintf(buf, "%03.1fKm/h", engine->rigidCamera->accel.Length() * 3.6f);
+	  engine->renderer.AddDebugString(8, 40, buf);
+	}
 
-  sprintf(buf, "FPS:%02d", engine->latestFps);
-  engine->renderer.AddDebugString(8, 8, buf);
-  sprintf(buf, "AVG:%02.1f", engine->avgFps);
-  engine->renderer.AddDebugString(8, 24, buf);
-  if (engine->rigidCamera) {
-	sprintf(buf, "%03.1fKm/h", engine->rigidCamera->accel.Length() * 3.6f);
-	engine->renderer.AddDebugString(8, 40, buf);
+	engine->renderer.Render(&objList[0], &objList[0] + objList.size());
+	engine->renderer.Swap();
   }
 
-  engine->renderer.Render(&objList[0], &objList[0] + objList.size());
-  engine->renderer.Swap();
-}
 
-
-/**
-* 現在ディスプレイに関連付けられている EGL コンテキストを削除します。
-*/
-static void engine_term_display(struct engine* engine) {
+  /**
+  * 現在ディスプレイに関連付けられている EGL コンテキストを削除します。
+  */
+  static void engine_term_display(Engine* engine) {
 	engine->initialized = false;
 	engine->renderer.Unload();
 	engine->pScene->Clear();
 	LOGI("engine_term_display");
-}
-
-/**
-* 次の入力イベントを処理します。
-*/
-static int32_t engine_handle_input(struct android_app* app, AInputEvent* event) {
+  }
+#if 0
+  /**
+  * 次の入力イベントを処理します。
+  */
+  static int32_t engine_handle_input(struct android_app* app, AInputEvent* event) {
 	struct engine* engine = (struct engine*)app->userData;
 	return engine->debugCamera.HandleEvent(event);
-}
+  }
 
-/**
-* 次のメイン コマンドを処理します。
-*/
-static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
+  /**
+  * 次のメイン コマンドを処理します。
+  */
+  static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
 	struct engine* engine = (struct engine*)app->userData;
 	switch (cmd) {
 	case APP_CMD_SAVE_STATE:
-		// 現在の状態を保存するようシステムによって要求されました。保存してください。
-		engine->app->savedState = malloc(sizeof(struct saved_state));
-		*((struct saved_state*)engine->app->savedState) = engine->state;
-		engine->app->savedStateSize = sizeof(struct saved_state);
-		break;
+	  // 現在の状態を保存するようシステムによって要求されました。保存してください。
+	  engine->app->savedState = malloc(sizeof(struct saved_state));
+	  *((struct saved_state*)engine->app->savedState) = engine->state;
+	  engine->app->savedStateSize = sizeof(struct saved_state);
+	  break;
 	case APP_CMD_INIT_WINDOW:
-		// ウィンドウが表示されています。準備してください。
-		if (engine->app->window != NULL) {
-			engine_init_display(engine);
-			engine_draw_frame(engine);
-		}
-		break;
-	case APP_CMD_TERM_WINDOW:
-		// ウィンドウが非表示または閉じています。クリーン アップしてください。
-		engine_term_display(engine);
-		break;
-	case APP_CMD_GAINED_FOCUS:
-		// アプリがフォーカスを取得すると、加速度計の監視を開始します。
-		for (int i = 0; i < engine::SensorType_MAX; ++i) {
-			if (engine->sensor[i]) {
-				ASensorEventQueue_enableSensor(engine->sensorEventQueue[i], engine->sensor[i]);
-				// 目標は 1 秒ごとに 60 のイベントを取得することです (米国)。
-				ASensorEventQueue_setEventRate(engine->sensorEventQueue[i], engine->sensor[i], (1000L / 60) * 1000);
-			}
-		}
-		break;
-	case APP_CMD_LOST_FOCUS:
-		// アプリがフォーカスを失うと、加速度計の監視を停止します。
-		// これにより、使用していないときのバッテリーを節約できます。
-		for (int i = 0; i < engine::SensorType_MAX; ++i) {
-			if (engine->sensor[i]) {
-				ASensorEventQueue_disableSensor(engine->sensorEventQueue[i], engine->sensor[i]);
-			}
-		}
+	  // ウィンドウが表示されています。準備してください。
+	  if (engine->app->window != NULL) {
+		engine_init_display(engine);
 		engine_draw_frame(engine);
-		break;
+	  }
+	  break;
+	case APP_CMD_TERM_WINDOW:
+	  // ウィンドウが非表示または閉じています。クリーン アップしてください。
+	  engine_term_display(engine);
+	  break;
+	case APP_CMD_GAINED_FOCUS:
+	  // アプリがフォーカスを取得すると、加速度計の監視を開始します。
+	  for (int i = 0; i < engine::SensorType_MAX; ++i) {
+		if (engine->sensor[i]) {
+		  ASensorEventQueue_enableSensor(engine->sensorEventQueue[i], engine->sensor[i]);
+		  // 目標は 1 秒ごとに 60 のイベントを取得することです (米国)。
+		  ASensorEventQueue_setEventRate(engine->sensorEventQueue[i], engine->sensor[i], (1000L / 60) * 1000);
+		}
+	  }
+	  break;
+	case APP_CMD_LOST_FOCUS:
+	  // アプリがフォーカスを失うと、加速度計の監視を停止します。
+	  // これにより、使用していないときのバッテリーを節約できます。
+	  for (int i = 0; i < engine::SensorType_MAX; ++i) {
+		if (engine->sensor[i]) {
+		  ASensorEventQueue_disableSensor(engine->sensorEventQueue[i], engine->sensor[i]);
+		}
+	  }
+	  engine_draw_frame(engine);
+	  break;
 	}
-}
+  }
+#endif
 
-int_fast64_t get_time() {
+  int_fast64_t get_time() {
 #if 1
 	timespec tmp;
 	clock_gettime(CLOCK_MONOTONIC, &tmp);
@@ -684,220 +527,181 @@ int_fast64_t get_time() {
 #else
 	static int sfd = -1;
 	if (sfd == -1) {
-		sfd = open("/dev/alarm", O_RDONLY);
+	  sfd = open("/dev/alarm", O_RDONLY);
 	}
 	timespec ts;
 	const int result = ioctl(sfd, ANDROID_ALARM_GET_TIME(ANDROID_ALARM_ELAPSED_REALTIME), &ts);
 	if (result != 0) {
-		const int err = clock_gettime(CLOCK_MONOTONIC, &ts);
-		if (err < 0) {
-			LOGI("ERROR(%d) from; clock_gettime(CLOCK_MONOTONIC)", err);
-		}
+	  const int err = clock_gettime(CLOCK_MONOTONIC, &ts);
+	  if (err < 0) {
+		LOGI("ERROR(%d) from; clock_gettime(CLOCK_MONOTONIC)", err);
+	  }
 	}
 	return ts.tv_sec * (1000 * 1000 * 1000) + ts.tv_nsec;
 #endif
-}
+  }
 
-float time_to_sec(int_fast64_t time) { return static_cast<float>(static_cast<double>(time) / (1000 * 1000 * 1000));  }
+  float time_to_sec(int_fast64_t time) { return static_cast<float>(static_cast<double>(time) / (1000 * 1000 * 1000)); }
+
+  struct Camera {
+	Camera(const Mai::Position3F& pos, const Mai::Vector3F& at, const Mai::Vector3F& up)
+	  : position(pos)
+	  , eyeVector(at)
+	  , upVector(up)
+	{}
+
+	Position3F position;
+	Vector3F eyeVector;
+	Vector3F upVector;
+  };
+
+  void run(android_app* app) {
+	Engine engine(app);
+	engine.window.Initialize("Sunny Side Up", 480, 800);
+	engine.window.SetVisible(true);
+
+	FileSystem::Initialize(app->activity->assetManager);
+
+	Camera camera(Mai::Position3F(0, 0, 0), Mai::Vector3F(0, 0, -1), Mai::Vector3F(0, 1, 0));
+	int mouseX = -1, mouseY = -1;
+	while (1) {
+	  engine.window.MessageLoop();
+	  engine.window.CalcFusedOrientation();
+	  while (auto e = engine.window.PopEvent()) {
+		switch (e->Type) {
+		case Event::EVENT_CLOSED:
+		  engine_term_display(&engine);
+		  return;
+		case Event::EVENT_INIT_WINDOW:
+		  engine_init_display(&engine);
+		  break;
+		case Event::EVENT_TERM_WINDOW:
+		  engine_term_display(&engine);
+		  break;
+		case Event::EVENT_MOUSE_MOVED:
+		  if (mouseX >= 0) {
+			const float x = static_cast<float>(mouseX - e->MouseMove.X) * 0.005f;
+			const float y = static_cast<float>(mouseY - e->MouseMove.Y) * 0.005f;
+			const Mai::Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
+			camera.eyeVector = (Mai::Quaternion(camera.upVector, x) * Mai::Quaternion(leftVector, y)).Apply(camera.eyeVector).Normalize();
+			camera.upVector = Mai::Quaternion(leftVector, y).Apply(camera.upVector).Normalize();
+		  }
+		  mouseX = e->MouseMove.X;
+		  mouseY = e->MouseMove.Y;
+		  break;
+		default:
+		  break;
+		}
+	  }
+
+	  if (engine.initialized) {
+		// イベントが完了したら次のアニメーション フレームを描画します。
+#if 1
+		++engine.frames;
+		const int64_t curTime = get_time();
+		if (curTime < engine.startTime) {
+		  engine.startTime = curTime;
+		  engine.frames = 0;
+		} else if (curTime - engine.startTime >= (1000UL * 1000UL * 1000UL)) {
+		  engine.latestFps = std::min(engine.frames, 60);
+		  engine.startTime = curTime;
+		  engine.frames = 0;
+		  if (engine.latestFps > engine.avgFps * 0.3f) { // 低すぎるFPSはノイズとみなす.
+			engine.avgFps = (engine.avgFps + engine.latestFps) * 0.5f;
+			engine.deltaTime = (engine.deltaTime + 1.0f / engine.latestFps) * 0.5f;
+		  }
+		}
+#endif
+#if 1
+		//	  engine.debugCamera.Update(engine.deltaTime, engine.fusedOrientation);
+		engine.pScene->Update(engine.deltaTime);
+#else
+		const Position3F prevCamPos = engine.debugCamera.Position();
+		engine.debugCamera.Update(engine.deltaTime, engine.fusedOrientation);
+		Vector3F camVec = engine.debugCamera.Position() - prevCamPos;
+		if (engine.rigidCamera) {
+		  if (camVec.LengthSq() == 0.0f) {
+			Vector3F v = engine.rigidCamera->accel;
+			v.y = 0;
+			if (v.LengthSq() < 0.1f) {
+			  v = Vector3F::Unit();
+			} else {
+			  v.Normalize();
+			  v *= 0.1f;
+			}
+			engine.rigidCamera->accel -= v;
+		  } else {
+			engine.rigidCamera->accel = camVec * 10.0f;
+		  }
+		  if (engine.rigidCamera->Position().y < 5.0f && engine.debugCamera.Direction() == TouchSwipeCamera::MoveDir_Back) {
+			engine.debugCamera.Direction(TouchSwipeCamera::MoveDir_Newtral);
+			engine.rigidCamera->Position(Position3F(0, 4000, 0));
+		  }
+		}
+		engine.pScene->Update(engine.deltaTime);
+		if (engine.rigidCamera) {
+		  Position3F pos = engine.rigidCamera->Position();
+		  pos.y += 10.0f;
+		  engine.debugCamera.Position(pos);
+		}
+#endif
+		engine.renderer.Update(engine.deltaTime, camera.position, camera.eyeVector, camera.upVector);
+		//			for (auto&& e : engine.obj) {
+		//				e.Update(engine.deltaTime);
+		//				while (e.GetCurrentTime() >= 1.0f) {
+		//					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
+		//				}
+		//			}
+
+		if (engine.debugObj[0]) {
+		  Object& o = *engine.debugObj[0];
+		  static float rot = 90, accel = 0.0f;
+		  rot += accel;
+		  if (rot >= 360) {
+			rot -= 360;
+		  } else if (rot < 0) {
+			rot += 360;
+		  }
+		  static int target = 2;
+		  if (target == 0) {
+			o.SetRotation(degreeToRadian<float>(rot), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  } else if (target == 1) {
+			o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(rot), degreeToRadian<float>(0));
+		  } else {
+			o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(rot));
+		  }
+		}
+		if (engine.debugObj[1]) {
+		  Object& o = *engine.debugObj[1];
+		  static float roughness = 0, metallic = 0;
+		  o.SetRoughness(roughness);
+		  o.SetMetallic(metallic);
+		}
+#if 0
+		static float roughness = 1.0f;
+		static float step = 0.005;
+		engine.obj[1].SetRoughness(roughness);
+		roughness += step;
+		if (roughness >= 1.0) {
+		  step = -0.005f;
+		} else if (roughness <= 0.0) {
+		  step = 0.005f;
+		}
+#endif
+
+		// 描画は画面の更新レートに合わせて調整されているため、
+		// ここで時間調整をする必要はありません。
+		engine_draw_frame(&engine);
+	  }
+	}
+  }
+} // namespace Mai
 
 /**
 * これは、android_native_app_glue を使用しているネイティブ アプリケーション
 * のメイン エントリ ポイントです。それ自体のスレッドでイベント ループによって実行され、
 * 入力イベントを受け取ったり他の操作を実行したりします。
 */
-void android_main(struct android_app* state) {
-	struct engine engine(state);
-
-	state->userData = &engine;
-	state->onAppCmd = engine_handle_cmd;
-	state->onInputEvent = engine_handle_input;
-
-	ANativeActivity_setWindowFlags(state->activity, AWINDOW_FLAG_FULLSCREEN | AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
-
-	// センサーの監視の準備
-	static const int sensorTypeList[] = {
-		ASENSOR_TYPE_ACCELEROMETER,
-		ASENSOR_TYPE_MAGNETIC_FIELD,
-		ASENSOR_TYPE_GYROSCOPE,
-	};
-	engine.sensorManager = ASensorManager_getInstance();
-	for (int i = engine::SensorType_Accel; i < engine::SensorType_MAX; ++i) {
-		engine.sensor[i] = ASensorManager_getDefaultSensor(engine.sensorManager, sensorTypeList[i]);
-		if (engine.sensor[i]) {
-			engine.sensorEventQueue[i] = ASensorManager_createEventQueue(engine.sensorManager, state->looper, LOOPER_ID_USER + i, NULL, NULL);
-		}
-	}
-	if (state->savedState != NULL) {
-		// 以前の保存状態で開始します。復元してください。
-		engine.state = *(struct saved_state*)state->savedState;
-	}
-
-	engine.animating = 1;
-
-	// ループはスタッフによる開始を待っています。
-
-	while (1) {
-		// 保留中のすべてのイベントを読み取ります。
-		int ident;
-		int events;
-		struct android_poll_source* source;
-
-		// アニメーションしない場合、無期限にブロックしてイベントが発生するのを待ちます。
-		// アニメーションする場合、すべてのイベントが読み取られるまでループしてから続行します
-		// アニメーションの次のフレームを描画します。
-		while ((ident = ALooper_pollAll(engine.animating ? 0 : -1, NULL, &events, (void**)&source)) >= 0) {
-
-			// このイベントを処理します。
-			if (source != NULL) {
-				source->process(state, source);
-			}
-
-			// センサーにデータがある場合、今すぐ処理します。
-			switch (ident) {
-			case engine::LooperId_Accel:
-				if (engine.sensor[ident - LOOPER_ID_USER]) {
-					ASensorEvent event;
-					float timestamp = 0.0f;
-					while (ASensorEventQueue_getEvents(engine.sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
-						if (timestamp == 0.0f) {
-							timestamp = event.timestamp;
-						}
-						engine.accel.x = event.acceleration.x;
-						engine.accel.y = event.acceleration.y;
-						engine.accel.z = event.acceleration.z;
-						engine.CalcAccMagOrientation();
-						break;
-					}
-				}
-				break;
-			case engine::LooperId_Magnet:
-				if (engine.sensor[ident - LOOPER_ID_USER]) {
-					ASensorEvent event;
-					while (ASensorEventQueue_getEvents(engine.sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
-						engine.magnet.x = event.magnetic.x;
-						engine.magnet.y = event.magnetic.y;
-						engine.magnet.z = event.magnetic.z;
-						break;
-					}
-				}
-				break;
-			case engine::LooperId_Gyro:
-				if (engine.sensor[ident - LOOPER_ID_USER]) {
-					ASensorEvent event;
-					while (ASensorEventQueue_getEvents(engine.sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
-						engine.GyroFunction(Vector3F(event.vector.x, event.vector.y, event.vector.z), event.timestamp);
-						break;
-					}
-				}
-				break;
-			};
-
-			// 終了するかどうか確認します。
-			if (state->destroyRequested != 0) {
-				engine_term_display(&engine);
-				return;
-			}
-		}
-		engine.CalcFusedOrientation();
-
-		if (engine.animating) {
-			// イベントが完了したら次のアニメーション フレームを描画します。
-#if 1
-			++engine.frames;
-			const int64_t curTime = get_time();
-			if (curTime < engine.startTime) {
-			  engine.startTime = curTime;
-			  engine.frames = 0;
-			} else if (curTime - engine.startTime >= (1000UL * 1000UL * 1000UL)) {
-			  engine.latestFps = std::min(engine.frames, 60);
-			  engine.startTime = curTime;
-			  engine.frames = 0;
-			  if (engine.latestFps > engine.avgFps * 0.3f) { // 低すぎるFPSはノイズとみなす.
-				engine.avgFps = (engine.avgFps + engine.latestFps) * 0.5f;
-				engine.deltaTime = (engine.deltaTime + 1.0f / engine.latestFps) * 0.5f;
-			  }
-			}
-#endif
-#if 1
-			engine.debugCamera.Update(engine.deltaTime, engine.fusedOrientation);
-			engine.pScene->Update(engine.deltaTime);
-#else
-			const Position3F prevCamPos = engine.debugCamera.Position();
-			engine.debugCamera.Update(engine.deltaTime, engine.fusedOrientation);
-			Vector3F camVec = engine.debugCamera.Position() - prevCamPos;
-			if (engine.rigidCamera) {
-			  if (camVec.LengthSq() == 0.0f) {
-				Vector3F v = engine.rigidCamera->accel;
-				v.y = 0;
-				if (v.LengthSq() < 0.1f) {
-				  v = Vector3F::Unit();
-				} else {
-				  v.Normalize();
-				  v *= 0.1f;
-				}
-				engine.rigidCamera->accel -= v;
-			  } else {
-				engine.rigidCamera->accel = camVec * 10.0f;
-			  }
-			  if (engine.rigidCamera->Position().y < 5.0f && engine.debugCamera.Direction() == TouchSwipeCamera::MoveDir_Back) {
-				engine.debugCamera.Direction(TouchSwipeCamera::MoveDir_Newtral);
-				engine.rigidCamera->Position(Position3F(0, 4000, 0));
-			  }
-			}
-			engine.pScene->Update(engine.deltaTime);
-			if (engine.rigidCamera) {
-			  Position3F pos = engine.rigidCamera->Position();
-			  pos.y += 10.0f;
-			  engine.debugCamera.Position(pos);
-			}
-#endif
-			engine.renderer.Update(engine.deltaTime, engine.debugCamera.Position(), engine.debugCamera.EyeVector(), engine.debugCamera.UpVector());
-			//			for (auto&& e : engine.obj) {
-//				e.Update(engine.deltaTime);
-//				while (e.GetCurrentTime() >= 1.0f) {
-//					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
-//				}
-//			}
-
-			if (engine.debugObj[0]) {
-			  Object& o = *engine.debugObj[0];
-			  static float rot = 90, accel = 0.0f;
-			  rot += accel;
-			  if (rot >= 360) {
-				rot -= 360;
-			  } else if (rot < 0) {
-				rot += 360;
-			  }
-			  static int target = 2;
-			  if (target == 0) {
-				o.SetRotation(degreeToRadian<float>(rot), degreeToRadian<float>(0), degreeToRadian<float>(0));
-			  } else if (target == 1) {
-				o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(rot), degreeToRadian<float>(0));
-			  } else {
-				o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(rot));
-			  }
-			}
-			if (engine.debugObj[1]) {
-			  Object& o = *engine.debugObj[1];
-			  static float roughness = 0, metallic = 0;
-			  o.SetRoughness(roughness);
-			  o.SetMetallic(metallic);
-			}
-#if 0
-			static float roughness = 1.0f;
-			static float step = 0.005;
-			engine.obj[1].SetRoughness(roughness);
-			roughness += step;
-			if (roughness >= 1.0) {
-				step = -0.005f;
-			} else if (roughness <= 0.0) {
-				step = 0.005f;
-			}
-#endif
-
-			// 描画は画面の更新レートに合わせて調整されているため、
-			// ここで時間調整をする必要はありません。
-			engine_draw_frame(&engine);
-		}
-	}
+void android_main(android_app* app) {
+  Mai::run(app);
 }

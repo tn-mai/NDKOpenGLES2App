@@ -1,7 +1,10 @@
 #include "../../Common/Window.h"
+#include "../../Common/Matrix.h"
 #include "android_native_app_glue.h"
 
-struct android_app;
+struct ASensorManager;
+struct ASensor;
+struct ASensorEventQueue;
 
 namespace Mai {
 
@@ -14,9 +17,21 @@ namespace Mai {
 	virtual void MessageLoop();
 	virtual bool Initialize(const char* name, size_t width, size_t height);
 	virtual void Destroy();
+	virtual void SetVisible(bool isVisible) {}
+
+	void CalcFusedOrientation();
+	void CommandHandler(int32_t);
+	bool InputHandler(AInputEvent*);
+	bool TouchSwipeHandler(AInputEvent*);
+	void SaveState();
+	void LoadState();
+	void GyroFunction(const Vector3F& vector, float timestamp);
 
   private:
-	android_app* state;
+	android_app* app;
+	bool suspending;
+
+	// for sensor.
 	enum SensorType {
 	  SensorType_Accel,
 	  SensorType_Magnet,
@@ -38,6 +53,20 @@ namespace Mai {
 	Vector3F accel;
 	Vector3F accMagOrientation;
 	Vector3F fusedOrientation;
+
+	struct TapInfo {
+	  int32_t id;
+	  Vector2F pos;
+	};
+	struct TouchSwipeState {
+	  bool dragging;
+	  float dpFactor;
+	  TapInfo tapInfo;
+	  TapInfo dragInfo;
+	} touchSwipeState;
+
+	struct SavedState {
+	} savedState;
   };
 
 } // namespace Mai
