@@ -14,6 +14,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.cpp" />
+    <ClCompile Include="..\Common\Engine.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.h" />
@@ -47,6 +50,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.h" />
+    <ClInclude Include="..\Common\Engine.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">

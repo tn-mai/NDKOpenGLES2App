@@ -1,5 +1,4 @@
 #include "Engine.h"
-#include <android/log.h>
 #include <boost/math/constants/constants.hpp>
 #include <time.h>
 
@@ -18,8 +17,14 @@
 #include <linux/android_alarm.h>
 #endif
 
+#ifdef __ANDROID__
+#include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#else
+#define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#endif // __ANDROID__
 
 namespace Mai {
 
@@ -205,6 +210,7 @@ namespace Mai {
   }
 
   int_fast64_t get_time() {
+#ifdef __ANDROID__
 #if 1
 	timespec tmp;
 	clock_gettime(CLOCK_MONOTONIC, &tmp);
@@ -224,6 +230,11 @@ namespace Mai {
 	}
 	return ts.tv_sec * (1000 * 1000 * 1000) + ts.tv_nsec;
 #endif
+#else
+	FILETIME ft;
+	GetSystemTimeAsFileTime(&ft);
+	return ft.dwHighDateTime * 10000000LL + ft.dwLowDateTime * 100LL;
+#endif // __ANDROID__
   }
 
   void Engine::DrawFrame(const Position3F& camPos, const Vector3F& camFront, const Vector3F& camUp) {
