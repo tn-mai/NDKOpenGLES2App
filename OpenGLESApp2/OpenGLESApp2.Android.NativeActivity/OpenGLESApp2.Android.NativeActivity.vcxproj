@@ -131,6 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Common\Engine.h" />
     <ClInclude Include="..\..\Common\Event.h" />
     <ClInclude Include="..\..\Common\File.h" />
     <ClInclude Include="..\..\Common\Keyboard.h" />
@@ -151,6 +152,7 @@
     <ClInclude Include="TouchSwipeCamera.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Common\Engine.cpp" />
     <ClCompile Include="..\..\Common\File.cpp" />
     <ClCompile Include="..\..\Common\Matrix.cpp" />
     <ClCompile Include="AndroidWindow.cpp" />
