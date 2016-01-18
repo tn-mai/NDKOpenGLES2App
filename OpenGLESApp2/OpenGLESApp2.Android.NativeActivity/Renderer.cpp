@@ -405,7 +405,7 @@ void UpdateJointRotTrans(std::vector<RotTrans>& rtList, const Joint* root, const
 	RotTrans rt = rtBuf * joint->initialPose;
 	rt *= parentRT;
 	rtBuf = rt * joint->invBindPose;
-#else
+#elif 0
 	rtBuf = joint->invBindPose * rtBuf;
 #endif
 	if (joint->offChild) {
@@ -1422,8 +1422,9 @@ void Renderer::Unload()
 	meshList.clear();
 	textureList.clear();
 
-	for (auto&& e : shaderList) {
-		glDeleteProgram(e.second.program);
+	for (auto itr = shaderList.rbegin(); itr != shaderList.rend(); ++itr) {
+	  const int programId = itr->second.program;
+	  glDeleteProgram(programId);
 	}
 	shaderList.clear();
 
