@@ -80,6 +80,12 @@ namespace Mai {
 
   } // unnamed namespace
 
+  int64_t uptimeMillis() {
+	timespec tmp;
+	clock_gettime(CLOCK_MONOTONIC, &tmp);
+	return tmp.tv_sec * (1000UL * 1000UL * 1000UL) + tmp.tv_nsec;
+  }
+
   AndroidWindow::AndroidWindow(android_app* p)
 	: app(p)
 	, suspending(false)
@@ -97,6 +103,7 @@ namespace Mai {
 	accel = Vector3F::Unit();
 	accMagOrientation = Vector3F::Unit();
 	fusedOrientation = Vector3F::Unit();
+	prevOrientation = Vector3F::Unit();
 
 	touchSwipeState.dpFactor = 160.0f / AConfiguration_getDensity(app->config);
 	touchSwipeState.dragging = false;
@@ -162,9 +169,21 @@ namespace Mai {
 	  if (app->destroyRequested != 0) {
 		Event event;
 		event.Type = Event::EVENT_CLOSED;
+		event.Time = uptimeMillis();
 		PushEvent(event);
 		return;
 	  }
+	}
+	CalcFusedOrientation();
+	if (fusedOrientation != prevOrientation) {
+	  Event event;
+	  event.Type = Event::EVENT_TILT;
+	  event.Time = uptimeMillis();
+	  event.Tilt.X = fusedOrientation.x;
+	  event.Tilt.Y = fusedOrientation.y;
+	  event.Tilt.Z = fusedOrientation.z;
+	  PushEvent(event);
+	  prevOrientation = fusedOrientation;
 	}
   }
 
@@ -233,6 +252,7 @@ namespace Mai {
 	  if (app->window != NULL) {
 		Event event;
 		event.Type = Event::EVENT_INIT_WINDOW;
+		event.Time = uptimeMillis();
 		PushEvent(event);
 	  }
 	  break;
@@ -240,6 +260,7 @@ namespace Mai {
 	  // ウィンドウが非表示または閉じています。クリーン アップしてください。
 	  Event event;
 	  event.Type = Event::EVENT_TERM_WINDOW;
+	  event.Time = uptimeMillis();
 	  PushEvent(event);
 	  break;
 	}
@@ -282,13 +303,24 @@ namespace Mai {
 	const int32_t action = actionAndIndex & AMOTION_EVENT_ACTION_MASK;
 	const int32_t index = (actionAndIndex & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
 	bool consumed = false;
+
+	// only ACTION_DOWN and ACTION_UP occurs if the count is 1.
 	if (count == 1) {
 	  switch (action) {
-	  case AMOTION_EVENT_ACTION_DOWN:
+	  case AMOTION_EVENT_ACTION_DOWN: {
 		touchSwipeState.tapInfo.id = AMotionEvent_getPointerId(event, 0);
 		touchSwipeState.tapInfo.pos = Vector2F(AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0));
+
+		Event e;
+		e.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
+		e.Time = AMotionEvent_getEventTime(event);
+		e.MouseButton.Button = MOUSEBUTTON_LEFT;
+		e.MouseButton.X = touchSwipeState.tapInfo.pos.x;
+		e.MouseButton.Y = touchSwipeState.tapInfo.pos.y;
+		PushEvent(e);
 		consumed = true;
 		break;
+	  }
 	  case AMOTION_EVENT_ACTION_UP: {
 		const int32_t TAP_TIMEOUT = 180 * 1000000;
 		const int32_t TOUCH_SLOP = 8;
@@ -299,7 +331,8 @@ namespace Mai {
 			const Vector2F curPos(AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0));
 			if ((curPos - touchSwipeState.tapInfo.pos).Length() < TOUCH_SLOP * touchSwipeState.dpFactor) {
 			  Event e;
-			  e.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
+			  e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+			  e.Time = AMotionEvent_getEventTime(event);
 			  e.MouseButton.Button = MOUSEBUTTON_LEFT;
 			  e.MouseButton.X = curPos.x;
 			  e.MouseButton.Y = curPos.y;
@@ -315,7 +348,7 @@ namespace Mai {
 
 	{
 	  switch (action) {
-	  case AMOTION_EVENT_ACTION_DOWN: {
+	  case AMOTION_EVENT_ACTION_DOWN:{
 		touchSwipeState.dragInfo.id = AMotionEvent_getPointerId(event, 0);
 		touchSwipeState.dragInfo.pos = Vector2F(AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0));
 		touchSwipeState.dragging = true;
@@ -341,6 +374,7 @@ namespace Mai {
 		  touchSwipeState.dragInfo.pos = Vector2F(AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0));
 		  Event e;
 		  e.Type = Event::EVENT_MOUSE_MOVED;
+		  e.Time = AMotionEvent_getEventTime(event);
 		  e.MouseMove.X = touchSwipeState.dragInfo.pos.x;
 		  e.MouseMove.Y = touchSwipeState.dragInfo.pos.y;
 		  PushEvent(e);

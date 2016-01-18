@@ -26,6 +26,7 @@ int main() {
 
   Camera camera(Mai::Position3F(0, 0, 0), Mai::Vector3F(0, 0, -1), Mai::Vector3F(0, 1, 0));
   int mouseX = -1, mouseY = -1;
+  bool dragging = false;
   for (;;) {
 	window.MessageLoop();
 	while (auto e = window.PopEvent()) {
@@ -34,11 +35,25 @@ int main() {
 		engine.TermDisplay();
 		exit(0);
 		break;
+	  case Event::EVENT_MOUSE_BUTTON_PRESSED:
+		if (e->MouseButton.Button == MOUSEBUTTON_LEFT) {
+		  mouseX = e->MouseButton.X;
+		  mouseY = e->MouseButton.Y;
+		  dragging = true;
+		}
+		break;
+	  case Event::EVENT_MOUSE_BUTTON_RELEASED:
+		if (e->MouseButton.Button == MOUSEBUTTON_LEFT) {
+		  dragging = false;
+		}
+		break;
 	  case Event::EVENT_MOUSE_ENTERED:
-		mouseX = -1;
+		break;
+	  case Event::EVENT_MOUSE_LEFT:
+		dragging = false;
 		break;
 	  case Event::EVENT_MOUSE_MOVED: {
-		if (mouseX >= 0) {
+		if (dragging) {
 		  const float x = static_cast<float>(mouseX - e->MouseMove.X) * 0.005f;
 		  const float y = static_cast<float>(mouseY - e->MouseMove.Y) * 0.005f;
 		  const Mai::Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
@@ -49,6 +64,16 @@ int main() {
 		mouseY = e->MouseMove.Y;
 		break;
 	  }
+	  case Event::EVENT_KEY_PRESSED:
+		switch (e->Key.Code) {
+		case KEY_W:
+		  camera.position += camera.eyeVector;
+		  break;
+		case KEY_S:
+		  camera.position -= camera.eyeVector;
+		  break;
+		}
+		break;
 	  default:
 		break;
 	  }

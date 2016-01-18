@@ -9,6 +9,7 @@
 
 #include "Keyboard.h"
 #include "Mouse.h"
+#include <cstdint>
 
 class Event
 {
@@ -52,6 +53,11 @@ class Event
         int Delta;
     };
 
+	struct TiltEvent
+	{
+		float X, Y, Z;
+	};
+
     enum EventType
     {
         EVENT_CLOSED,                // The window requested to be closed
@@ -71,9 +77,11 @@ class Event
         EVENT_TEST,                  // Event for testing purposes
 		EVENT_INIT_WINDOW,
 		EVENT_TERM_WINDOW,
+		EVENT_TILT,
     };
 
     EventType Type;
+	int64_t Time; // The time this event occured(millisecond).
 
     union
     {
@@ -83,6 +91,7 @@ class Event
         MouseMoveEvent          MouseMove;          // Mouse move event parameters
         MouseButtonEvent        MouseButton;        // Mouse button event parameters
         MouseWheelEvent         MouseWheel;         // Mouse wheel event parameters
+		TiltEvent				Tilt;
     };
 };
 

@@ -52,7 +52,6 @@ void android_main(android_app* app) {
   int mouseX = -1, mouseY = -1;
   while (1) {
 	window.MessageLoop();
-	window.CalcFusedOrientation();
 	while (auto e = window.PopEvent()) {
 	  switch (e->Type) {
 	  case Event::EVENT_CLOSED:

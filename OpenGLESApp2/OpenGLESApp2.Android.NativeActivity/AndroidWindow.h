@@ -53,6 +53,7 @@ namespace Mai {
 	Vector3F accel;
 	Vector3F accMagOrientation;
 	Vector3F fusedOrientation;
+	Vector3F prevOrientation;
 
 	struct TapInfo {
 	  int32_t id;
@@ -68,5 +69,7 @@ namespace Mai {
 	struct SavedState {
 	} savedState;
   };
+
+  int64_t uptimeMillis();
 
 } // namespace Mai

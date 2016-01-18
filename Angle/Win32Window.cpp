@@ -227,12 +227,14 @@ namespace Mai {
 
 	  Win32Window *window = reinterpret_cast<Win32Window *>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	  if (window) {
+		const int64_t time = GetMessageTime();
 		switch (message) {
 		case WM_DESTROY:
 		case WM_CLOSE:
 		{
 		  Event event;
 		  event.Type = Event::EVENT_CLOSED;
+		  event.Time = time;
 		  window->PushEvent(event);
 		  break;
 		}
@@ -249,6 +251,7 @@ namespace Mai {
 
 		  Event event;
 		  event.Type = Event::EVENT_MOVED;
+		  event.Time = time;
 		  event.Move.X = topLeft.x;
 		  event.Move.Y = topLeft.y;
 		  window->PushEvent(event);
@@ -273,6 +276,7 @@ namespace Mai {
 
 		  Event event;
 		  event.Type = Event::EVENT_RESIZED;
+		  event.Time = time;
 		  event.Size.Width = botRight.x - topLeft.x;
 		  event.Size.Height = botRight.y - topLeft.y;
 		  window->PushEvent(event);
@@ -284,6 +288,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_GAINED_FOCUS;
+		  event.Time = time;
 		  window->PushEvent(event);
 		  break;
 		}
@@ -292,6 +297,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_LOST_FOCUS;
+		  event.Time = time;
 		  window->PushEvent(event);
 		  break;
 		}
@@ -305,6 +311,7 @@ namespace Mai {
 
 		  Event event;
 		  event.Type = down ? Event::EVENT_KEY_PRESSED : Event::EVENT_KEY_RELEASED;
+		  event.Time = time;
 		  event.Key.Alt = HIWORD(GetAsyncKeyState(VK_MENU)) != 0;
 		  event.Key.Control = HIWORD(GetAsyncKeyState(VK_CONTROL)) != 0;
 		  event.Key.Shift = HIWORD(GetAsyncKeyState(VK_SHIFT)) != 0;
@@ -319,6 +326,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_WHEEL_MOVED;
+		  event.Time = time;
 		  event.MouseWheel.Delta = static_cast<short>(HIWORD(wParam)) / 120;
 		  window->PushEvent(event);
 		  break;
@@ -329,6 +337,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
+		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_LEFT;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -340,6 +349,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_LEFT;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -352,6 +362,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
+		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_RIGHT;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -364,6 +375,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_RIGHT;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -377,6 +389,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
+		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_MIDDLE;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -389,6 +402,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_MIDDLE;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -402,6 +416,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
+		  event.Time = time;
 		  event.MouseButton.Button = (HIWORD(wParam) == XBUTTON1) ? MOUSEBUTTON_BUTTON4 : MOUSEBUTTON_BUTTON5;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -414,6 +429,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		  event.Time = time;
 		  event.MouseButton.Button = (HIWORD(wParam) == XBUTTON1) ? MOUSEBUTTON_BUTTON4 : MOUSEBUTTON_BUTTON5;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
@@ -425,7 +441,15 @@ namespace Mai {
 		{
 		  if (!window->IsMouseInWindow()) {
 			window->IsMouseInWindow(true);
+
+			TRACKMOUSEEVENT tme;
+			tme.cbSize = sizeof(tme);
+			tme.dwFlags = TME_LEAVE;
+			tme.hwndTrack = hWnd;
+			TrackMouseEvent(&tme);
+
 			Event event;
+			event.Time = time;
 			event.Type = Event::EVENT_MOUSE_ENTERED;
 			window->PushEvent(event);
 		  }
@@ -435,6 +459,7 @@ namespace Mai {
 
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_MOVED;
+		  event.Time = time;
 		  event.MouseMove.X = mouseX;
 		  event.MouseMove.Y = mouseY;
 		  window->PushEvent(event);
@@ -445,6 +470,7 @@ namespace Mai {
 		{
 		  Event event;
 		  event.Type = Event::EVENT_MOUSE_LEFT;
+		  event.Time = time;
 		  window->PushEvent(event);
 		  window->IsMouseInWindow(false);
 		  break;
@@ -454,6 +480,7 @@ namespace Mai {
 		{
 		  Event testEvent;
 		  testEvent.Type = Event::EVENT_TEST;
+		  testEvent.Time = time;
 		  window->PushEvent(testEvent);
 		  break;
 		}
@@ -486,6 +513,7 @@ namespace Mai {
   bool Win32Window::Initialize(const char* name, size_t width, size_t height)
   {
 	Destroy();
+	IsMouseInWindow(false);
 
 	parentClassName = name;
 	childClassName = parentClassName + "_Child";
