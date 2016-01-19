@@ -12,14 +12,32 @@
 
 namespace Mai {
 
+  struct Camera {
+	Camera(const Position3F& pos, const Vector3F& at, const Vector3F& up)
+	  : position(pos)
+	  , eyeVector(at)
+	  , upVector(up)
+	{}
+
+	Position3F position;
+	Vector3F eyeVector;
+	Vector3F upVector;
+  };
+
   /**
   */
   class Engine {
   public:
+	enum State {
+	  STATE_CONTINUE,
+	  STATE_TERMINATE,
+	};
+
 	Engine(Window*);
 	void InitDisplay();
 	void TermDisplay();
-	void DrawFrame(const Position3F&, const Vector3F&, const Vector3F&);
+	State Update(Window*, float);
+	void DrawFrame();
 	bool IsInitialized() const { return initialized; }
 
   private:
@@ -36,6 +54,11 @@ namespace Mai {
 #endif // SHOW_DEBUG_SENSOR_OBJECT
 	ObjectPtr debugObj[3];
 	Collision::RigidBodyPtr rigidCamera;
+
+	Camera camera;
+	int mouseX;
+	int mouseY;
+	bool dragging;
 
 	float avgFps;
 	float deltaTime;

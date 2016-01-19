@@ -18,22 +18,6 @@
 #include "AndroidWindow.h"
 #include "../../Common/File.h"
 #include "../../Common/Engine.h"
-#include <android/log.h>
-
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
-
-struct Camera {
-  Camera(const Mai::Position3F& pos, const Mai::Vector3F& at, const Mai::Vector3F& up)
-	: position(pos)
-	, eyeVector(at)
-	, upVector(up)
-  {}
-
-  Mai::Position3F position;
-  Mai::Vector3F eyeVector;
-  Mai::Vector3F upVector;
-};
 
 /**
 * これは、android_native_app_glue を使用しているネイティブ アプリケーション
@@ -48,36 +32,12 @@ void android_main(android_app* app) {
 
   Mai::FileSystem::Initialize(app->activity->assetManager);
 
-  Camera camera(Mai::Position3F(0, 0, 0), Mai::Vector3F(0, 0, -1), Mai::Vector3F(0, 1, 0));
-  int mouseX = -1, mouseY = -1;
   while (1) {
 	window.MessageLoop();
-	while (auto e = window.PopEvent()) {
-	  switch (e->Type) {
-	  case Event::EVENT_CLOSED:
-		engine.TermDisplay();
-		return;
-	  case Event::EVENT_INIT_WINDOW:
-		engine.InitDisplay();
-		break;
-	  case Event::EVENT_TERM_WINDOW:
-		engine.TermDisplay();
-		break;
-	  case Event::EVENT_MOUSE_MOVED:
-		if (mouseX >= 0) {
-		  const float x = static_cast<float>(mouseX - e->MouseMove.X) * 0.005f;
-		  const float y = static_cast<float>(mouseY - e->MouseMove.Y) * 0.005f;
-		  const Mai::Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
-		  camera.eyeVector = (Mai::Quaternion(camera.upVector, x) * Mai::Quaternion(leftVector, y)).Apply(camera.eyeVector).Normalize();
-		  camera.upVector = Mai::Quaternion(leftVector, y).Apply(camera.upVector).Normalize();
-		}
-		mouseX = e->MouseMove.X;
-		mouseY = e->MouseMove.Y;
-		break;
-	  default:
-		break;
-	  }
+	const Mai::Engine::State state = engine.Update(&window, 1.0f / 30.0f);
+	if (state == Mai::Engine::STATE_TERMINATE) {
+	  break;
 	}
-	engine.DrawFrame(camera.position, camera.eyeVector, camera.upVector);
+	engine.DrawFrame();
   }
 }

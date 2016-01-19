@@ -38,6 +38,12 @@ namespace Mai {
 	, renderer()
 	, pScene(new Scene(region.min, region.max, unitRegionSize, maxObject))
 	, random(time(nullptr))
+
+	, camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
+	, mouseX(-1)
+	, mouseY(-1)
+	, dragging(false)
+
 	, avgFps(30.0f)
 	, deltaTime(1.0f / avgFps)
 	, frames(0)
@@ -107,7 +113,7 @@ namespace Mai {
 	  o.SetTranslation(trans);
 	  //o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
 	  o.SetScale(Vector3F(5, 5, 5));
-	  Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 5.0f, 0.1));
+	  Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 5.0f, 0.1f));
 	  p->thrust = Vector3F(0, 9.8f, 0);
 	  pScene->Insert(obj, p, Vector3F(0, 0, 0));
 	}
@@ -237,7 +243,65 @@ namespace Mai {
 #endif // __ANDROID__
   }
 
-  void Engine::DrawFrame(const Position3F& camPos, const Vector3F& camFront, const Vector3F& camUp) {
+  Engine::State Engine::Update(Window* pWindow, float tick) {
+	while (auto e = pWindow->PopEvent()) {
+	  switch (e->Type) {
+	  case Event::EVENT_CLOSED:
+		TermDisplay();
+		return STATE_TERMINATE;
+	  case Event::EVENT_INIT_WINDOW:
+		InitDisplay();
+		break;
+	  case Event::EVENT_TERM_WINDOW:
+		TermDisplay();
+		break;
+	  case Event::EVENT_MOUSE_BUTTON_PRESSED:
+		if (e->MouseButton.Button == MOUSEBUTTON_LEFT) {
+		  mouseX = e->MouseButton.X;
+		  mouseY = e->MouseButton.Y;
+		  dragging = true;
+		}
+		break;
+	  case Event::EVENT_MOUSE_BUTTON_RELEASED:
+		if (e->MouseButton.Button == MOUSEBUTTON_LEFT) {
+		  dragging = false;
+		}
+		break;
+	  case Event::EVENT_MOUSE_ENTERED:
+		break;
+	  case Event::EVENT_MOUSE_LEFT:
+		dragging = false;
+		break;
+	  case Event::EVENT_MOUSE_MOVED: {
+		if (dragging) {
+		  const float x = static_cast<float>(mouseX - e->MouseMove.X) * 0.005f;
+		  const float y = static_cast<float>(mouseY - e->MouseMove.Y) * 0.005f;
+		  const Mai::Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
+		  camera.eyeVector = (Mai::Quaternion(camera.upVector, x) * Mai::Quaternion(leftVector, y)).Apply(camera.eyeVector).Normalize();
+		  camera.upVector = Mai::Quaternion(leftVector, y).Apply(camera.upVector).Normalize();
+		}
+		mouseX = e->MouseMove.X;
+		mouseY = e->MouseMove.Y;
+		break;
+	  }
+	  case Event::EVENT_KEY_PRESSED:
+		switch (e->Key.Code) {
+		case KEY_W:
+		  camera.position += camera.eyeVector;
+		  break;
+		case KEY_S:
+		  camera.position -= camera.eyeVector;
+		  break;
+		}
+		break;
+	  default:
+		break;
+	  }
+	}
+	return STATE_CONTINUE;
+  }
+
+  void Engine::DrawFrame() {
 	if (initialized) {
 	  // イベントが完了したら次のアニメーション フレームを描画します。
 #if 1
@@ -289,7 +353,7 @@ namespace Mai {
 		debugCamera.Position(pos);
 	  }
 #endif
-	  renderer.Update(deltaTime, camPos, camFront, camUp);
+	  renderer.Update(deltaTime, camera.position, camera.eyeVector, camera.upVector);
 	  //			for (auto&& e : engine.obj) {
 	  //				e.Update(engine.deltaTime);
 	  //				while (e.GetCurrentTime() >= 1.0f) {
