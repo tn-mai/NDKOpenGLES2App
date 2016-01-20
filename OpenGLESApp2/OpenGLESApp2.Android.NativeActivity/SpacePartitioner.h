@@ -1,5 +1,5 @@
-#ifndef SCENE_H_INCLUDED
-#define SCENE_H_INCLUDED
+#ifndef SPACEPARTITIONER_H_INCLUDED
+#define SPACEPARTITIONER_H_INCLUDED
 #include "../../Common/Vector.h"
 #include "Collision.h"
 #include <list>
@@ -27,14 +27,14 @@ namespace Mai {
 	std::list<Obj> objects;
   };
 
-  class Scene
+  class SpacePartitioner
   {
   public:
 	typedef std::vector<Cell> CellListType;
 	typedef CellListType::iterator iterator;
 	typedef CellListType::const_iterator const_iterator;
 
-	Scene(const Position3F& min, const Position3F& max, float uy, int /*maxObjects*/)
+	SpacePartitioner(const Position3F& min, const Position3F& max, float uy, int /*maxObjects*/)
 	{
 	  cells.resize(std::ceil((max.y - min.y) / uy));
 	  rootRegion.min = min;
@@ -92,4 +92,4 @@ namespace Mai {
 
 } // namespace Mai
 
-#endif // SCENE_H_INCLUDED
+#endif // SPACEPARTITIONER_H_INCLUDED

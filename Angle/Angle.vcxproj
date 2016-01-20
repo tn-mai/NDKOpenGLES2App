@@ -176,7 +176,7 @@
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.h" />
-    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Scene.h" />
+    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\SpacePartitioner.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.h" />
     <ClInclude Include="Win32Window.h" />

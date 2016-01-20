@@ -3,7 +3,7 @@
 #include "Window.h"
 #include "Vector.h"
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
-#include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Scene.h"
+#include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/SpacePartitioner.h"
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Collision.h"
 #include <boost/random.hpp>
 #include <stdint.h>
@@ -48,7 +48,7 @@ namespace Mai {
 
 	Window* pWindow;
 	Renderer renderer;
-	std::unique_ptr<Scene> pScene;
+	std::unique_ptr<SpacePartitioner> pPartitioner;
 	boost::random::mt19937 random;
 #ifdef SHOW_DEBUG_SENSOR_OBJECT
 	ObjectPtr debugSensorObj;

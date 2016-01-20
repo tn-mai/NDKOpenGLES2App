@@ -36,7 +36,7 @@ namespace Mai {
 	: initialized(false)
 	, pWindow(p)
 	, renderer()
-	, pScene(new Scene(region.min, region.max, unitRegionSize, maxObject))
+	, pPartitioner(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject))
 	, random(time(nullptr))
 
 	, avgFps(30.0f)
@@ -90,7 +90,7 @@ namespace Mai {
 		  o.SetRotation(rx, ry, rz);
 		  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.5, 3, 2.5) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
 		  p->thrust = Vector3F(0, 9.8f, 0);
-		  pScene->Insert(obj, p, Vector3F(-1.47f, 0.25f, 2.512f) * scale);
+		  pPartitioner->Insert(obj, p, Vector3F(-1.47f, 0.25f, 2.512f) * scale);
 		} else {
 		  auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		  Object& o = *obj;
@@ -103,7 +103,7 @@ namespace Mai {
 		  o.SetRotation(rx, ry, rz);
 		  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(5, 1, 4) * 2, 10 * 1 * 8));
 		  p->thrust = Vector3F(0, 9.8f, 0);
-		  pScene->Insert(obj, p, Vector3F(0, 0, -1) * 2);
+		  pPartitioner->Insert(obj, p, Vector3F(0, 0, -1) * 2);
 		}
 	  }
 	}
@@ -118,7 +118,7 @@ namespace Mai {
 	  o.SetScale(Vector3F(5, 5, 5));
 	  Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 5.0f, 0.1f));
 	  p->thrust = Vector3F(0, 9.8f, 0);
-	  pScene->Insert(obj, p, Vector3F(0, 0, 0));
+	  pPartitioner->Insert(obj, p, Vector3F(0, 0, 0));
 	}
 #if 0
 	{
@@ -127,7 +127,7 @@ namespace Mai {
 	  o.SetScale(Vector3F(5, 5, 5));
 	  o.SetTranslation(Vector3F(-15, 120, 0));
 	  o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
-	  pScene->Insert(obj);
+	  pPartitioner->Insert(obj);
 	}
 #endif
 	{
@@ -136,7 +136,7 @@ namespace Mai {
 	  //	  o.SetScale(Vector3F(2, 2, 2));
 	  o.SetTranslation(Vector3F(-15, 100, 0));
 	  o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
-	  pScene->Insert(debugObj[0]);
+	  pPartitioner->Insert(debugObj[0]);
 	}
 #if 0
 	{
@@ -144,14 +144,14 @@ namespace Mai {
 	  Object& o = *obj;
 	  o.SetScale(Vector3F(5, 5, 5));
 	  o.SetTranslation(Vector3F(15, 10, 0));
-	  pScene->Insert(obj);
+	  pPartitioner->Insert(obj);
 	}
 	{
 	  debugObj[1] = renderer.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0.1f, 0), "default");
 	  Object& o = *debugObj[1];
 	  o.SetScale(Vector3F(3, 3, 3));
 	  o.SetTranslation(Vector3F(15, 11, 0));
-	  pScene->Insert(debugObj[1]);
+	  pPartitioner->Insert(debugObj[1]);
 	}
 #endif
 	{
@@ -160,7 +160,7 @@ namespace Mai {
 	  o.SetRotation(degreeToRadian(-90.0f), 0, 0);
 	  Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0), Vector3F(0, 1, 0), 1000 * 1000 * 1000));
 	  p->thrust = Vector3F(0, 9.8f, 0);
-	  pScene->Insert(obj, p);
+	  pPartitioner->Insert(obj, p);
 	}
 
 	if (0) {
@@ -168,17 +168,17 @@ namespace Mai {
 	  Object& o0 = *obj0;
 	  o0.SetScale(Vector3F(3, 3, 3));
 	  o0.SetTranslation(Vector3F(-12, 0.75f, 0));
-	  pScene->Insert(obj0);
+	  pPartitioner->Insert(obj0);
 	  auto obj2 = renderer.CreateObject("EggYolk", Material(Color4B(255, 255, 255, 255), -0.05f, 0), "default");
 	  Object& o2 = *obj2;
 	  o2.SetScale(Vector3F(3, 3, 3));
 	  o2.SetTranslation(Vector3F(-15.0f, 0.7f, 0.0));
-	  pScene->Insert(obj2);
+	  pPartitioner->Insert(obj2);
 	  auto obj1 = renderer.CreateObject("EggWhite", Material(Color4B(255, 255, 255, 64), -0.5f, 0), "defaultWithAlpha");
 	  Object& o1 = *obj1;
 	  o1.SetScale(Vector3F(3, 3, 3));
 	  o1.SetTranslation(Vector3F(-15, 1, 0));
-	  pScene->Insert(obj1);
+	  pPartitioner->Insert(obj1);
 	}
 
 #if 0
@@ -205,7 +205,7 @@ namespace Mai {
 		o.SetTranslation(trans);
 		o.SetRotation(rot1);
 		o.SetScale(Vector3F(scale, scale, scale));
-		pScene->Insert(obj);
+		pPartitioner->Insert(obj);
 	  }
 	}
 #endif
@@ -325,7 +325,7 @@ namespace Mai {
 #endif
 #if 1
 	  //debugCamera.Update(deltaTime, fusedOrientation);
-	  pScene->Update(deltaTime);
+	  pPartitioner->Update(deltaTime);
 #else
 	  const Position3F prevCamPos = debugCamera.Position();
 	  debugCamera.Update(deltaTime, fusedOrientation);
@@ -349,7 +349,7 @@ namespace Mai {
 		  rigidCamera->Position(Position3F(0, 4000, 0));
 		}
 	  }
-	  pScene->Update(engine.deltaTime);
+	  pPartitioner->Update(engine.deltaTime);
 	  if (rigidCamera) {
 		Position3F pos = rigidCamera->Position();
 		pos.y += 10.0f;
@@ -409,7 +409,7 @@ namespace Mai {
   void Engine::TermDisplay() {
 	initialized = false;
 	renderer.Unload();
-	pScene->Clear();
+	pPartitioner->Clear();
 	LOGI("engine_term_display");
   }
 
@@ -429,7 +429,7 @@ namespace Mai {
 	if (debugCamera.EyeVector().y >= 0.0f) {
 	  posY = std::max(region.min.y, posY - unitRegionSize * 2);
 	  for (int i = 0; i < 6; ++i) {
-		const Cell& cell = pScene->GetCell(posY);
+		const Cell& cell = pPartitioner->GetCell(posY);
 		for (auto& e : cell.objects) {
 		  objList.push_back(e.object);
 		}
@@ -441,7 +441,7 @@ namespace Mai {
 	} else {
 	  posY = std::min(region.max.y, posY + unitRegionSize * 2);
 	  for (int i = 0; i < 6; ++i) {
-		const Cell& cell = pScene->GetCell(posY);
+		const Cell& cell = pPartitioner->GetCell(posY);
 		for (auto& e : cell.objects) {
 		  objList.push_back(e.object);
 		}
@@ -475,7 +475,7 @@ namespace Mai {
 	}
 	);
 #else
-	for (auto itr = pScene->Begin(); itr != pScene->End(); ++itr) {
+	for (auto itr = pPartitioner->Begin(); itr != pPartitioner->End(); ++itr) {
 	  for (auto& e : itr->objects) {
 		objList.push_back(e.object);
 	  }

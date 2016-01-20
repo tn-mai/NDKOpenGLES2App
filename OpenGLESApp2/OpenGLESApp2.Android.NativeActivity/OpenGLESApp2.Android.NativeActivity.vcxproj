@@ -143,7 +143,7 @@
     <ClInclude Include="AndroidWindow.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="Mesh.h" />
-    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SpacePartitioner.h" />
     <ClInclude Include="TangentSpaceData.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="pch.h" />
