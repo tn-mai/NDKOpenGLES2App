@@ -10,8 +10,6 @@ int main() {
 
   Mai::FileSystem::Initialize();
 
-  engine.InitDisplay();
-
   for (;;) {
 	window.MessageLoop();
 	const Mai::Engine::State state = engine.Update(&window, 1.0f / 30.0f);

@@ -595,6 +595,13 @@ namespace Mai {
 	  return false;
 	}
 
+	{
+	  Event event;
+	  event.Type = Event::EVENT_INIT_WINDOW;
+	  event.Time = GetTickCount64();
+	  PushEvent(event);
+	}
+
 	return true;
   }
 
