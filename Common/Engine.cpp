@@ -39,16 +39,19 @@ namespace Mai {
 	, pScene(new Scene(region.min, region.max, unitRegionSize, maxObject))
 	, random(time(nullptr))
 
-	, camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
-	, mouseX(-1)
-	, mouseY(-1)
-	, dragging(false)
-
 	, avgFps(30.0f)
 	, deltaTime(1.0f / avgFps)
 	, frames(0)
 	, latestFps(30)
 	, startTime(0)
+
+#ifndef NDEBUG
+	, debug(true)
+	, dragging(false)
+	, camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
+	, mouseX(-1)
+	, mouseY(-1)
+#endif // NDEBUG
   {
   }
 

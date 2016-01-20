@@ -45,6 +45,7 @@ namespace Mai {
 
   private:
 	bool initialized;
+
 	Window* pWindow;
 	Renderer renderer;
 	std::unique_ptr<Scene> pScene;
@@ -55,16 +56,20 @@ namespace Mai {
 	ObjectPtr debugObj[3];
 	Collision::RigidBodyPtr rigidCamera;
 
-	Camera camera;
-	int mouseX;
-	int mouseY;
-	bool dragging;
-
+	// frame rate control.
 	float avgFps;
 	float deltaTime;
 	int frames;
 	int latestFps;
 	int64_t startTime;
+
+#ifndef NDEBUG
+	bool debug;
+	bool dragging;
+	Camera camera;
+	int mouseX;
+	int mouseY;
+#endif // NDEBUG
   };
 
 } // namespace Mai
