@@ -121,7 +121,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NOMINMAX;_SCL_SECURE_NO_WARNINGS;GL_GLEXT_PROTOTYPES</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;NOMINMAX;_SCL_SECURE_NO_WARNINGS;GL_GLEXT_PROTOTYPES</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_59_0;D:\bin\angle\include;</AdditionalIncludeDirectories>
     </ClCompile>
@@ -140,7 +140,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NOMINMAX;_SCL_SECURE_NO_WARNINGS;GL_GLEXT_PROTOTYPES</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;NOMINMAX;_SCL_SECURE_NO_WARNINGS;GL_GLEXT_PROTOTYPES</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\usr\local\src\boost_1_59_0;D:\bin\angle\include;</AdditionalIncludeDirectories>
     </ClCompile>
