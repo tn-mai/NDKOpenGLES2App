@@ -1,4 +1,24 @@
+/**
+ @file Engine.cpp
+
+ Game scene flow.
+ <pre>
+     +---------------------------------------------------------------------------------------+
+     |                                                                                       |
+     |                               +--------------------------------+                      |
+     |                               |  +---------------------------+ |                      |
+     V                               V  V                           | |                      |
+ +-------+    +-------------+    +-----------+    +---------------+ | |                      |
+ | Title |--->| Start event |--->| Main game |-+->| Success event |-+ |                      |
+ +-------+    +-------------+    +-----------+ |  +---------------+   |                      |
+                                               |                      |                      |
+                                               |  +------------+      |  +-----------------+ |
+                                               +->| Fail event |------+->| Game over event |-+
+                                                  +------------+         +-----------------+
+ </pre>
+*/
 #include "Engine.h"
+#include "Window.h"
 #include <boost/math/constants/constants.hpp>
 #include <time.h>
 
@@ -28,6 +48,44 @@
 
 namespace Mai {
 
+  class TitleScene : public Scene {
+  public:
+	virtual ~TitleScene() {}
+	virtual bool Load(Engine& engine) {
+	  objList.reserve(8);
+	  Renderer& r = engine.GetRenderer();
+	  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  obj->SetTranslation(Vector3F(0, 0, -10));
+	  //obj->SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
+	  //obj->SetScale(Vector3F(5, 5, 5));
+	  objList.push_back(obj);
+	  status = STATUSCODE_RUNNABLE;
+	  return true;
+	}
+	virtual bool Unload(Engine&) {
+	  objList.clear();
+	  status = STATUSCODE_STOPPED;
+	  return true;
+	}
+	virtual int Update(Engine& engine, Window& window, float tick) {
+	  engine.Update(&window, tick);
+	  Renderer& r = engine.GetRenderer();
+	  r.Update(0.016f, Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0));
+	  return SCENEID_CONTINUE;
+	}
+	virtual void Draw(Engine& engine) {
+	  Renderer& r = engine.GetRenderer();
+	  r.Render(&objList[0], &objList[0] + objList.size());
+	  r.Swap();
+	}
+  private:
+	std::vector<ObjectPtr> objList;
+  };
+
+  ScenePtr CreateScene() {
+	return ScenePtr(new TitleScene());
+  }
+
   static const Region region = { Position3F(-100, 200, -100), Position3F(100, 3800, 100) };
   static const float unitRegionSize = 100.0f;
   static const size_t maxObject = 1000;
@@ -53,6 +111,71 @@ namespace Mai {
 	, mouseY(-1)
 #endif // NDEBUG
   {
+  }
+
+  /** Register the scene creation function.
+
+    @param id    the identify code of the scene.
+	@param func  the function pointer of the scene creation.
+  */
+  void Engine::RegisterSceneCreator(int id, CreateSceneFunc func) {
+	sceneCreatorList.insert(std::make_pair(id, func));
+  }
+
+  /** Run application.
+  */
+  void Engine::Run(Window& window, int initialSceneId) {
+	auto itr = sceneCreatorList.find(initialSceneId);
+	if (itr == sceneCreatorList.end()) {
+	  return;
+	}
+	pCurrentScene.reset();
+	pNextScene = itr->second(*this);
+
+	while (1) {
+	  window.MessageLoop();
+
+	  // 次のシーンの準備.
+	  if (!pUnloadingScene && pNextScene) {
+		if (pNextScene->GetState() == Scene::STATUSCODE_LOADING) {
+		  if (pNextScene->Load(*this)) {
+			// 準備ができたので、前のシーンをアンロード対象とし、次のシーンを現在のシーンに登録する.
+			pUnloadingScene = pCurrentScene;
+			pCurrentScene = pNextScene;
+			pNextScene.reset();
+		  }
+		}
+	  }
+
+	  // 前のシーンの破棄.
+	  if (pUnloadingScene) {
+		if (pUnloadingScene->Unload(*this)) {
+		  pUnloadingScene.reset();
+		}
+	  }
+
+	  // 現在のシーンを実行.
+	  if (pCurrentScene) {
+		const int status = pCurrentScene->Update(*this, window, 1.0f / 30.0f);
+		if (status == SCENEID_TERMINATE) {
+		  // アプリ終了要求がきたのでシーンの後始末をして関数を終了する.
+		  if (pUnloadingScene) {
+			while (!pUnloadingScene->Unload(*this)) {}
+			pUnloadingScene.reset();
+		  }
+		  while (!pCurrentScene->Unload(*this)) {}
+		  pCurrentScene.reset();
+		  return;
+		} else if (status != SCENEID_CONTINUE) {
+		  // TERMINATEでもCONTINUEでもないなら、次のシーンへの遷移要求とみなす.
+		  auto itr = sceneCreatorList.find(status);
+		  if (itr != sceneCreatorList.end()) {
+			pNextScene = itr->second(*this);
+		  }
+		}
+	  }
+	  DrawFrame();
+	}
   }
 
   template<typename T>
