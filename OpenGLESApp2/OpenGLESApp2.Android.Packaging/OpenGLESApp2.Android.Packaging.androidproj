@@ -73,6 +73,7 @@
     <Content Include="assets\Meshes\block1.msh" />
     <Content Include="assets\Meshes\chickenegg.msh" />
     <Content Include="assets\Meshes\flyingpan.msh" />
+    <Content Include="assets\Meshes\titlelogo.msh" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
     <Content Include="assets\Shaders\bitmapfont.frag" />
@@ -132,6 +133,8 @@
     <Content Include="assets\Textures\Common\ascii.ktx" />
     <Content Include="assets\Textures\Common\cloud.ktx" />
     <Content Include="assets\Textures\Common\landscape.ktx" />
+    <Content Include="assets\Textures\Common\titlelogo.ktx" />
+    <Content Include="assets\Textures\Common\titlelogoNR.ktx" />
     <Content Include="assets\Textures\Others\accelerator.ktx" />
     <Content Include="assets\Textures\Others\acceleratorNR.ktx" />
     <Content Include="assets\Textures\Others\block1.ktx" />

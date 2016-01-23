@@ -1549,6 +1549,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/block1.msh", "block1", "block1_nml");
 	LoadFBX("Meshes/flyingpan.msh", "flyingpan", "flyingpan_nml");
 	LoadFBX("Meshes/chickenegg.msh", "chickenegg", "chickenegg_nml");
+	LoadFBX("Meshes/titlelogo.msh", "titlelogo", "titlelogo_nml");
 
 	CreateSkyboxMesh();
 	CreateOctahedronMesh();
@@ -2541,6 +2542,8 @@ void Renderer::InitTexture()
 	textureList.insert({ "accelerator", Texture::LoadKTX((texBaseDir + "accelerator.ktx").c_str()) });
 	textureList.insert({ "accelerator_nml", Texture::LoadKTX((texBaseDir + "acceleratorNR.ktx").c_str()) });
 	textureList.insert({ "cloud", Texture::LoadKTX("Textures/Common/cloud.ktx") });
+	textureList.insert({ "titlelogo", Texture::LoadKTX("Textures/Common/titlelogo.ktx") });
+	textureList.insert({ "titlelogo_nml", Texture::LoadKTX("Textures/Common/titlelogoNR.ktx") });
 }
 
 ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)
