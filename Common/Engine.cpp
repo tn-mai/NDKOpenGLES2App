@@ -418,6 +418,12 @@ namespace Mai {
 		case KEY_S:
 		  camera.position -= camera.eyeVector;
 		  break;
+		case KEY_A:
+		  camera.position -= camera.eyeVector.Cross(camera.upVector);
+		  break;
+		case KEY_D:
+		  camera.position += camera.eyeVector.Cross(camera.upVector);
+		  break;
 		}
 		break;
 	  default:
