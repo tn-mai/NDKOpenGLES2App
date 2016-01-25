@@ -50,27 +50,17 @@ namespace Mai {
 
 	Renderer& GetRenderer() { return renderer; }
 	const Renderer& GetRenderer() const { return renderer; }
-	void InsertObject(const ObjectPtr& obj, const Collision::RigidBodyPtr& c = Collision::RigidBodyPtr(), const Vector3F& offset = Vector3F::Unit()) {
-	  if (pPartitioner) {
-		pPartitioner->Insert(obj, c, offset);
-	  }
-	}
 
   private:
+	State ProcessWindowEvent(Window&);
 	void Draw();
+	bool SetNextScene(int);
 
   private:
 	bool initialized;
 
 	Window* pWindow;
 	Renderer renderer;
-	std::unique_ptr<SpacePartitioner> pPartitioner;
-	boost::random::mt19937 random;
-#ifdef SHOW_DEBUG_SENSOR_OBJECT
-	ObjectPtr debugSensorObj;
-#endif // SHOW_DEBUG_SENSOR_OBJECT
-	ObjectPtr debugObj[3];
-	Collision::RigidBodyPtr rigidCamera;
 
 	// frame rate control.
 	float avgFps;
@@ -84,14 +74,6 @@ namespace Mai {
 	ScenePtr pCurrentScene;
 	ScenePtr pNextScene;
 	ScenePtr pUnloadingScene;
-
-#ifndef NDEBUG
-	bool debug;
-	bool dragging;
-	Camera camera;
-	int mouseX;
-	int mouseY;
-#endif // NDEBUG
   };
 
   /** A part of the game flow.
@@ -112,11 +94,30 @@ namespace Mai {
 
 	Scene() : status(STATUSCODE_LOADING) {}
 	virtual ~Scene() {}
-	virtual bool Load(Engine&) = 0;
-	virtual bool Unload(Engine&) = 0;
-	virtual int Update(Engine&, Window&, float) = 0;
-	virtual void Draw(Engine&) = 0;
+	virtual bool Load(Engine&) { 
+	  status = STATUSCODE_RUNNABLE;
+	  return true;
+	}
+	virtual bool Unload(Engine&) {
+	  status = STATUSCODE_STOPPED;
+	  return true;
+	}
+	virtual void Draw(Engine&) {};
+	virtual void ProcessWindowEvent(Engine&, const Event&) {};
+
+	/** Update scene.
+	  this is the pure virtual, so must implement.
+	  the implementation should return following code, otherwise the next scene id.
+	  - SCENEID_CONTINUE           the current scene is continued.
+	  - SCENEID_TERMINATE          the application is shuting down by user request.
+	  
+	  the scene id has higher equal SCENEID_USER. you return the scene id if you want to transite the other scene.
+	  as a result, the current scene will be terminated.
+	*/
+	virtual int Update(Engine&, float) = 0;
+
 	StatusCode GetState() const { return status; }
+	void SetState(StatusCode n) { status = n; }
 
 	StatusCode status;
   };
@@ -128,6 +129,22 @@ namespace Mai {
 	SCENEID_CONTINUE = -1, ///< the scene status code when current scene is continued.
 	SCENEID_TERMINATE = -2, ///< the scene status code when the application is terminated.
   };
+
+  enum UserSceneId {
+	SCENEID_TITLE = SCENEID_USER,
+	SCENEID_STARTEVENT,
+	SCENEID_MAINGAME,
+	SCENEID_SUCCESS,
+	SCENEID_FAILURE,
+	SCENEID_GAMEOVER,
+  };
+
+  ScenePtr CreateTitleScene(Engine&);
+  ScenePtr CreateStartEventScene(Engine&);
+  ScenePtr CreateMainGameScene(Engine&);
+  ScenePtr CreateSuccessScene(Engine&);
+  ScenePtr CreateFailureScene(Engine&);
+  ScenePtr CreateGameOverScene(Engine&);
 
 } // namespace Mai
 

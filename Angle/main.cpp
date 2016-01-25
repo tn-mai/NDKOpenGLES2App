@@ -10,13 +10,13 @@ int main() {
 
   Mai::FileSystem::Initialize();
 
-  for (;;) {
-	window.MessageLoop();
-	const Mai::Engine::State state = engine.Update(&window, 1.0f / 30.0f);
-	if (state == Mai::Engine::STATE_TERMINATE) {
-	  break;
-	}
-	engine.DrawFrame();
-  }
+  engine.RegisterSceneCreator(Mai::SCENEID_TITLE, Mai::CreateTitleScene);
+  engine.RegisterSceneCreator(Mai::SCENEID_STARTEVENT, Mai::CreateStartEventScene);
+  engine.RegisterSceneCreator(Mai::SCENEID_MAINGAME, Mai::CreateMainGameScene);
+  engine.RegisterSceneCreator(Mai::SCENEID_SUCCESS, Mai::CreateSuccessScene);
+  engine.RegisterSceneCreator(Mai::SCENEID_FAILURE, Mai::CreateFailureScene);
+  engine.RegisterSceneCreator(Mai::SCENEID_GAMEOVER, Mai::CreateGameOverScene);
+  engine.Run(window, Mai::SCENEID_TITLE);
+
   return 0;
 }
