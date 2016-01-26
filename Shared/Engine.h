@@ -130,22 +130,6 @@ namespace Mai {
 	SCENEID_TERMINATE = -2, ///< the scene status code when the application is terminated.
   };
 
-  enum UserSceneId {
-	SCENEID_TITLE = SCENEID_USER,
-	SCENEID_STARTEVENT,
-	SCENEID_MAINGAME,
-	SCENEID_SUCCESS,
-	SCENEID_FAILURE,
-	SCENEID_GAMEOVER,
-  };
-
-  ScenePtr CreateTitleScene(Engine&);
-  ScenePtr CreateStartEventScene(Engine&);
-  ScenePtr CreateMainGameScene(Engine&);
-  ScenePtr CreateSuccessScene(Engine&);
-  ScenePtr CreateFailureScene(Engine&);
-  ScenePtr CreateGameOverScene(Engine&);
-
 } // namespace Mai
 
 #endif // MAI_COMMON_ENGINE_H_INCLUDED

@@ -18,6 +18,7 @@
 #include "AndroidWindow.h"
 #include "../../Shared/File.h"
 #include "../../Shared/Engine.h"
+#include "../../Shared/Scenes/Scene.h"
 
 /**
 * これは、android_native_app_glue を使用しているネイティブ アプリケーション
@@ -25,6 +26,9 @@
 * 入力イベントを受け取ったり他の操作を実行したりします。
 */
 void android_main(android_app* app) {
+
+  namespace SSU = SunnySideUp;
+
   Mai::AndroidWindow window(app);
   Mai::Engine engine(&window);
   window.Initialize("Sunny Side Up", 480, 800);
@@ -32,11 +36,11 @@ void android_main(android_app* app) {
 
   Mai::FileSystem::Initialize(app->activity->assetManager);
 
-  engine.RegisterSceneCreator(Mai::SCENEID_TITLE, Mai::CreateTitleScene);
-  engine.RegisterSceneCreator(Mai::SCENEID_STARTEVENT, Mai::CreateStartEventScene);
-  engine.RegisterSceneCreator(Mai::SCENEID_MAINGAME, Mai::CreateMainGameScene);
-  engine.RegisterSceneCreator(Mai::SCENEID_SUCCESS, Mai::CreateSuccessScene);
-  engine.RegisterSceneCreator(Mai::SCENEID_FAILURE, Mai::CreateFailureScene);
-  engine.RegisterSceneCreator(Mai::SCENEID_GAMEOVER, Mai::CreateGameOverScene);
-  engine.Run(window, Mai::SCENEID_TITLE);
+  engine.RegisterSceneCreator(SSU::SCENEID_TITLE, SSU::CreateTitleScene);
+  engine.RegisterSceneCreator(SSU::SCENEID_STARTEVENT, SSU::CreateStartEventScene);
+  engine.RegisterSceneCreator(SSU::SCENEID_MAINGAME, SSU::CreateMainGameScene);
+  engine.RegisterSceneCreator(SSU::SCENEID_SUCCESS, SSU::CreateSuccessScene);
+  engine.RegisterSceneCreator(SSU::SCENEID_FAILURE, SSU::CreateFailureScene);
+  engine.RegisterSceneCreator(SSU::SCENEID_GAMEOVER, SSU::CreateGameOverScene);
+  engine.Run(window, SSU::SCENEID_TITLE);
 }

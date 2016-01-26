@@ -11,88 +11,92 @@
 #include "Mouse.h"
 #include <cstdint>
 
-class Event
-{
+namespace Mai {
+
+  class Event
+  {
   public:
-    struct MoveEvent
-    {
-        int X;
-        int Y;
-    };
+	struct MoveEvent
+	{
+	  int X;
+	  int Y;
+	};
 
-    struct SizeEvent
-    {
-        int Width;
-        int Height;
-    };
+	struct SizeEvent
+	{
+	  int Width;
+	  int Height;
+	};
 
-    struct KeyEvent
-    {
-        Key Code;
-        bool Alt;
-        bool Control;
-        bool Shift;
-        bool System;
-    };
+	struct KeyEvent
+	{
+	  Key Code;
+	  bool Alt;
+	  bool Control;
+	  bool Shift;
+	  bool System;
+	};
 
-    struct MouseMoveEvent
-    {
-        int X;
-        int Y;
-    };
+	struct MouseMoveEvent
+	{
+	  int X;
+	  int Y;
+	};
 
-    struct MouseButtonEvent
-    {
-        MouseButton Button;
-        int X;
-        int Y;
-    };
+	struct MouseButtonEvent
+	{
+	  MouseButton Button;
+	  int X;
+	  int Y;
+	};
 
-    struct MouseWheelEvent
-    {
-        int Delta;
-    };
+	struct MouseWheelEvent
+	{
+	  int Delta;
+	};
 
 	struct TiltEvent
 	{
-		float X, Y, Z;
+	  float X, Y, Z;
 	};
 
-    enum EventType
-    {
-        EVENT_CLOSED,                // The window requested to be closed
-        EVENT_MOVED,                 // The window has moved
-        EVENT_RESIZED,               // The window was resized
-        EVENT_LOST_FOCUS,            // The window lost the focus
-        EVENT_GAINED_FOCUS,          // The window gained the focus
-        EVENT_TEXT_ENTERED,          // A character was entered
-        EVENT_KEY_PRESSED,           // A key was pressed
-        EVENT_KEY_RELEASED,          // A key was released
-        EVENT_MOUSE_WHEEL_MOVED,     // The mouse wheel was scrolled
-        EVENT_MOUSE_BUTTON_PRESSED,  // A mouse button was pressed
-        EVENT_MOUSE_BUTTON_RELEASED, // A mouse button was released
-        EVENT_MOUSE_MOVED,           // The mouse cursor moved
-        EVENT_MOUSE_ENTERED,         // The mouse cursor entered the area of the window
-        EVENT_MOUSE_LEFT,            // The mouse cursor left the area of the window
-        EVENT_TEST,                  // Event for testing purposes
-		EVENT_INIT_WINDOW,
-		EVENT_TERM_WINDOW,
-		EVENT_TILT,
-    };
+	enum EventType
+	{
+	  EVENT_CLOSED,                // The window requested to be closed
+	  EVENT_MOVED,                 // The window has moved
+	  EVENT_RESIZED,               // The window was resized
+	  EVENT_LOST_FOCUS,            // The window lost the focus
+	  EVENT_GAINED_FOCUS,          // The window gained the focus
+	  EVENT_TEXT_ENTERED,          // A character was entered
+	  EVENT_KEY_PRESSED,           // A key was pressed
+	  EVENT_KEY_RELEASED,          // A key was released
+	  EVENT_MOUSE_WHEEL_MOVED,     // The mouse wheel was scrolled
+	  EVENT_MOUSE_BUTTON_PRESSED,  // A mouse button was pressed
+	  EVENT_MOUSE_BUTTON_RELEASED, // A mouse button was released
+	  EVENT_MOUSE_MOVED,           // The mouse cursor moved
+	  EVENT_MOUSE_ENTERED,         // The mouse cursor entered the area of the window
+	  EVENT_MOUSE_LEFT,            // The mouse cursor left the area of the window
+	  EVENT_TEST,                  // Event for testing purposes
+	  EVENT_INIT_WINDOW,
+	  EVENT_TERM_WINDOW,
+	  EVENT_TILT,
+	};
 
-    EventType Type;
+	EventType Type;
 	int64_t Time; // The time this event occured(millisecond).
 
-    union
-    {
-        MoveEvent               Move;               // Move event parameters
-        SizeEvent               Size;               // Size event parameters
-        KeyEvent                Key;                // Key event parameters
-        MouseMoveEvent          MouseMove;          // Mouse move event parameters
-        MouseButtonEvent        MouseButton;        // Mouse button event parameters
-        MouseWheelEvent         MouseWheel;         // Mouse wheel event parameters
-		TiltEvent				Tilt;
-    };
-};
+	union
+	{
+	  MoveEvent               Move;               // Move event parameters
+	  SizeEvent               Size;               // Size event parameters
+	  KeyEvent                Key;                // Key event parameters
+	  MouseMoveEvent          MouseMove;          // Mouse move event parameters
+	  MouseButtonEvent        MouseButton;        // Mouse button event parameters
+	  MouseWheelEvent         MouseWheel;         // Mouse wheel event parameters
+	  TiltEvent				Tilt;
+	};
+  };
+
+} // namespace Mai
 
 #endif // SAMPLE_UTIL_EVENT_H

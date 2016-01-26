@@ -17,6 +17,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)File.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Matrix.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\FailureScene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\GameOverScene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\MainGameScene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\StartEventScene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\SuccessScene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\TitleScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine.h" />
@@ -26,6 +32,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Matrix.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Mouse.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Quaternion.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\Scene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Window.h" />
   </ItemGroup>
