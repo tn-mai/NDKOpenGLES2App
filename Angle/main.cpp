@@ -1,6 +1,6 @@
 #include "Win32Window.h"
-#include "../Common/File.h"
-#include "../Common/Engine.h"
+#include "../Shared/File.h"
+#include "../Shared/Engine.h"
 
 int main() {
   Mai::Win32Window  window;

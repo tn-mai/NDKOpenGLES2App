@@ -1,6 +1,6 @@
 #ifndef SPACEPARTITIONER_H_INCLUDED
 #define SPACEPARTITIONER_H_INCLUDED
-#include "../../Common/Vector.h"
+#include "../../Shared/Vector.h"
 #include "Collision.h"
 #include <list>
 #include <vector>

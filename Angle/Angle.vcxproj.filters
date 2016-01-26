@@ -6,17 +6,8 @@
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.cpp" />
-    <ClCompile Include="..\Common\File.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="Win32Window.cpp" />
-    <ClCompile Include="..\Common\Matrix.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.cpp" />
-    <ClCompile Include="..\Common\Engine.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.h" />
@@ -24,39 +15,7 @@
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\SpacePartitioner.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.h" />
-    <ClInclude Include="..\Common\File.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Window.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Win32Window.h" />
-    <ClInclude Include="..\Common\Event.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Keyboard.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Mouse.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Matrix.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Quaternion.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Vector.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.h" />
-    <ClInclude Include="..\Common\Engine.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="Common">
-      <UniqueIdentifier>{4408fe5d-1c73-4c38-a083-7e2bae452df0}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
 </Project>

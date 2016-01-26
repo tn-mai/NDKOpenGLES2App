@@ -55,6 +55,7 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
+    <Import Project="..\Shared\Shared.vcxitems" Label="Shared" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -152,9 +153,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Common\Engine.cpp" />
-    <ClCompile Include="..\Common\File.cpp" />
-    <ClCompile Include="..\Common\Matrix.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.cpp" />
@@ -164,15 +162,6 @@
     <ClCompile Include="Win32Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Common\Engine.h" />
-    <ClInclude Include="..\Common\Event.h" />
-    <ClInclude Include="..\Common\File.h" />
-    <ClInclude Include="..\Common\Keyboard.h" />
-    <ClInclude Include="..\Common\Matrix.h" />
-    <ClInclude Include="..\Common\Mouse.h" />
-    <ClInclude Include="..\Common\Quaternion.h" />
-    <ClInclude Include="..\Common\Vector.h" />
-    <ClInclude Include="..\Common\Window.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.h" />

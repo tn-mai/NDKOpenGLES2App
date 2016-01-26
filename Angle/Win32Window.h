@@ -1,6 +1,6 @@
 #ifndef MAI_WIN32WINDOW_H_INCLUDED
 #define MAI_WIN32WINDOW_H_INCLUDED
-#include "../Common/Window.h"
+#include "../Shared/Window.h"
 #include <string>
 
 namespace Mai {

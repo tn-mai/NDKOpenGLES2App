@@ -1,8 +1,8 @@
 #include "Renderer.h"
 #include "Mesh.h"
 #include "TangentSpaceData.h"
-#include "../../Common/File.h"
-#include "../../Common/Window.h"
+#include "../../Shared/File.h"
+#include "../../Shared/Window.h"
 #ifdef __ANDROID__
 #include "android_native_app_glue.h"
 #include <android/log.h>

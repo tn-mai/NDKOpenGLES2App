@@ -1,5 +1,5 @@
-#include "../../Common/Window.h"
-#include "../../Common/Matrix.h"
+#include "../../Shared/Window.h"
+#include "../../Shared/Matrix.h"
 #include "android_native_app_glue.h"
 
 struct ASensorManager;

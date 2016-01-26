@@ -2,9 +2,9 @@
 #define MT_RENDERER_H_INCLUDED
 
 #include "texture.h"
-#include "../../Common/Vector.h"
-#include "../../Common/Quaternion.h"
-#include "../../Common/Matrix.h"
+#include "../../Shared/Vector.h"
+#include "../../Shared/Quaternion.h"
+#include "../../Shared/Matrix.h"
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include <boost/random/mersenne_twister.hpp>

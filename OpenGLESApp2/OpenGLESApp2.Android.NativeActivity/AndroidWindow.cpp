@@ -1,5 +1,5 @@
 #include "AndroidWindow.h"
-#include "../../Common/Quaternion.h"
+#include "../../Shared/Quaternion.h"
 #include <android/window.h>
 #include <android/sensor.h>
 #include <boost/math/constants/constants.hpp>

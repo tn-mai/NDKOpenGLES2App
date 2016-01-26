@@ -50,7 +50,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="Shared" />
+  <ImportGroup Label="Shared">
+    <Import Project="..\..\Shared\Shared.vcxitems" Label="Shared" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -131,15 +133,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Common\Engine.h" />
-    <ClInclude Include="..\..\Common\Event.h" />
-    <ClInclude Include="..\..\Common\File.h" />
-    <ClInclude Include="..\..\Common\Keyboard.h" />
-    <ClInclude Include="..\..\Common\Matrix.h" />
-    <ClInclude Include="..\..\Common\Mouse.h" />
-    <ClInclude Include="..\..\Common\Quaternion.h" />
-    <ClInclude Include="..\..\Common\Vector.h" />
-    <ClInclude Include="..\..\Common\Window.h" />
     <ClInclude Include="AndroidWindow.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="Mesh.h" />
@@ -152,9 +145,6 @@
     <ClInclude Include="TouchSwipeCamera.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Common\Engine.cpp" />
-    <ClCompile Include="..\..\Common\File.cpp" />
-    <ClCompile Include="..\..\Common\Matrix.cpp" />
     <ClCompile Include="AndroidWindow.cpp" />
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="Collision.cpp" />

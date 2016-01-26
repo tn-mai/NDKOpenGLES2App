@@ -18,7 +18,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libpng", "libpng\libpng.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Angle", "Angle\Angle.vcxproj", "{CEF39D3C-DC6C-44BC-B72B-9EE8DB7473F9}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shared", "Shared\Shared.vcxitems", "{45D41ACC-2C3C-43D2-BC10-02AA73FFC7C7}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Shared\Shared.vcxitems*{cef39d3c-dc6c-44bc-b72b-9ee8db7473f9}*SharedItemsImports = 4
+		Shared\Shared.vcxitems*{5f4fc41b-61f9-460c-bdd6-cb58f82c3b9c}*SharedItemsImports = 4
+		Shared\Shared.vcxitems*{45d41acc-2c3c-43d2-bc10-02aa73ffc7c7}*SharedItemsImports = 9
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
 		Debug|x64 = Debug|x64
@@ -82,5 +89,6 @@ Global
 		{5F4FC41B-61F9-460C-BDD6-CB58F82C3B9C} = {50DAF5F6-EF1C-4A81-8D50-56820D016175}
 		{8EB7AF87-2163-4CF8-8E08-D301882B2B92} = {50DAF5F6-EF1C-4A81-8D50-56820D016175}
 		{CEF39D3C-DC6C-44BC-B72B-9EE8DB7473F9} = {50DAF5F6-EF1C-4A81-8D50-56820D016175}
+		{45D41ACC-2C3C-43D2-BC10-02AA73FFC7C7} = {50DAF5F6-EF1C-4A81-8D50-56820D016175}
 	EndGlobalSection
 EndGlobal
