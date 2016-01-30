@@ -35,6 +35,27 @@ struct Matrix4x4 {
 	static Matrix4x4 RotationZ(float angle/* radian */);
 	Matrix4x4& operator*=(const Matrix4x4& rhs);
 	Matrix4x4 operator*(const Matrix4x4& rhs) const { return Matrix4x4(*this) *= rhs; }
+	Matrix4x4& operator*=(float rhs) {
+	  for (auto& e : f) {
+		e *= rhs;
+	  }
+	  return *this;
+	}
+	Matrix4x4 operator*(float rhs) const { return Matrix4x4(*this) *= rhs; }
+	Matrix4x4& operator+=(const Matrix4x4& rhs) {
+	  for (int i = 0; i < sizeof(f)/sizeof(f[0]); ++i) {
+		f[i] += rhs.f[i];
+	  }
+	  return *this;
+	}
+	Matrix4x4 operator+(const Matrix4x4& rhs) const { return Matrix4x4(*this) += rhs; }
+	Matrix4x4& operator-=(const Matrix4x4& rhs) {
+	  for (int i = 0; i < sizeof(f)/sizeof(f[0]); ++i) {
+		f[i] -= rhs.f[i];
+	  }
+	  return *this;
+	}
+	Matrix4x4 operator-(const Matrix4x4& rhs) const { return Matrix4x4(*this) -= rhs; }
 	void Decompose(Quaternion* q, Vector3F* scale, Vector3F* trans) const;
 	static const Matrix4x4& Unit() {
 		static const Matrix4x4 m = { { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 } };
