@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
+#include <array>
 
 namespace SunnySideUp {
 
@@ -22,9 +23,12 @@ namespace SunnySideUp {
 	  , mouseX(-1)
 	  , mouseY(-1)
 #endif // NDEBUG
-	{}
+	{
+	  directionKeyDownList.fill(false);
+	}
 	virtual ~MainGameScene() {}
 	virtual bool Load(Engine& engine) {		
+	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
 #if 0
 	  // ランダムにオブジェクトを発生させてみる.
@@ -72,7 +76,7 @@ namespace SunnySideUp {
 		auto obj = renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
 		o.SetAnimation(renderer.GetAnimation("Walk"));
-		const Vector3F trans(5, 100, 4.5f);
+		const Vector3F trans(5, 10, 4.5f);
 		o.SetTranslation(trans);
 		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
 		o.SetScale(Vector3F(5, 5, 5));
@@ -202,9 +206,9 @@ namespace SunnySideUp {
 		if (dragging) {
 		  const float x = static_cast<float>(mouseX - e.MouseMove.X) * 0.005f;
 		  const float y = static_cast<float>(mouseY - e.MouseMove.Y) * 0.005f;
-		  const Mai::Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
-		  camera.eyeVector = (Mai::Quaternion(camera.upVector, x) * Mai::Quaternion(leftVector, y)).Apply(camera.eyeVector).Normalize();
-		  camera.upVector = Mai::Quaternion(leftVector, y).Apply(camera.upVector).Normalize();
+		  const Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
+		  camera.eyeVector = (Quaternion(camera.upVector, x) * Quaternion(leftVector, y)).Apply(camera.eyeVector).Normalize();
+		  camera.upVector = Quaternion(leftVector, y).Apply(camera.upVector).Normalize();
 		}
 		mouseX = e.MouseMove.X;
 		mouseY = e.MouseMove.Y;
@@ -213,16 +217,32 @@ namespace SunnySideUp {
 	  case Event::EVENT_KEY_PRESSED:
 		switch (e.Key.Code) {
 		case KEY_W:
-		  camera.position += camera.eyeVector;
+		  directionKeyDownList[DIRECTIONKEY_UP] = true;
 		  break;
 		case KEY_S:
-		  camera.position -= camera.eyeVector;
+		  directionKeyDownList[DIRECTIONKEY_DOWN] = true;
 		  break;
 		case KEY_A:
-		  camera.position -= camera.eyeVector.Cross(camera.upVector);
+		  directionKeyDownList[DIRECTIONKEY_LEFT] = true;
 		  break;
 		case KEY_D:
-		  camera.position += camera.eyeVector.Cross(camera.upVector);
+		  directionKeyDownList[DIRECTIONKEY_RIGHT] = true;
+		  break;
+		}
+		break;
+	  case Event::EVENT_KEY_RELEASED:
+		switch (e.Key.Code) {
+		case KEY_W:
+		  directionKeyDownList[DIRECTIONKEY_UP] = false;
+		  break;
+		case KEY_S:
+		  directionKeyDownList[DIRECTIONKEY_DOWN] = false;
+		  break;
+		case KEY_A:
+		  directionKeyDownList[DIRECTIONKEY_LEFT] = false;
+		  break;
+		case KEY_D:
+		  directionKeyDownList[DIRECTIONKEY_RIGHT] = false;
 		  break;
 		}
 		break;
@@ -233,7 +253,21 @@ namespace SunnySideUp {
 
 	virtual int Update(Engine& engine, float deltaTime) {
 #if 1
+#ifndef NDEBUG
+	  if (directionKeyDownList[DIRECTIONKEY_UP]) {
+		camera.position += camera.eyeVector * 0.25f;
+	  };
+	  if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
+		camera.position -= camera.eyeVector * 0.25f;
+	  }
+	  if (directionKeyDownList[DIRECTIONKEY_LEFT]) {
+		camera.position -= camera.eyeVector.Cross(camera.upVector) * 0.25f;
+	  }
+	  if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
+		camera.position += camera.eyeVector.Cross(camera.upVector) * 0.25f;
+	  }
 	  //debugCamera.Update(deltaTime, fusedOrientation);
+#endif // NDEBUG
 	  pPartitioner->Update(deltaTime);
 #else
 	  const Position3F prevCamPos = debugCamera.Position();
@@ -424,6 +458,14 @@ namespace SunnySideUp {
 #endif // SHOW_DEBUG_SENSOR_OBJECT
 	ObjectPtr debugObj[3];
 	Collision::RigidBodyPtr rigidCamera;
+
+	enum DirectionKey {
+	  DIRECTIONKEY_UP,
+	  DIRECTIONKEY_LEFT,
+	  DIRECTIONKEY_DOWN,
+	  DIRECTIONKEY_RIGHT,
+	};
+	std::array<bool, 4> directionKeyDownList;
 
 #ifndef NDEBUG
 	bool debug;
