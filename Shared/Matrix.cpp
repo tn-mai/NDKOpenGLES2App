@@ -93,7 +93,7 @@ Matrix4x4& Matrix4x4::Inverse()
 
 void Matrix4x4::Decompose(Quaternion* q, Vector3F* scale, Vector3F* trans) const {
   if (trans) {
-    *trans = GetRawVector(3).ToVec3();
+    *trans = GetVector(3).ToVec3();
   }
   Vector3F v0 = GetVector(0).ToVec3();
   Vector3F v1 = GetVector(1).ToVec3();
