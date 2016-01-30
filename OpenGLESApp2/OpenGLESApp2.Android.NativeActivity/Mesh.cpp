@@ -2,6 +2,8 @@
 #include <GLES2/gl2.h>
 #include <algorithm>
 
+//#define DEBUG_LOG_VERBOSE
+
 #ifdef __ANDROID__
 #include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
@@ -214,13 +216,15 @@ namespace Mai {
 		for (uint32_t bone = 0; bone < boneCount; ++bone) {
 		  anm.data[bone].first = bone;
 		}
-		LOGI("%s:", anm.id.c_str());
 		anm.loopFlag = static_cast<bool>(GetValue(p++, 1) != 0);
 		const uint32_t keyframeCount = GetValue(p, 2); p += 2;
 		anm.totalTime = GetFloat(p);
+		LOGI("%s: %fsec", anm.id.c_str(), anm.totalTime);
 		for (uint32_t keyframe = 0; keyframe < keyframeCount; ++keyframe) {
 		  const float time = GetFloat(p);
+#ifdef DEBUG_LOG_VERBOSE
 		  LOGI("time=%f", time);
+#endif // DEBUG_LOG_VERBOSE
 		  for (uint32_t bone = 0; bone < boneCount; ++bone) {
 			if (p >= pEnd) {
 			  return ImportMeshResult(ImportMeshResult::Result::invalidAnimationInfo);
@@ -236,7 +240,9 @@ namespace Mai {
 			elem.pose.trans.y = GetFloat(p);
 			elem.pose.trans.z = GetFloat(p);
 			anm.data[bone].second.push_back(elem);
+#ifdef DEBUG_LOG_VERBOSE
 			LOGI("%02d:(%+1.3f, %+1.3f, %+1.3f, %+1.3f) (%+1.3f, %+1.3f, %+1.3f)", bone, elem.pose.rot.w, elem.pose.rot.x, elem.pose.rot.y, elem.pose.rot.z, elem.pose.trans.x, elem.pose.trans.y, elem.pose.trans.z);
+#endif // DEBUG_LOG_VERBOSE
 		  }
 		}
 		result.animations.push_back(anm);
