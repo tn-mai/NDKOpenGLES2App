@@ -98,12 +98,13 @@ namespace Mai {
 	Quaternion rot;
 	Vector3F trans;
 	RotTrans& operator*=(const RotTrans& rhs) {
-	  const Vector3F v = rhs.rot.Apply(trans);
-	  trans = v + rhs.trans;
+	  const Vector3F v = rot.Apply(rhs.trans);
+	  trans = v + trans;
 	  rot *= rhs.rot;
 	  rot.Normalize();
 	  return *this;
 	}
+
 	friend RotTrans operator*(const RotTrans& lhs, const RotTrans& rhs) { return RotTrans(lhs) *= rhs; }
 	friend RotTrans Interporation(const RotTrans& lhs, const RotTrans& rhs, float t) {
 	  return{ Sleap(lhs.rot, rhs.rot, t), lhs.trans * (1.0f - t) + rhs.trans * t };
@@ -154,7 +155,6 @@ namespace Mai {
 	void SetCurrentTime(float t) { currentTime = t; }
 	float GetCurrentTime() const { return currentTime; }
 	std::vector<RotTrans> Update(const JointList& jointList, float t);
-
 	float currentTime;
 	const Animation* pAnime;
 	std::vector<const Animation::Element*> targetList;

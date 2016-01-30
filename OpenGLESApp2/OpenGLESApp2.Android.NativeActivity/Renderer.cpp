@@ -333,21 +333,28 @@ Matrix4x3 ToMatrix(const RotTrans& rt) {
 }
 
 /** クォータニオンの球面線形補間
+
+  @ref http://www.willperone.net/Code/quaternion.php
 */
 Quaternion Sleap(const Quaternion& qa, const Quaternion& qb, float t)
 {
-	const float cosHalfTheta = qa.Dot(qb);
-	if (std::abs(cosHalfTheta) >= 1.0f) {
-		return qa;
+	Quaternion tmp;
+	float cosHalfTheta = qa.Dot(qb);
+	if (cosHalfTheta < 0.0f) {
+	  cosHalfTheta = -cosHalfTheta;
+	  tmp = -qb;
+	} else {
+	  tmp = qb;
 	}
-	const float halfTheta = std::acos(cosHalfTheta);
-	const float sinHalfTheta = std::sin(halfTheta);
-	if ((sinHalfTheta >= 0.0f && sinHalfTheta < 0.001f) || (sinHalfTheta < 0.0f && sinHalfTheta > -0.001f)) {
-		return (qa + qb) * 0.5f;
+	if (cosHalfTheta < 0.95f) {
+	  const float halfTheta = std::acos(cosHalfTheta);
+	  const float sinHalfTheta = std::sin(halfTheta);
+	  const float ratioA = std::sin((1.0f - t) * halfTheta) / sinHalfTheta;
+	  const float ratioB = std::sin(t * halfTheta) / sinHalfTheta;
+	  return (qa * ratioA + tmp * ratioB).Normalize();
+	} else {
+	  return (qa * (1.0f - t) + tmp * t).Normalize();
 	}
-	const float ratioA = std::sin((1.0f - t) * halfTheta) / sinHalfTheta;
-	const float ratioB = std::sin(t * halfTheta) / sinHalfTheta;
-	return qa * ratioA + qb * ratioB;
 }
 
 /** 指定された時間の直前と直後にあたるアニメーションデータのペアを取得する.
@@ -381,7 +388,7 @@ std::vector<RotTrans> AnimationPlayer::Update(const JointList& jointList, float 
 {
 	std::vector<RotTrans> result;
 	if (!pAnime) {
-		result.resize(jointList.size(), { Quaternion(0, 0, 0, 1), Vector3F(0, 0, 0) });
+		result.resize(jointList.size(), RotTrans::Unit());
 		return result;
 	}
 	currentTime += t;
@@ -426,7 +433,7 @@ void Object::Update(float t)
   if (!mesh->jointList.empty()) {
 	std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
 	UpdateJointRotTrans(rtList, &mesh->jointList[0], &mesh->jointList[0], Mai::RotTrans::Unit());
-	std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) { return ToMatrix(rt * this->rotTrans); });
+	std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) { return ToMatrix(this->rotTrans * rt); });
   }
 }
 

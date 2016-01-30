@@ -28,6 +28,7 @@ struct Quaternion {
   }
   bool operator==(const Quaternion& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
   bool operator!=(const Quaternion& rhs) const { return !(*this == rhs); }
+  Quaternion operator-() const { return Quaternion(-x, -y, -z, -w); }
   Quaternion& operator*=(GLfloat rhs) { x *= rhs; y *= rhs; z *= rhs; w *= rhs;  return *this; }
   Quaternion operator*(GLfloat rhs) const { return Quaternion(*this) *= rhs; }
   friend Quaternion operator*(GLfloat lhs, const Quaternion& rhs) { return rhs * lhs; }
