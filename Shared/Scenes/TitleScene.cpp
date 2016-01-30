@@ -15,11 +15,19 @@ namespace SunnySideUp {
 		Renderer& r = engine.GetRenderer();
 		{
 		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		  obj->SetTranslation(Vector3F(0, -5, 0));
+		  obj->SetTranslation(Vector3F(0, -5, -1));
 		  //obj->SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  //obj->SetScale(Vector3F(5, 5, 5));
 		  objList.push_back(obj);
 		}
+		{
+		  auto obj = r.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		  obj->SetAnimation(r.GetAnimation("Stand"));
+		  obj->SetTranslation(Vector3F(0, -10, 2));
+		  obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  objList.push_back(obj);
+		}
+		animeNo = 0;
 		loaded = true;
 	  }
 	  status = STATUSCODE_RUNNABLE;
@@ -34,6 +42,9 @@ namespace SunnySideUp {
 	  return true;
 	}
 	virtual int Update(Engine& engine, float tick) {
+	  for (auto e : objList) {
+		e->Update(tick);
+	  }
 	  Renderer& r = engine.GetRenderer();
 	  r.Update(tick, Position3F(0, 0, 0), Vector3F(0, -1, 0), Vector3F(0, 0, -1));
 	  return result;
@@ -45,6 +56,16 @@ namespace SunnySideUp {
 		  result = SCENEID_STARTEVENT;
 		}
 		break;
+	  case Event::EVENT_KEY_PRESSED: {
+		if (e.Key.Code == KEY_SPACE) {
+		  static const char* const animeNameList[] = {
+			"Stand", "Wait0", "Wait1", "Walk", "Dive"
+		  };
+		  animeNo = (animeNo + 1) % 5;
+		  objList[1]->SetAnimation(engine.GetRenderer().GetAnimation(animeNameList[animeNo]));
+		}
+		break;
+	  }
 	  default:
 		break;
 	  }
@@ -56,6 +77,7 @@ namespace SunnySideUp {
   private:
 	std::vector<ObjectPtr> objList;
 	int result;
+	int animeNo;
 	bool loaded;
   };
 
