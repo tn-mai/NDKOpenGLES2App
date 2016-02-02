@@ -22,12 +22,20 @@ namespace SunnySideUp {
 		}
 		{
 		  auto obj = r.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		  obj->SetAnimation(r.GetAnimation("Stand"));
-		  obj->SetTranslation(Vector3F(0, -10, 2));
-		  obj->SetRotation(degreeToRadian<float>(-90), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  obj->SetAnimation(r.GetAnimation("Wait0"));
+		  obj->SetTranslation(Vector3F(0.8f, -8, 1.1f));
+		  obj->SetRotation(degreeToRadian<float>(-100), degreeToRadian<float>(-30), degreeToRadian<float>(0));
+		  objList.push_back(obj);
+		}
+		{
+		  auto obj = r.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		  obj->SetTranslation(Vector3F(-3.25f, -5, 14.25f));
+		  obj->SetScale(Vector3F(3, 3, 3));
+		  obj->SetRotation(degreeToRadian<float>(-90), degreeToRadian<float>(0), degreeToRadian<float>(5));
 		  objList.push_back(obj);
 		}
 		animeNo = 0;
+		scaleTick = 0;
 		loaded = true;
 	  }
 	  status = STATUSCODE_RUNNABLE;
@@ -47,6 +55,10 @@ namespace SunnySideUp {
 	  }
 	  Renderer& r = engine.GetRenderer();
 	  r.Update(tick, Position3F(0, 0, 0), Vector3F(0, -1, 0), Vector3F(0, 0, -1));
+	  scaleTick += tick;
+	  if (scaleTick > 2.0f) {
+		scaleTick -= 2.0f;
+	  }
 	  return result;
 	}
 	virtual void ProcessWindowEvent(Engine& engine, const Event& e) {
@@ -72,6 +84,15 @@ namespace SunnySideUp {
 	}
 	virtual void Draw(Engine& engine) {
 	  Renderer& r = engine.GetRenderer();
+	  const char str[] = "TOUCH ME!";
+	  float scale;
+	  if (scaleTick < 1.0f) {
+		scale = 1.0f + scaleTick * 0.5f;
+	  } else {
+		scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
+	  }
+	  const float w = r.GetStringWidth(str) * scale;
+	  r.AddString(0.5f - w * 0.5f, 0.9f, scale, Color4B(240, 240, 240, 255), str);
 	  r.Render(&objList[0], &objList[0] + objList.size());
 	}
   private:
@@ -79,6 +100,7 @@ namespace SunnySideUp {
 	int result;
 	int animeNo;
 	bool loaded;
+	float scaleTick;
   };
 
   ScenePtr CreateTitleScene(Engine&) {
