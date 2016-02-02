@@ -49,6 +49,8 @@ namespace BPT = boost::property_tree;
 #define SHADOWMAP_SUB_WIDTH (SHADOWMAP_MAIN_WIDTH * 0.25)
 #define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT * 0.25)
 
+#define MAX_FONT_RENDERING_COUNT 256
+
 namespace {
 
   namespace Local {
@@ -639,10 +641,15 @@ void Renderer::Initialize(const Window& window)
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 1024 * 10, 0, GL_STATIC_DRAW);
 		vboEnd = 0;
 
-		glGenBuffers(1, &vboFont);
-		glBindBuffer(GL_ARRAY_BUFFER, vboFont);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(FontVertex) * 1024, 0, GL_DYNAMIC_DRAW);
+		glGenBuffers(2, vboFont);
+		for (int i = 0; i < 2; ++i) {
+		  glBindBuffer(GL_ARRAY_BUFFER, vboFont[i]);
+		  glBufferData(GL_ARRAY_BUFFER, sizeof(FontVertex) * 4/*rectangle*/ * MAX_FONT_RENDERING_COUNT, 0, GL_DYNAMIC_DRAW);
+		}
 		vboFontEnd = 0;
+		currentFontBufferNo = 0;
+		fontRenderingInfoList.clear();
+		fontRenderingInfoList.reserve(MAX_FONT_RENDERING_COUNT / 8);
 
 		glGenBuffers(1, &ibo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -739,56 +746,66 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glEnable(GL_CULL_FACE);
 }
 
-void Renderer::DrawFontFoo(const Position2F& pos, const char* str, const Color4B& color) {
+/** Add Font string.
+*/
+void Renderer::AddString(int x, int y, const Color4B& color, const char* str) {
+  const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / sizeof(FontVertex);
+  if (strlen(str) > freeCount) {
+	return;
+  }
   std::vector<FontVertex> vertecies;
-  Position2F curPos = pos;
+  Position2F curPos(x * (2.0f / viewport[2]), y * (-2.0f / viewport[3]));
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
-	const float w = info.GetWidth();
-	const float h = info.GetHeight();
+	const float w = info.GetWidth() * (2.0f / viewport[2]);
+	const float h = info.GetHeight() * (-2.0f / viewport[3]);
 	vertecies.push_back({ curPos, info.leftTop, color });
 	vertecies.push_back({ Position2F(curPos.x, curPos.y + h), Position2S(info.leftTop.x, info.rightBottom.y), color });
 	vertecies.push_back({ Position2F(curPos.x + w, curPos.y), Position2S(info.rightBottom.x, info.leftTop.y), color });
 	vertecies.push_back({ Position2F(curPos.x + w, curPos.y + h), info.rightBottom, color });
 	curPos.x += w;
   }
-  glBindBuffer(GL_ARRAY_BUFFER, vboFont);
+  glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
   glBufferSubData(GL_ARRAY_BUFFER, vboFontEnd, vertecies.size() * sizeof(FontVertex), &vertecies[0]);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()) });
   vboFontEnd += vertecies.size() * sizeof(FontVertex);
 }
 
-void Renderer::RenderFontFoo()
+/** Render font string that was added by AddString().
+*/
+void Renderer::DrawFontFoo()
 {
   const Shader& shader = shaderList["font"];
   glUseProgram(shader.program);
-  glBlendFunc(GL_ONE, GL_ZERO);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_CULL_FACE);
 
   glUniform1i(shader.texDiffuse, 0);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureList["font"]->TextureId());
 
-  glBindBuffer(GL_ARRAY_BUFFER, vboFont);
+  glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
 
-  glEnableVertexAttribArray(0);
-  glEnableVertexAttribArray(1);
-  glEnableVertexAttribArray(2);
+  for (int i = 0; i < VertexAttribLocation_Max; ++i) {
+	glDisableVertexAttribArray(i);
+  }
+  glEnableVertexAttribArray(VertexAttribLocation_Position);
+  glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
+  glEnableVertexAttribArray(VertexAttribLocation_Color);
   static const int32_t stride = sizeof(FontVertex);
   static const void* const offPosition = reinterpret_cast<void*>(offsetof(FontVertex, position));
   static const void* const offTexCoord = reinterpret_cast<void*>(offsetof(FontVertex, texCoord));
   static const void* const offColor = reinterpret_cast<void*>(offsetof(FontVertex, color));
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, offPosition);
-  glVertexAttribPointer(1, 2, GL_UNSIGNED_SHORT, GL_TRUE, stride, offTexCoord);
-  glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride, offColor);
+  glVertexAttribPointer(VertexAttribLocation_Position, 2, GL_FLOAT, GL_FALSE, stride, offPosition);
+  glVertexAttribPointer(VertexAttribLocation_TexCoord01, 2, GL_UNSIGNED_SHORT, GL_TRUE, stride, offTexCoord);
+  glVertexAttribPointer(VertexAttribLocation_Color, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride, offColor);
   for (auto e : fontRenderingInfoList) {
 	glDrawArrays(GL_TRIANGLE_STRIP, e.first, e.count);
   }
-  glDisableVertexAttribArray(2);
-  glDisableVertexAttribArray(1);
-  glDisableVertexAttribArray(0);
-
+  for (int i = 0; i < VertexAttribLocation_Max; ++i) {
+	glDisableVertexAttribArray(i);
+  }
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   glActiveTexture(GL_TEXTURE0);
@@ -1423,6 +1440,10 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		DrawFont(Position2F(e.pos.x, e.pos.y), e.str.c_str());
 	  }
 	}
+
+	AddString(0, 0, Color4B(240, 32, 8, 255), "TEST");
+	DrawFontFoo();
+
 #if 0
 	{
 	  const Shader& shader = shaderList["default2D"];
@@ -1505,8 +1526,8 @@ void Renderer::Unload()
 		vbo = 0;
 	}
 	if (vboFont) {
-	  glDeleteBuffers(1, &vboFont);
-	  vboFont = 0;
+	  glDeleteBuffers(2, vboFont);
+	  vboFont[0] = vboFont[1] = 0;
 	}
 	if (ibo) {
 		glDeleteBuffers(1, &ibo);
@@ -1538,6 +1559,9 @@ void Renderer::Unload()
 
 void Renderer::Swap()
 {
+	currentFontBufferNo ^= 1;
+	vboFontEnd = 0;
+	fontRenderingInfoList.clear();
 	eglSwapBuffers(display, surface);
 }
 

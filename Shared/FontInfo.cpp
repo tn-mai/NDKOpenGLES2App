@@ -7,16 +7,16 @@
 #define WIDTH 512
 #define HEIGHT 1024
 #define RANGE 65535
-#define FONTINFO(left, top, right, bottom) { { (left * RANGE) / WIDTH, (top * RANGE) / HEIGHT }, { (right * RANGE) / WIDTH, (bottom  * RANGE) / HEIGHT } }
+#define FONTINFO(left, top, right, bottom) { { (left * RANGE) / WIDTH, ((HEIGHT - top) * RANGE) / HEIGHT }, { (right * RANGE) / WIDTH, ((HEIGHT - bottom) * RANGE) / HEIGHT } }
 
 namespace Mai {
 
 GLushort FontInfo::GetWidth() const {
-  return static_cast<GLushort>((rightBottom.x - leftTop.x) / RANGE);
+  return static_cast<GLushort>((rightBottom.x - leftTop.x) * WIDTH / RANGE);
 }
 
 GLushort FontInfo::GetHeight() const {
-  return static_cast<GLushort>((rightBottom.y - leftTop.y) / RANGE);
+  return static_cast<GLushort>((leftTop.y - rightBottom.y) * HEIGHT / RANGE);
 }
 
 const FontInfo dummyFontInfo = FONTINFO(0, 0, 0, 0);
@@ -110,7 +110,7 @@ const FontInfo& GetAsciiFontInfo(int code) {
   } else if (code < ' ' || code > '_') {
     return dummyFontInfo;
   }
-  return asciiFontInfo[code];
+  return asciiFontInfo[code - ' '];
 }
 
 const FontInfo& GetSpecialFontInfo(SpecialFontId id) {

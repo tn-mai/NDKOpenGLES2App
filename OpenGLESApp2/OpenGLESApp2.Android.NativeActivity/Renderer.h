@@ -228,6 +228,7 @@ namespace Mai {
 	VertexAttribLocation_Weight,
 	VertexAttribLocation_BoneID,
 	VertexAttribLocation_Color,
+	VertexAttribLocation_Max,
   };
 
   /**
@@ -306,6 +307,7 @@ namespace Mai {
 
 	void ClearDebugString() { debugStringList.clear(); }
 	void AddDebugString(int x, int y, const char* s) { debugStringList.push_back(DebugStringObject(x, y, s)); }
+	void AddString(int x, int y, const Color4B& color, const char*);
 
 	bool HasDisplay() const { return display != nullptr; }
 	bool HasSurface() const { return surface != nullptr; }
@@ -342,8 +344,7 @@ namespace Mai {
 	void CreateAsciiMesh(const char*);
 	void CreateCloudMesh(const char*, const Vector3F&);
 	void DrawFont(const Position2F&, const char*);
-	void DrawFontFoo(const Position2F&, const char*, const Color4B& color);
-	void RenderFontFoo();
+	void DrawFontFoo();
 
   private:
 	bool isInitialized;
@@ -371,13 +372,14 @@ namespace Mai {
 	GLuint ibo;
 	GLintptr iboEnd;
 
-	GLuint vboFont;
+	GLuint vboFont[2];
 	GLintptr vboFontEnd;
 	struct FontRenderingInfo {
 	  GLint first;
 	  GLsizei count;
 	};
 	std::vector<FontRenderingInfo> fontRenderingInfoList;
+	int currentFontBufferNo;
 
 #ifdef SHOW_TANGENT_SPACE
 	GLuint vboTBN;
