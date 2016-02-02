@@ -3,6 +3,7 @@
 #include "TangentSpaceData.h"
 #include "../../Shared/File.h"
 #include "../../Shared/Window.h"
+#include "../../Shared/FontInfo.h"
 #ifdef __ANDROID__
 #include "android_native_app_glue.h"
 #include <android/log.h>
@@ -620,6 +621,7 @@ void Renderer::Initialize(const Window& window)
 	  "hdrdiff",
 	  "applyhdr",
 	  "tbn",
+	  "font",
 	};
 	for (const auto e : shaderNameList) {
 		const std::string vert = std::string("Shaders/") + std::string(e) + std::string(".vert");
@@ -636,6 +638,11 @@ void Renderer::Initialize(const Window& window)
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 1024 * 10, 0, GL_STATIC_DRAW);
 		vboEnd = 0;
+
+		glGenBuffers(1, &vboFont);
+		glBindBuffer(GL_ARRAY_BUFFER, vboFont);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(FontVertex) * 1024, 0, GL_DYNAMIC_DRAW);
+		vboFontEnd = 0;
 
 		glGenBuffers(1, &ibo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -729,6 +736,64 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset + *p * 6 * sizeof(GLushort)));
 	x += 8.0f;
   }
+  glEnable(GL_CULL_FACE);
+}
+
+void Renderer::DrawFontFoo(const Position2F& pos, const char* str, const Color4B& color) {
+  std::vector<FontVertex> vertecies;
+  Position2F curPos = pos;
+  while (const char c = *(str++)) {
+	const FontInfo& info = GetAsciiFontInfo(c);
+	const float w = info.GetWidth();
+	const float h = info.GetHeight();
+	vertecies.push_back({ curPos, info.leftTop, color });
+	vertecies.push_back({ Position2F(curPos.x, curPos.y + h), Position2S(info.leftTop.x, info.rightBottom.y), color });
+	vertecies.push_back({ Position2F(curPos.x + w, curPos.y), Position2S(info.rightBottom.x, info.leftTop.y), color });
+	vertecies.push_back({ Position2F(curPos.x + w, curPos.y + h), info.rightBottom, color });
+	curPos.x += w;
+  }
+  glBindBuffer(GL_ARRAY_BUFFER, vboFont);
+  glBufferSubData(GL_ARRAY_BUFFER, vboFontEnd, vertecies.size() * sizeof(FontVertex), &vertecies[0]);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()) });
+  vboFontEnd += vertecies.size() * sizeof(FontVertex);
+}
+
+void Renderer::RenderFontFoo()
+{
+  const Shader& shader = shaderList["font"];
+  glUseProgram(shader.program);
+  glBlendFunc(GL_ONE, GL_ZERO);
+  glDisable(GL_CULL_FACE);
+
+  glUniform1i(shader.texDiffuse, 0);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, textureList["font"]->TextureId());
+
+  glBindBuffer(GL_ARRAY_BUFFER, vboFont);
+
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glEnableVertexAttribArray(2);
+  static const int32_t stride = sizeof(FontVertex);
+  static const void* const offPosition = reinterpret_cast<void*>(offsetof(FontVertex, position));
+  static const void* const offTexCoord = reinterpret_cast<void*>(offsetof(FontVertex, texCoord));
+  static const void* const offColor = reinterpret_cast<void*>(offsetof(FontVertex, color));
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, offPosition);
+  glVertexAttribPointer(1, 2, GL_UNSIGNED_SHORT, GL_TRUE, stride, offTexCoord);
+  glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride, offColor);
+  for (auto e : fontRenderingInfoList) {
+	glDrawArrays(GL_TRIANGLE_STRIP, e.first, e.count);
+  }
+  glDisableVertexAttribArray(2);
+  glDisableVertexAttribArray(1);
+  glDisableVertexAttribArray(0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
   glEnable(GL_CULL_FACE);
 }
 
@@ -1438,6 +1503,10 @@ void Renderer::Unload()
 	if (vbo) {
 		glDeleteBuffers(1, &vbo);
 		vbo = 0;
+	}
+	if (vboFont) {
+	  glDeleteBuffers(1, &vboFont);
+	  vboFont = 0;
 	}
 	if (ibo) {
 		glDeleteBuffers(1, &ibo);
@@ -2507,6 +2576,7 @@ void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDi
 		LOGI("Success loading %s", filename);
 	}
 }
+
 void Renderer::InitTexture()
 {
 	textureList.insert({ "fboMain", Texture::CreateEmpty2D(static_cast<int>(FBO_MAIN_WIDTH), static_cast<int>(FBO_MAIN_HEIGHT)) }); // âeèâä˙ï`âÊ & ÉJÉâÅ[ï`âÊ
@@ -2551,6 +2621,7 @@ void Renderer::InitTexture()
 	textureList.insert({ "cloud", Texture::LoadKTX("Textures/Common/cloud.ktx") });
 	textureList.insert({ "titlelogo", Texture::LoadKTX("Textures/Common/titlelogo.ktx") });
 	textureList.insert({ "titlelogo_nml", Texture::LoadKTX("Textures/Common/titlelogoNR.ktx") });
+	textureList.insert({ "font", Texture::LoadKTX("Textures/Common/font.ktx") });
 }
 
 ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)

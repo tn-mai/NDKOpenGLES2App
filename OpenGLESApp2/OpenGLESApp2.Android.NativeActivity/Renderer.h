@@ -342,6 +342,8 @@ namespace Mai {
 	void CreateAsciiMesh(const char*);
 	void CreateCloudMesh(const char*, const Vector3F&);
 	void DrawFont(const Position2F&, const char*);
+	void DrawFontFoo(const Position2F&, const char*, const Color4B& color);
+	void RenderFontFoo();
 
   private:
 	bool isInitialized;
@@ -368,6 +370,14 @@ namespace Mai {
 	GLintptr vboEnd;
 	GLuint ibo;
 	GLintptr iboEnd;
+
+	GLuint vboFont;
+	GLintptr vboFontEnd;
+	struct FontRenderingInfo {
+	  GLint first;
+	  GLsizei count;
+	};
+	std::vector<FontRenderingInfo> fontRenderingInfoList;
 
 #ifdef SHOW_TANGENT_SPACE
 	GLuint vboTBN;

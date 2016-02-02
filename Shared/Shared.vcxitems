@@ -16,6 +16,7 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)File.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FontInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Matrix.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\FailureScene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\GameOverScene.cpp" />
@@ -28,6 +29,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Event.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)File.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)FontInfo.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Keyboard.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Matrix.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Mouse.h" />
