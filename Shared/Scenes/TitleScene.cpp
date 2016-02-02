@@ -24,7 +24,7 @@ namespace SunnySideUp {
 		  auto obj = r.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		  obj->SetAnimation(r.GetAnimation("Stand"));
 		  obj->SetTranslation(Vector3F(0, -10, 2));
-		  obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  obj->SetRotation(degreeToRadian<float>(-90), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  objList.push_back(obj);
 		}
 		animeNo = 0;
