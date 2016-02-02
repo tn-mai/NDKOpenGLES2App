@@ -747,18 +747,24 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
 }
 
 /** Add Font string.
+
+  @param x      x position of start of text. 0.0 is left, 1.0 is right.
+  @param y      y position of start of text. 0.0 is top. 1.0 is bottom.
+  @param scale  rendering scale. 1.0 is actual font size.
+  @param color  rendering color.
+  @param str    pointer to rendering string.
 */
-void Renderer::AddString(int x, int y, const Color4B& color, const char* str) {
+void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str) {
   const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / sizeof(FontVertex);
   if (strlen(str) > freeCount) {
 	return;
   }
   std::vector<FontVertex> vertecies;
-  Position2F curPos(x * (2.0f / viewport[2]), y * (-2.0f / viewport[3]));
+  Position2F curPos(x - 0.5f, -y + 0.5f);
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
-	const float w = info.GetWidth() * (2.0f / viewport[2]);
-	const float h = info.GetHeight() * (-2.0f / viewport[3]);
+	const float w = info.GetWidth() * (2.0f / viewport[2]) * scale;
+	const float h = info.GetHeight() * (-2.0f / viewport[3]) * scale;
 	vertecies.push_back({ curPos, info.leftTop, color });
 	vertecies.push_back({ Position2F(curPos.x, curPos.y + h), Position2S(info.leftTop.x, info.rightBottom.y), color });
 	vertecies.push_back({ Position2F(curPos.x + w, curPos.y), Position2S(info.rightBottom.x, info.leftTop.y), color });
@@ -770,6 +776,28 @@ void Renderer::AddString(int x, int y, const Color4B& color, const char* str) {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()) });
   vboFontEnd += vertecies.size() * sizeof(FontVertex);
+}
+
+/** Get string width on screen.
+*/
+float Renderer::GetStringWidth(const char* str) const {
+  float w = 0.0f;
+  while (const char c = *(str++)) {
+	const FontInfo& info = GetAsciiFontInfo(c);
+	w += info.GetWidth() * (2.0f / viewport[2]);
+  }
+  return w;
+}
+
+/** Get string height on screen.
+*/
+float Renderer::GetStringHeight(const char* str) const {
+  float h = 0.0f;
+  while (const char c = *(str++)) {
+	const FontInfo& info = GetAsciiFontInfo(c);
+	h = std::max(h, info.GetHeight() * (2.0f / viewport[3]));
+  }
+  return h;
 }
 
 /** Render font string that was added by AddString().
@@ -1441,7 +1469,6 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  }
 	}
 
-	AddString(0, 0, Color4B(240, 32, 8, 255), "TEST");
 	DrawFontFoo();
 
 #if 0

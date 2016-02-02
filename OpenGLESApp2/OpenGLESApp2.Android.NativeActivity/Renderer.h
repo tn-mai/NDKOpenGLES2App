@@ -307,7 +307,9 @@ namespace Mai {
 
 	void ClearDebugString() { debugStringList.clear(); }
 	void AddDebugString(int x, int y, const char* s) { debugStringList.push_back(DebugStringObject(x, y, s)); }
-	void AddString(int x, int y, const Color4B& color, const char*);
+	void AddString(float x, float y, float scale, const Color4B& color, const char*);
+	float GetStringWidth(const char*) const;
+	float GetStringHeight(const char*) const;
 
 	bool HasDisplay() const { return display != nullptr; }
 	bool HasSurface() const { return surface != nullptr; }
