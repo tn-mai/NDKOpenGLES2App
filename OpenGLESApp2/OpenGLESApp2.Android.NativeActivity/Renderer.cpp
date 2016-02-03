@@ -1436,7 +1436,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		s += '.';
 		s += '0' + percentage % 10;
 //		s += boost::lexical_cast<std::string>(diffTimes[i]);
-		DrawFont(Position2F(16, static_cast<float>(64 + 16 * i)), s.c_str());
+		DrawFont(Position2F(viewport[2] * 0.025f, static_cast<float>(viewport[3] - (16 * 8) + 16 * i)), s.c_str());
 	  }
 	  Local::glDeleteFencesNV(5, fences);
 	}
