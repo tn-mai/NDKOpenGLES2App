@@ -15,27 +15,34 @@ namespace SunnySideUp {
 		Renderer& r = engine.GetRenderer();
 		{
 		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		  obj->SetTranslation(Vector3F(0, -5, -1));
-		  //obj->SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  obj->SetTranslation(Vector3F(1.125f, 4.5f, -2.5f));
+		  obj->SetRotation(degreeToRadian<float>(140), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  //obj->SetScale(Vector3F(5, 5, 5));
 		  objList.push_back(obj);
 		}
 		{
 		  auto obj = r.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		  obj->SetAnimation(r.GetAnimation("Wait0"));
-		  obj->SetTranslation(Vector3F(0.8f, -8, 1.1f));
-		  obj->SetRotation(degreeToRadian<float>(-100), degreeToRadian<float>(-30), degreeToRadian<float>(0));
+		  obj->SetTranslation(Vector3F(2.0f, 5, -6.1f));
+		  obj->SetRotation(degreeToRadian<float>(30), degreeToRadian<float>(-30), degreeToRadian<float>(-15));
 		  objList.push_back(obj);
 		}
 		{
 		  auto obj = r.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		  obj->SetTranslation(Vector3F(-3.25f, -5, 14.25f));
+		  obj->SetTranslation(Vector3F(-4.5f, -5.5, -14));
 		  obj->SetScale(Vector3F(3, 3, 3));
-		  obj->SetRotation(degreeToRadian<float>(-90), degreeToRadian<float>(0), degreeToRadian<float>(5));
+		  obj->SetRotation(degreeToRadian<float>(35), degreeToRadian<float>(-20), degreeToRadian<float>(0));
+		  objList.push_back(obj);
+		}
+		{
+		  auto obj = r.CreateObject("cloud0", Material(Color4B(255, 240, 250, 128), 0, 0), "cloud");
+		  obj->SetTranslation(Vector3F(30, 0, -75));
+		  obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  objList.push_back(obj);
 		}
 		animeNo = 0;
 		scaleTick = 0;
+		cloudRot = 0;
 		loaded = true;
 	  }
 	  status = STATUSCODE_RUNNABLE;
@@ -54,11 +61,16 @@ namespace SunnySideUp {
 		e->Update(tick);
 	  }
 	  Renderer& r = engine.GetRenderer();
-	  r.Update(tick, Position3F(0, 0, 0), Vector3F(0, -1, 0), Vector3F(0, 0, -1));
+	  r.Update(tick, Position3F(0, 0, 0), Vector3F(0.25f, 1, -1), Vector3F(0, 0, 1));
 	  scaleTick += tick;
 	  if (scaleTick > 2.0f) {
 		scaleTick -= 2.0f;
 	  }
+	  cloudRot += tick;
+	  if (cloudRot > 360.0f) {
+		cloudRot -= 360.0f;
+	  }
+	  objList[3]->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(cloudRot), degreeToRadian<float>(0));
 	  return result;
 	}
 	virtual void ProcessWindowEvent(Engine& engine, const Event& e) {
@@ -101,6 +113,7 @@ namespace SunnySideUp {
 	int animeNo;
 	bool loaded;
 	float scaleTick;
+	float cloudRot;
   };
 
   ScenePtr CreateTitleScene(Engine&) {
