@@ -1,3 +1,5 @@
+/** @file MainGameScene.cpp
+*/
 #include "Scene.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
@@ -7,22 +9,140 @@ namespace SunnySideUp {
 
   using namespace Mai;
 
+  enum DirectionKey {
+	DIRECTIONKEY_UP,
+	DIRECTIONKEY_LEFT,
+	DIRECTIONKEY_DOWN,
+	DIRECTIONKEY_RIGHT,
+  };
+
+  struct DebugData {
+#ifndef NDEBUG
+	DebugData()
+	  : debug(false)
+	  , dragging(false)
+	  , camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
+	  , mouseX(-1)
+	  , mouseY(-1)
+	{}
+
+	void SetDebugObj(size_t i, const ObjectPtr& obj) {
+	  if (i >= 0 && i < debugObj.size()) {
+		debugObj[i] = obj;
+	  }
+	}
+
+	void PressMouseButton(int mx, int my) {
+	  if (debug) {
+		mouseX = mx;
+		mouseY = my;
+		dragging = true;
+	  }
+	}
+
+	void ReleaseMouseButton() {
+	  if (debug) {
+		dragging = false;
+	  }
+	}
+
+	void MoveMouse(int mx, int my) {
+	  if (debug) {
+		if (dragging) {
+		  const float x = static_cast<float>(mouseX - mx) * 0.005f;
+		  const float y = static_cast<float>(mouseY - my) * 0.005f;
+		  const Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
+		  camera.eyeVector = (Quaternion(camera.upVector, x) * Quaternion(leftVector, y)).Apply(camera.eyeVector).Normalize();
+		  camera.upVector = Quaternion(leftVector, y).Apply(camera.upVector).Normalize();
+		}
+		mouseX = mx;
+		mouseY = my;
+	  }
+	}
+
+	void MoveCamera(const bool* inputList) {
+	  if (debug) {
+		if (inputList[DIRECTIONKEY_UP]) {
+		  camera.position += camera.eyeVector * 0.25f;
+		};
+		if (inputList[DIRECTIONKEY_DOWN]) {
+		  camera.position -= camera.eyeVector * 0.25f;
+		}
+		if (inputList[DIRECTIONKEY_LEFT]) {
+		  camera.position -= camera.eyeVector.Cross(camera.upVector) * 0.25f;
+		}
+		if (inputList[DIRECTIONKEY_RIGHT]) {
+		  camera.position += camera.eyeVector.Cross(camera.upVector) * 0.25f;
+		}
+	  }
+	}
+
+	bool Updata(Renderer& r, float deltaTime) {
+	  if (debug) {
+		r.Update(deltaTime, camera.position, camera.eyeVector, camera.upVector);
+		if (debugObj[0]) {
+		  Object& o = *debugObj[0];
+		  static float rot = 90, accel = 0.0f;
+		  rot += accel;
+		  if (rot >= 360) {
+			rot -= 360;
+		  } else if (rot < 0) {
+			rot += 360;
+		  }
+		  static int target = 2;
+		  if (target == 0) {
+			o.SetRotation(degreeToRadian<float>(rot), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  } else if (target == 1) {
+			o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(rot), degreeToRadian<float>(0));
+		  } else {
+			o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(rot));
+		  }
+		}
+		if (debugObj[1]) {
+		  Object& o = *debugObj[1];
+		  static float roughness = 0, metallic = 0;
+		  o.SetRoughness(roughness);
+		  o.SetMetallic(metallic);
+		}
+	  }
+	  return debug;
+	}
+
+	bool debug;
+	bool dragging;
+	int mouseX;
+	int mouseY;
+	Camera camera;
+	std::array<ObjectPtr, 3> debugObj;
+#ifdef SHOW_DEBUG_SENSOR_OBJECT
+	ObjectPtr debugSensorObj;
+#endif // SHOW_DEBUG_SENSOR_OBJECT
+#else
+	void SetDebugObj(size_t, const ObjectPtr&) {}
+	void PressMouseButton(int, int) {}
+	void ReleaseMouseButton() {}
+	void MoveMouse(int, int) {}
+	void MoveCamera(const bool*) {}
+	bool Updata(Renderer&, float) { return false; }
+#endif // NDEBUG
+  };
+
   static const Region region = { Position3F(-100, 200, -100), Position3F(100, 3800, 100) };
   static const float unitRegionSize = 100.0f;
   static const size_t maxObject = 1000;
 
+  /** Control the main game play.
+
+    Player start to fall down from the range of 4000m from 2000m.
+	When player reaches 100m, it is success if the moving vector is facing
+	within the range of target. Otherwise fail.
+  */
   class MainGameScene : public Scene {
   public:
 	MainGameScene()
 	  : pPartitioner(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject))
 	  , random(static_cast<uint32_t>(time(nullptr)))
-#ifndef NDEBUG
-	  , debug(true)
-	  , dragging(false)
-	  , camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
-	  , mouseX(-1)
-	  , mouseY(-1)
-#endif // NDEBUG
+	  , debugData()
 	{
 	  directionKeyDownList.fill(false);
 	}
@@ -30,7 +150,7 @@ namespace SunnySideUp {
 	virtual bool Load(Engine& engine) {		
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
-#if 0
+#if 1
 	  // ランダムにオブジェクトを発生させてみる.
 	  const int regionCount = std::ceil((region.max.y - region.min.y) / unitRegionSize);
 	  for (int i = 0; i < regionCount; ++i) {
@@ -75,14 +195,15 @@ namespace SunnySideUp {
 	  {
 		auto obj = renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
-		o.SetAnimation(renderer.GetAnimation("Walk"));
-		const Vector3F trans(5, 10, 4.5f);
+		o.SetAnimation(renderer.GetAnimation("Dive"));
+		const Vector3F trans(5, 2000, 4.5f);
 		o.SetTranslation(trans);
 		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
-		o.SetScale(Vector3F(5, 5, 5));
+		//o.SetScale(Vector3F(5, 5, 5));
 		Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 5.0f, 0.1f));
-		p->thrust = Vector3F(0, 9.8f, 0);
+		//p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p, Vector3F(0, 0, 0));
+		rigidCamera = p;
 	  }
 #if 0
 	  {
@@ -95,12 +216,13 @@ namespace SunnySideUp {
 	  }
 #endif
 	  {
-		debugObj[0] = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		Object& o = *debugObj[0];
+		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		debugData.SetDebugObj(0, obj);
+		Object& o = *obj;
 		//	  o.SetScale(Vector3F(2, 2, 2));
 		o.SetTranslation(Vector3F(-15, 100, 0));
 		o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
-		pPartitioner->Insert(debugObj[0]);
+		pPartitioner->Insert(obj);
 	  }
 #if 0
 	  {
@@ -111,11 +233,12 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj);
 	  }
 	  {
-		debugObj[1] = renderer.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0.1f, 0), "default");
-		Object& o = *debugObj[1];
+		auto obj = renderer.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0.1f, 0), "default");
+		debugData.SetDebugObj(1, obj);
+		Object& o = *obj;
 		o.SetScale(Vector3F(3, 3, 3));
 		o.SetTranslation(Vector3F(15, 11, 0));
-		pPartitioner->Insert(debugObj[1]);
+		pPartitioner->Insert(obj);
 	  }
 #endif
 	  {
@@ -187,31 +310,21 @@ namespace SunnySideUp {
 	  switch (e.Type) {
 	  case Event::EVENT_MOUSE_BUTTON_PRESSED:
 		if (e.MouseButton.Button == MOUSEBUTTON_LEFT) {
-		  mouseX = e.MouseButton.X;
-		  mouseY = e.MouseButton.Y;
-		  dragging = true;
+		  debugData.PressMouseButton(e.MouseButton.X, e.MouseButton.Y);
 		}
 		break;
 	  case Event::EVENT_MOUSE_BUTTON_RELEASED:
 		if (e.MouseButton.Button == MOUSEBUTTON_LEFT) {
-		  dragging = false;
+		  debugData.ReleaseMouseButton();
 		}
 		break;
 	  case Event::EVENT_MOUSE_ENTERED:
 		break;
 	  case Event::EVENT_MOUSE_LEFT:
-		dragging = false;
+		debugData.ReleaseMouseButton();
 		break;
 	  case Event::EVENT_MOUSE_MOVED: {
-		if (dragging) {
-		  const float x = static_cast<float>(mouseX - e.MouseMove.X) * 0.005f;
-		  const float y = static_cast<float>(mouseY - e.MouseMove.Y) * 0.005f;
-		  const Vector3F leftVector = camera.eyeVector.Cross(camera.upVector).Normalize();
-		  camera.eyeVector = (Quaternion(camera.upVector, x) * Quaternion(leftVector, y)).Apply(camera.eyeVector).Normalize();
-		  camera.upVector = Quaternion(leftVector, y).Apply(camera.upVector).Normalize();
-		}
-		mouseX = e.MouseMove.X;
-		mouseY = e.MouseMove.Y;
+		debugData.MoveMouse(e.MouseMove.X, e.MouseMove.Y);
 		break;
 	  }
 	  case Event::EVENT_KEY_PRESSED:
@@ -253,21 +366,8 @@ namespace SunnySideUp {
 
 	virtual int Update(Engine& engine, float deltaTime) {
 #if 1
-#ifndef NDEBUG
-	  if (directionKeyDownList[DIRECTIONKEY_UP]) {
-		camera.position += camera.eyeVector * 0.25f;
-	  };
-	  if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
-		camera.position -= camera.eyeVector * 0.25f;
-	  }
-	  if (directionKeyDownList[DIRECTIONKEY_LEFT]) {
-		camera.position -= camera.eyeVector.Cross(camera.upVector) * 0.25f;
-	  }
-	  if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
-		camera.position += camera.eyeVector.Cross(camera.upVector) * 0.25f;
-	  }
+	  debugData.MoveCamera(&directionKeyDownList[0]);
 	  //debugCamera.Update(deltaTime, fusedOrientation);
-#endif // NDEBUG
 	  pPartitioner->Update(deltaTime);
 #else
 	  const Position3F prevCamPos = debugCamera.Position();
@@ -299,38 +399,17 @@ namespace SunnySideUp {
 		debugCamera.Position(pos);
 	  }
 #endif
-	  engine.GetRenderer().Update(deltaTime, camera.position, camera.eyeVector, camera.upVector);
+	  Renderer& renderer = engine.GetRenderer();
+	  if (!debugData.Updata(renderer, deltaTime)) {
+		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 10, 0), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
 	  //			for (auto&& e : engine.obj) {
 	  //				e.Update(engine.deltaTime);
 	  //				while (e.GetCurrentTime() >= 1.0f) {
 	  //					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
 	  //				}
 	  //			}
+	  }
 
-	  if (debugObj[0]) {
-		Object& o = *debugObj[0];
-		static float rot = 90, accel = 0.0f;
-		rot += accel;
-		if (rot >= 360) {
-		  rot -= 360;
-		} else if (rot < 0) {
-		  rot += 360;
-		}
-		static int target = 2;
-		if (target == 0) {
-		  o.SetRotation(degreeToRadian<float>(rot), degreeToRadian<float>(0), degreeToRadian<float>(0));
-		} else if (target == 1) {
-		  o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(rot), degreeToRadian<float>(0));
-		} else {
-		  o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(rot));
-		}
-	  }
-	  if (debugObj[1]) {
-		Object& o = *debugObj[1];
-		static float roughness = 0, metallic = 0;
-		o.SetRoughness(roughness);
-		o.SetMetallic(metallic);
-	  }
 #if 0
 	  static float roughness = 1.0f;
 	  static float step = 0.005;
@@ -452,28 +531,11 @@ namespace SunnySideUp {
   private:
 	std::unique_ptr<SpacePartitioner> pPartitioner;
 	boost::random::mt19937 random;
-
-#ifdef SHOW_DEBUG_SENSOR_OBJECT
-	ObjectPtr debugSensorObj;
-#endif // SHOW_DEBUG_SENSOR_OBJECT
-	ObjectPtr debugObj[3];
 	Collision::RigidBodyPtr rigidCamera;
 
-	enum DirectionKey {
-	  DIRECTIONKEY_UP,
-	  DIRECTIONKEY_LEFT,
-	  DIRECTIONKEY_DOWN,
-	  DIRECTIONKEY_RIGHT,
-	};
 	std::array<bool, 4> directionKeyDownList;
 
-#ifndef NDEBUG
-	bool debug;
-	bool dragging;
-	Camera camera;
-	int mouseX;
-	int mouseY;
-#endif // NDEBUG
+	DebugData debugData;
   };
 
   ScenePtr CreateMainGameScene(Engine&) {
