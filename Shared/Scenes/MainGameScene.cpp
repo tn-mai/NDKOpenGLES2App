@@ -401,7 +401,7 @@ namespace SunnySideUp {
 #endif
 	  Renderer& renderer = engine.GetRenderer();
 	  if (!debugData.Updata(renderer, deltaTime)) {
-		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 10, 0), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
+		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
 	  //			for (auto&& e : engine.obj) {
 	  //				e.Update(engine.deltaTime);
 	  //				while (e.GetCurrentTime() >= 1.0f) {
