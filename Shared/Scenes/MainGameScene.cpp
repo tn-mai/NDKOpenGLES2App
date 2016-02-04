@@ -152,25 +152,25 @@ namespace SunnySideUp {
 	  Renderer& renderer = engine.GetRenderer();
 #if 1
 	  // ランダムにオブジェクトを発生させてみる.
-	  const int regionCount = std::ceil((region.max.y - region.min.y) / unitRegionSize);
+	  const int regionCount = static_cast<int>(std::ceil((region.max.y - region.min.y) / unitRegionSize));
 	  for (int i = 0; i < regionCount; ++i) {
 		int objectCount = random() % 2 + 1;
 		while (--objectCount >= 0) {
-		  const float theta = degreeToRadian<float>(random() % 360);
-		  const float distance = random() % 200;
+		  const float theta = degreeToRadian<float>(RandomFloat(360));
+		  const float distance = RandomFloat(200);
 		  const float tx = std::cos(theta) * distance;
 		  const float tz = std::sin(theta) * distance;
-		  const float ty = random() % 100;
+		  const float ty = RandomFloat(100);
 		  if (boost::random::uniform_int_distribution<>(0, 99)(random) < 70) {
 			auto obj = renderer.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 			Object& o = *obj;
 			const Vector3F trans(tx, ty + i * unitRegionSize, tz);
 			o.SetTranslation(trans);
-			const float scale = static_cast<float>(random() % 40) / 10.0f + 1.0f;
+			const float scale = RandomFloat(40) / 10.0f + 1.0f;
 			o.SetScale(Vector3F(scale, scale, scale));
-			const float rx = degreeToRadian<float>(random() % 30);
-			const float ry = degreeToRadian<float>(random() % 360);
-			const float rz = degreeToRadian<float>(random() % 30);
+			const float rx = degreeToRadian<float>(RandomFloat(30));
+			const float ry = degreeToRadian<float>(RandomFloat(360));
+			const float rz = degreeToRadian<float>(RandomFloat(30));
 			o.SetRotation(rx, ry, rz);
 			Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.5, 3, 2.5) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
 			p->thrust = Vector3F(0, 9.8f, 0);
@@ -181,9 +181,9 @@ namespace SunnySideUp {
 			const Vector3F trans(tx, ty + i * unitRegionSize, tz);
 			o.SetTranslation(trans);
 			//		  o.SetScale(Vector3F(2, 2, 2));
-			const float rx = degreeToRadian<float>(random() % 360);
-			const float ry = degreeToRadian<float>(random() % 360);
-			const float rz = degreeToRadian<float>(random() % 360);
+			const float rx = degreeToRadian<float>(RandomFloat(360));
+			const float ry = degreeToRadian<float>(RandomFloat(360));
+			const float rz = degreeToRadian<float>(RandomFloat(360));
 			o.SetRotation(rx, ry, rz);
 			Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(5, 1, 4) * 2, 10 * 1 * 8));
 			p->thrust = Vector3F(0, 9.8f, 0);
@@ -527,6 +527,8 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj, c, offset);
 	  }
 	}
+	template<typename T>
+	float RandomFloat(T n) { return static_cast<float>(random() % n); }
 
   private:
 	std::unique_ptr<SpacePartitioner> pPartitioner;
