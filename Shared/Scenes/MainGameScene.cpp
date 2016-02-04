@@ -142,6 +142,8 @@ namespace SunnySideUp {
 	MainGameScene()
 	  : pPartitioner(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject))
 	  , random(static_cast<uint32_t>(time(nullptr)))
+	  , playerMovement(0, 0, 0)
+	  , playerRotation(0, 0, 0)
 	  , debugData()
 	{
 	  directionKeyDownList.fill(false);
@@ -204,6 +206,7 @@ namespace SunnySideUp {
 		//p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p, Vector3F(0, 0, 0));
 		rigidCamera = p;
+		objPlayer = obj;
 	  }
 #if 0
 	  {
@@ -368,6 +371,26 @@ namespace SunnySideUp {
 #if 1
 	  debugData.MoveCamera(&directionKeyDownList[0]);
 	  //debugCamera.Update(deltaTime, fusedOrientation);
+	  playerMovement.z = 0.0f;
+	  if (directionKeyDownList[DIRECTIONKEY_UP]) {
+		playerMovement.z += 1.0f;
+	  }
+	  if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
+		playerMovement.z -= 1.0f;
+	  }
+	  playerMovement.x = 0.0f;
+	  if (directionKeyDownList[DIRECTIONKEY_LEFT]) {
+		playerMovement.x += 1.0f;
+	  }
+	  if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
+		playerMovement.x -= 1.0f;
+	  }
+	  rigidCamera->accel += playerMovement;
+	  {
+		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerRotation.x - playerMovement.z * 0.05f));
+		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerRotation.z + playerMovement.x * 0.05f));
+		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
+	  }
 	  pPartitioner->Update(deltaTime);
 #else
 	  const Position3F prevCamPos = debugCamera.Position();
@@ -534,6 +557,9 @@ namespace SunnySideUp {
 	std::unique_ptr<SpacePartitioner> pPartitioner;
 	boost::random::mt19937 random;
 	Collision::RigidBodyPtr rigidCamera;
+	ObjectPtr objPlayer;
+	Vector3F playerMovement;
+	Vector3F playerRotation;
 
 	std::array<bool, 4> directionKeyDownList;
 
