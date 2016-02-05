@@ -104,7 +104,7 @@ namespace SunnySideUp {
 		scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
 	  }
 	  const float w = r.GetStringWidth(str) * scale;
-	  r.AddString(0.5f - w * 0.5f, 0.9f, scale, Color4B(240, 240, 240, 255), str);
+	  r.AddString(0.5f - w * 0.5f, 0.7f, scale, Color4B(240, 240, 240, 255), str);
 	  r.Render(&objList[0], &objList[0] + objList.size());
 	}
   private:

@@ -760,7 +760,7 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
 	return;
   }
   std::vector<FontVertex> vertecies;
-  Position2F curPos(x - 0.5f, -y + 0.5f);
+  Position2F curPos = Position2F(x, y) * Vector2F(2, -2) + Vector2F(-1, 1);
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
 	const float w = info.GetWidth() * (2.0f / viewport[2]) * scale;
@@ -782,9 +782,10 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
 */
 float Renderer::GetStringWidth(const char* str) const {
   float w = 0.0f;
+  const float d = 1.0f / static_cast<float>(viewport[2]);
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
-	w += info.GetWidth() * (2.0f / viewport[2]);
+	w += info.GetWidth() * d;
   }
   return w;
 }
@@ -793,9 +794,10 @@ float Renderer::GetStringWidth(const char* str) const {
 */
 float Renderer::GetStringHeight(const char* str) const {
   float h = 0.0f;
+  const float d = 1.0f / static_cast<float>(viewport[3]);
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
-	h = std::max(h, info.GetHeight() * (2.0f / viewport[3]));
+	h = std::max(h, info.GetHeight() * d);
   }
   return h;
 }
