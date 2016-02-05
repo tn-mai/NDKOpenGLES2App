@@ -534,8 +534,16 @@ namespace SunnySideUp {
 	  Renderer& renderer = engine.GetRenderer();
 	  if (rigidCamera) {
 		char buf[32];
-		sprintf(buf, "%03.1fKm/h", rigidCamera->accel.Length() * 3.6f);
-		renderer.AddDebugString(8, 40, buf);
+		sprintf(buf, "%03.0fKm/h", rigidCamera->accel.Length() * 3.6f);
+		const float width0 = renderer.GetStringWidth(buf) * 0.8f;
+		renderer.AddString(0.95f - width0, 0.05f, 0.8f, Color4B(255, 255, 255, 255), buf);
+		float y = objPlayer->Position().y;
+		if (auto radius = rigidCamera->GetRadius()) {
+		  y -= *radius;
+		}
+		sprintf(buf, "%04.0fm", y);
+		const float width1 = renderer.GetStringWidth(buf) * 0.8f;
+		renderer.AddString(0.95f - width1, 0.125f, 0.8f, Color4B(255, 255, 255, 255), buf);
 	  }
 	  renderer.Render(&objList[0], &objList[0] + objList.size());
 	}

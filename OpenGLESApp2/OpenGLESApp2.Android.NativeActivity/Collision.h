@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <stdint.h>
+#include <boost/optional.hpp>
 
 namespace Mai {
 
@@ -81,6 +82,7 @@ namespace Mai {
 	  virtual Position3F Position() const = 0;
 	  virtual void Position(const Position3F&) = 0;
 	  virtual Vector3F ApplyRotation(const Vector3F& pos) const { return pos; }
+	  virtual boost::optional<float> GetRadius() const { return boost::none; }
 	  void SetAccel(Vector3F);
 
 	  uint8_t shapeID;
@@ -106,6 +108,7 @@ namespace Mai {
 	  virtual void Move(Vector3F v) { shape.center += v; }
 	  virtual Position3F Position() const { return shape.center; }
 	  virtual void Position(const Position3F& pos) { shape.center = pos; }
+	  virtual boost::optional<float> GetRadius() const { return shape.radius; }
 
 	  Sphere shape;
 	};
