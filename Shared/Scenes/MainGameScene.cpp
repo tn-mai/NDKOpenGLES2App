@@ -590,7 +590,7 @@ namespace SunnySideUp {
 		if (countDownTimer > 0.0f) {
 		  static const char strReady[] = "READY!";
 		  static const char* const strNumber[] = { "1", "2", "3" };
-		  renderer.AddString(0.5f - renderer.GetStringWidth(strReady), 0.35f, 2.0f, Color4B(255, 240, 200, 255), strReady);
+		  renderer.AddString(0.5f - renderer.GetStringWidth(strReady), 0.3f, 2.0f, Color4B(255, 240, 200, 255), strReady);
 		  if (countDownTimer < countDownTimerStartTime) {
 			const int index = static_cast<int>(countDownTimer);
 			float dummy;
