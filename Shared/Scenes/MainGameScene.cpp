@@ -205,6 +205,7 @@ namespace SunnySideUp {
 		}
 	  }
 #endif
+	  // The player character.
 	  {
 		auto obj = renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
@@ -218,6 +219,21 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj, p, Vector3F(0, 0, 0));
 		rigidCamera = p;
 		objPlayer = obj;
+	  }
+
+	  // The target(as known as Flying-pan).
+	  {
+		auto obj = renderer.CreateObject("FlyingPan", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		Object& o = *obj;
+		o.SetScale(Vector3F(10, 10, 10));
+
+		const float theta = degreeToRadian<float>(RandomFloat(360));
+		const float distance = RandomFloat(50);
+		const float tx = std::cos(theta) * distance;
+		const float tz = std::sin(theta) * distance;
+		o.SetTranslation(Vector3F(tx, 1, tz));
+		pPartitioner->Insert(obj);
+		objFlyingPan = obj;
 	  }
 #if 0
 	  {
@@ -239,13 +255,6 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj);
 	  }
 #if 0
-	  {
-		auto obj = renderer.CreateObject("FlyingPan", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		Object& o = *obj;
-		o.SetScale(Vector3F(5, 5, 5));
-		o.SetTranslation(Vector3F(15, 10, 0));
-		pPartitioner->Insert(obj);
-	  }
 	  {
 		auto obj = renderer.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0.1f, 0), "default");
 		debugData.SetDebugObj(1, obj);
@@ -463,6 +472,15 @@ namespace SunnySideUp {
 		step = 0.005f;
 	  }
 #endif
+	  if (objPlayer->Position().y <= goalHeight) {
+		const float scale = objFlyingPan->Scale().x;
+		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
+		const float distance = std::sqrtf(v.x * v.x + v.z + v.z);
+		if (distance <= 1.0f * scale) {
+		  return SCENEID_SUCCESS;
+		}
+		return SCENEID_FAILURE;
+	  }
 	  return SCENEID_CONTINUE;
 	}
 
@@ -612,6 +630,7 @@ namespace SunnySideUp {
 	boost::random::mt19937 random;
 	Collision::RigidBodyPtr rigidCamera;
 	ObjectPtr objPlayer;
+	ObjectPtr objFlyingPan;
 	Vector3F playerMovement;
 	Vector3F playerRotation;
 	float countDownTimer;
