@@ -130,6 +130,15 @@ namespace SunnySideUp {
   static const Region region = { Position3F(-100, 200, -100), Position3F(100, 3800, 100) };
   static const float unitRegionSize = 100.0f;
   static const size_t maxObject = 1000;
+  static const float countDownTimerInitialTime = 3.5f;
+  static const float countDownTimerStartTime = 3.0f;
+  static const float countDownTimerTrailingTime = -1.0f;
+
+  const struct {
+	int min;
+	int max;
+  } startingHeightRange = { 2000, 4000 };
+  static const int goalHeight = 100;
 
   /** Control the main game play.
 
@@ -144,6 +153,8 @@ namespace SunnySideUp {
 	  , random(static_cast<uint32_t>(time(nullptr)))
 	  , playerMovement(0, 0, 0)
 	  , playerRotation(0, 0, 0)
+	  , countDownTimer(countDownTimerInitialTime)
+	  , stopWatch(0)
 	  , debugData()
 	{
 	  directionKeyDownList.fill(false);
@@ -198,7 +209,7 @@ namespace SunnySideUp {
 		auto obj = renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
 		o.SetAnimation(renderer.GetAnimation("Dive"));
-		const Vector3F trans(5, 2000, 4.5f);
+		const Vector3F trans(5, startingHeightRange.min, 4.5f);
 		o.SetTranslation(trans);
 		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
 		//o.SetScale(Vector3F(5, 5, 5));
@@ -371,25 +382,33 @@ namespace SunnySideUp {
 #if 1
 	  debugData.MoveCamera(&directionKeyDownList[0]);
 	  //debugCamera.Update(deltaTime, fusedOrientation);
-	  playerMovement.z = 0.0f;
-	  if (directionKeyDownList[DIRECTIONKEY_UP]) {
-		playerMovement.z += 1.0f;
+	  if (countDownTimer >= countDownTimerTrailingTime) {
+		countDownTimer -= deltaTime;
 	  }
-	  if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
-		playerMovement.z -= 1.0f;
-	  }
-	  playerMovement.x = 0.0f;
-	  if (directionKeyDownList[DIRECTIONKEY_LEFT]) {
-		playerMovement.x += 1.0f;
-	  }
-	  if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
-		playerMovement.x -= 1.0f;
-	  }
-	  rigidCamera->accel += playerMovement;
-	  {
-		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerRotation.x - playerMovement.z * 0.05f));
-		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerRotation.z + playerMovement.x * 0.05f));
-		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
+	  if (countDownTimer <= 0.0f) {
+		if (objPlayer->Position().y >= goalHeight) {
+		  stopWatch += deltaTime;
+		}
+		playerMovement.z = 0.0f;
+		if (directionKeyDownList[DIRECTIONKEY_UP]) {
+		  playerMovement.z += 1.0f;
+		}
+		if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
+		  playerMovement.z -= 1.0f;
+		}
+		playerMovement.x = 0.0f;
+		if (directionKeyDownList[DIRECTIONKEY_LEFT]) {
+		  playerMovement.x += 1.0f;
+		}
+		if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
+		  playerMovement.x -= 1.0f;
+		}
+		rigidCamera->accel += playerMovement;
+		{
+		  playerRotation.x = std::min(0.5f, std::max(-0.5f, playerRotation.x - playerMovement.z * 0.05f));
+		  playerRotation.z = std::min(0.5f, std::max(-0.5f, playerRotation.z + playerMovement.x * 0.05f));
+		  objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
+		}
 	  }
 	  pPartitioner->Update(deltaTime);
 #else
@@ -537,13 +556,40 @@ namespace SunnySideUp {
 		sprintf(buf, "%03.0fKm/h", rigidCamera->accel.Length() * 3.6f);
 		const float width0 = renderer.GetStringWidth(buf) * 0.8f;
 		renderer.AddString(0.95f - width0, 0.05f, 0.8f, Color4B(255, 255, 255, 255), buf);
+
 		float y = objPlayer->Position().y;
 		if (auto radius = rigidCamera->GetRadius()) {
 		  y -= *radius;
 		}
 		sprintf(buf, "%04.0fm", y);
 		const float width1 = renderer.GetStringWidth(buf) * 0.8f;
-		renderer.AddString(0.95f - width1, 0.125f, 0.8f, Color4B(255, 255, 255, 255), buf);
+		renderer.AddString(0.95f - width1, 0.1f, 0.8f, Color4B(255, 255, 255, 255), buf);
+
+		sprintf(buf, "%03.3fs", stopWatch);
+		const float width2 = renderer.GetStringWidth(buf) * 0.8f;
+		renderer.AddString(0.95f - width2, 0.15f, 0.8f, Color4B(255, 255, 255, 255), buf);
+
+		if (countDownTimer > 0.0f) {
+		  static const char strReady[] = "READY!";
+		  static const char* const strNumber[] = { "1", "2", "3" };
+		  renderer.AddString(0.5f - renderer.GetStringWidth(strReady), 0.35f, 2.0f, Color4B(255, 240, 200, 255), strReady);
+		  if (countDownTimer < countDownTimerStartTime) {
+			const int index = static_cast<int>(countDownTimer);
+			float dummy;
+			const float scale = 4.0f - std::modff(countDownTimer, &dummy) * 2.0f;
+			const float w = renderer.GetStringWidth(strNumber[index]) * 0.5f * scale;
+			const float h = renderer.GetStringHeight(strNumber[index]) * 0.5f * scale;
+			const GLbyte a = static_cast<GLbyte>(255.0f * (2.0f - scale * 0.5f));
+			renderer.AddString(0.5f - w, 0.5f - h, scale, Color4B(255, 255, 255, a), strNumber[index]);
+		  }
+		} else if (countDownTimer > countDownTimerTrailingTime) {
+		  static const char str[] = "GO!";
+		  const float scale = 2.0f + (-countDownTimer / -countDownTimerTrailingTime) * 3.0f;
+		  const float w = renderer.GetStringWidth(str) * 0.5f * scale;
+		  const float h = renderer.GetStringHeight(str) * 0.5f * scale;
+		  const GLbyte a = static_cast<GLbyte>(255.0f * (1.0f - (scale - 2.0f) / 3.0f));
+		  renderer.AddString(0.5f - w, 0.5f - h, scale, Color4B(255, 200, 155, a), str);
+		}
 	  }
 	  renderer.Render(&objList[0], &objList[0] + objList.size());
 	}
@@ -568,6 +614,8 @@ namespace SunnySideUp {
 	ObjectPtr objPlayer;
 	Vector3F playerMovement;
 	Vector3F playerRotation;
+	float countDownTimer;
+	float stopWatch;
 
 	std::array<bool, 4> directionKeyDownList;
 
