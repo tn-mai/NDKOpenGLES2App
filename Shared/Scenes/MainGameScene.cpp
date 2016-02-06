@@ -291,7 +291,7 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj1);
 	  }
 
-#if 0
+#if 1
 	  for (int i = 0; i < 5; ++i) {
 		const int cloudCount = i * i / 2 + 1;
 		const int heightMax = 2600 - i * 400;
