@@ -72,6 +72,7 @@ namespace {
 
   void InitNVFenceExtention(bool hasNVfenceExtension)
   {
+#ifndef NDEBUG
 	if (hasNVfenceExtension) {
 	  Local::glDeleteFencesNV = (PFNGLDELETEFENCESNVPROC)eglGetProcAddress("glDeleteFencesNV");
 	  Local::glGenFencesNV = (PFNGLGENFENCESNVPROC)eglGetProcAddress("glGenFencesNV");
@@ -91,6 +92,16 @@ namespace {
 	  Local::glTestFenceNV = dummy_glTestFenceNV;
 	  LOGI("Disable GL_NV_fence");
 	}
+#else
+	Local::glDeleteFencesNV = dummy_glDeleteFencesNV;
+	Local::glGenFencesNV = dummy_glGenFencesNV;
+	Local::glGetFenceivNV = dummy_glGetFenceivNV;
+	Local::glIsFenceNV = dummy_glIsFenceNV;
+	Local::glFinishFenceNV = dummy_glFinishFenceNV;
+	Local::glSetFenceNV = dummy_glSetFenceNV;
+	Local::glTestFenceNV = dummy_glTestFenceNV;
+	LOGI("Disable GL_NV_fence");
+#endif // NDEBUG
   }
 
   int64_t GetCurrentTime()
@@ -1407,6 +1418,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  Local::glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
 	}
 
+	DrawFontFoo();
+
+#ifndef NDEBUG
 	// パフォーマンス計測.
 	{
 	  int64_t fenceTimes[6];
@@ -1471,8 +1485,6 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  }
 	}
 
-	DrawFontFoo();
-
 #if 0
 	{
 	  const Shader& shader = shaderList["default2D"];
@@ -1501,6 +1513,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	}
 #endif
+#endif // NDEBUG
 
 	// テクスチャのバインドを解除.
 	glActiveTexture(GL_TEXTURE5);
