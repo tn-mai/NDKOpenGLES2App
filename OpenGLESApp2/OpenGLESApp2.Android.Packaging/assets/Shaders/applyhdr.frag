@@ -1,4 +1,5 @@
 uniform sampler2D texSource[3]; // 0:main color, 1:1/4 color, 2:hdr factor.
+uniform lowp vec4 materialColor; // for filter color.
 
 varying mediump vec4 texCoord; // xy for main. zw for other.
 
@@ -43,6 +44,8 @@ void main()
   mediump vec3 x = max(gl_FragColor.rgb - 0.004, 0.0);
   gl_FragColor.rgb = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
 #endif
+
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, materialColor.rgb, materialColor.a);
 
 #endif // USE_HDR_BLOOM
 }

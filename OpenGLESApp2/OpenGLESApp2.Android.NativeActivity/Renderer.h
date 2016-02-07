@@ -294,6 +294,14 @@ namespace Mai {
   class Renderer
   {
   public:
+	/// the color filter application mode.
+	enum FilterMode {
+	  FILTERMODE_NONE, ///< no color filter.
+	  FILTERMODE_FADEIN, ///< fade in.
+	  FILTERMODE_FADEOUT, ///< fade out.
+	};
+
+  public:
 	Renderer();
 	~Renderer();
 	ObjectPtr CreateObject(const char* meshName, const Material& m, const char* shaderName);
@@ -317,6 +325,12 @@ namespace Mai {
 	int32_t Width() const { return width; }
 	int32_t Height() const { return height; }
 	void Swap();
+
+	void SetFilterColor(const Color4B&);
+	const Color4B& GetFilterColor() const;
+	void FadeOut(const Color4B&, float);
+	void FadeIn(float);
+	FilterMode GetCurrentFilterMode() const;
 
   private:
 	enum FBOIndex {
@@ -382,6 +396,11 @@ namespace Mai {
 	};
 	std::vector<FontRenderingInfo> fontRenderingInfoList;
 	int currentFontBufferNo;
+
+	FilterMode filterMode;
+	Color4B filterColor;
+	float filterTimer;
+	float filterTargetTime;
 
 #ifdef SHOW_TANGENT_SPACE
 	GLuint vboTBN;

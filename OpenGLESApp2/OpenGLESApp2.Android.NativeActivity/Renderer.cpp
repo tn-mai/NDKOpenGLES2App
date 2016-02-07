@@ -462,6 +462,9 @@ Renderer::Renderer()
   , fboShadow0(0)
   , fboShadow1(0)
   , depth(0)
+  , filterMode(FILTERMODE_NONE)
+  , filterColor(0, 0, 0, 0)
+  , filterTimer(0.0f)
 {
   for (auto& e : fboHDR) {
 	e = 0;
@@ -1404,6 +1407,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  mtx.Scale(1.0f, -1.0f, 1.0f);
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
 
+	  const Vector4F color = filterColor.ToVector4F();
+	  glUniform4f(shader.materialColor, color.x, color.y, color.z, color.w);
+
 	  static const int texSource[] = { 0, 1, 2 };
 	  glUniform1iv(shader.texSource, 4, texSource);
 	  glActiveTexture(GL_TEXTURE0);
@@ -1539,6 +1545,21 @@ void Renderer::Update(float dTime, const Position3F& pos, const Vector3F& dir, c
   cameraPos = pos;
   cameraDir = dir;
   cameraUp = up;
+
+  if (filterMode != FILTERMODE_NONE) {
+	filterTimer += dTime;
+	if (filterTimer >= filterTargetTime) {
+	  filterTimer = filterTargetTime;
+	}
+	if (filterMode == FILTERMODE_FADEOUT) {
+	  filterColor.a = static_cast<GLubyte>(255.0f * (filterTimer / filterTargetTime));
+	} else if (filterMode == FILTERMODE_FADEIN) {
+	  filterColor.a = static_cast<GLubyte>(255.0f * (1.0f - filterTimer / filterTargetTime));
+	}
+	if (filterTimer >= filterTargetTime) {
+	  filterMode = FILTERMODE_NONE;
+	}
+  }
 }
 
 void Renderer::Unload()
@@ -2716,6 +2737,66 @@ const Animation* Renderer::GetAnimation(const char* name)
 	  return &itr->second;
 	}
 	return nullptr;
+}
+
+/** Set the color of filter.
+
+  @param color  the color that is used by the fade-in or fade-out filter.
+*/
+void Renderer::SetFilterColor(const Color4B& color) {
+  filterColor.r = color.r;
+  filterColor.g = color.g;
+  filterColor.b = color.b;
+}
+
+/** Get the color of filter.
+
+  @return the color that is used by the fade-in or fade-out filter.
+
+  @sa FadeIn().
+*/
+const Color4B& Renderer::GetFilterColor() const {
+  return filterColor;
+}
+
+/** Start the fade-out filter.
+
+  @param color the color that is used by the fade-in or fade-out filter.
+  @param time  the fade-out time(the unit is seconds).
+
+  @sa FadeIn().
+*/
+void Renderer::FadeOut(const Color4B& color, float time) {
+  SetFilterColor(color);
+  filterColor.a = 0;
+  filterTimer = 0.0f;
+  filterTargetTime = time;
+  filterMode = FILTERMODE_FADEOUT;
+}
+
+/** Start the fade-in filter.
+
+  the start color is setting by FadeOut() or SetFilterColor().
+
+  @param time  the fade-out time(the unit is seconds).
+
+  @sa FadeOut(), SetFilterColor().
+*/
+void Renderer::FadeIn(float time) {
+  filterColor.a = 255;
+  filterTimer = 0.0f;
+  filterTargetTime = time;
+  filterMode = FILTERMODE_FADEIN;
+}
+
+/** Get the curent filter mode.
+
+  @return the current filter mode.
+
+  @sa FadeIn(), FadeOut().
+*/
+Renderer::FilterMode Renderer::GetCurrentFilterMode() const {
+  return filterMode;
 }
 
 } // namespace Mai;

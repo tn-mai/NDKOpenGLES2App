@@ -23,6 +23,10 @@ namespace SunnySideUp {
 	static const int eventTime = 30;
 	static const int enableInputTime = eventTime - 5;
 
+	int DoUpdate(Engine&, float);
+	int DoFadeOut(Engine&, float);
+	int(FailureScene::*updateFunc)(Engine&, float);
+
 	std::vector<ObjectPtr> objList;
 	bool loaded;
 	bool hasFinishRequest;
@@ -31,7 +35,8 @@ namespace SunnySideUp {
   };
 
   FailureScene::FailureScene()
-	: objList()
+	: updateFunc(&FailureScene::DoUpdate)
+	, objList()
 	, loaded(false)
 	, hasFinishRequest(false)
 	, timer(static_cast<float>(eventTime))
@@ -102,22 +107,45 @@ namespace SunnySideUp {
 	  e->Update(tick);
 	}
 
-	Renderer& r = engine.GetRenderer();
 	const float theta = degreeToRadian<float>(cameraRotation);
 	const float distance = 20;
 	const float x = std::cos(theta) * distance;
 	const float z = std::sin(theta) * distance;
 	const Position3F eyePos(x, 20, z);
 	const Vector3F dir = objList[2]->Position() - eyePos;
-	r.Update(tick, eyePos, dir, Vector3F(0, 1, 0));
+	engine.GetRenderer().Update(tick, eyePos, dir, Vector3F(0, 1, 0));
 
 	cameraRotation += tick * 10.0f;
 	while (cameraRotation >= 360.0f) {
 	  cameraRotation -= 360.0f;
 	}
 
+	return (this->*updateFunc)(engine, tick);
+  }
+
+  /** Wait user input.
+
+  Transition to DoFadeOut() when receive user input or time out.
+  This is the update function called from Update().
+  */
+  int FailureScene::DoUpdate(Engine& engine, float tick) {
 	timer -= tick;
 	if ((timer <= 0.0f) || hasFinishRequest) {
+	  engine.GetRenderer().FadeOut(Color4B(0, 0, 0, 0), 1.0f);
+	  updateFunc = &FailureScene::DoFadeOut;
+	}
+	return SCENEID_CONTINUE;
+  }
+
+  /** Do fade out.
+
+  Transition to the scene of the success/failure event when the fadeout finished.
+  This is the update function called from Update().
+  */
+  int FailureScene::DoFadeOut(Engine& engine, float deltaTime) {
+	Renderer& r = engine.GetRenderer();
+	if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+	  r.FadeIn(1.0f);
 	  return SCENEID_MAINGAME;
 	}
 	return SCENEID_CONTINUE;

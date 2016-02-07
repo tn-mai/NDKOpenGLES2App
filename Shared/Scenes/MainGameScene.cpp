@@ -155,12 +155,13 @@ namespace SunnySideUp {
 	  , playerRotation(0, 0, 0)
 	  , countDownTimer(countDownTimerInitialTime)
 	  , stopWatch(0)
+	  , updateFunc(&MainGameScene::DoUpdate)
 	  , debugData()
 	{
 	  directionKeyDownList.fill(false);
 	}
 	virtual ~MainGameScene() {}
-	virtual bool Load(Engine& engine) {		
+	virtual bool Load(Engine& engine) {
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
 #if 1
@@ -388,6 +389,15 @@ namespace SunnySideUp {
 	}
 
 	virtual int Update(Engine& engine, float deltaTime) {
+	  return (this->*updateFunc)(engine, deltaTime);
+	}
+
+	/** update game play.
+
+	Transition to DoFadeOut() when the player character reached the target height.
+	This is the update function called from Update().
+	*/
+	int DoUpdate(Engine& engine, float deltaTime) {
 #if 1
 	  debugData.MoveCamera(&directionKeyDownList[0]);
 	  //debugCamera.Update(deltaTime, fusedOrientation);
@@ -453,12 +463,12 @@ namespace SunnySideUp {
 	  Renderer& renderer = engine.GetRenderer();
 	  if (!debugData.Updata(renderer, deltaTime)) {
 		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
-	  //			for (auto&& e : engine.obj) {
-	  //				e.Update(engine.deltaTime);
-	  //				while (e.GetCurrentTime() >= 1.0f) {
-	  //					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
-	  //				}
-	  //			}
+		//			for (auto&& e : engine.obj) {
+		//				e.Update(engine.deltaTime);
+		//				while (e.GetCurrentTime() >= 1.0f) {
+		//					e.SetCurrentTime(e.GetCurrentTime() - 1.0f);
+		//				}
+		//			}
 	  }
 
 #if 0
@@ -473,6 +483,24 @@ namespace SunnySideUp {
 	  }
 #endif
 	  if (objPlayer->Position().y <= goalHeight) {
+		renderer.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
+		updateFunc = &MainGameScene::DoFadeOut;
+	  }
+	  return SCENEID_CONTINUE;
+	}
+
+	/** Do fade out.
+
+	Transition to the scene of the success/failure event when the fadeout finished.
+	This is the update function called from Update().
+	*/
+	int DoFadeOut(Engine& engine, float deltaTime) {
+	  Renderer& renderer = engine.GetRenderer();
+	  if (!debugData.Updata(renderer, deltaTime)) {
+		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
+	  }
+	  if (renderer.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+		renderer.FadeIn(1.0f);
 		const float scale = objFlyingPan->Scale().x;
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
 		const float distance = std::sqrtf(v.x * v.x + v.z + v.z);
@@ -635,6 +663,7 @@ namespace SunnySideUp {
 	Vector3F playerRotation;
 	float countDownTimer;
 	float stopWatch;
+	int(MainGameScene::*updateFunc)(Engine&, float);
 
 	std::array<bool, 4> directionKeyDownList;
 
