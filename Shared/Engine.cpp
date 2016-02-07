@@ -21,21 +21,6 @@
 #include "Window.h"
 #include <time.h>
 
-#if 0
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#include <android/sensor.h>
-#include <android/window.h>
-
-#include <typeinfo>
-#include <boost/random.hpp>
-#include <vector>
-
-#include <fcntl.h>
-#include <linux/ioctl.h>
-#include <linux/android_alarm.h>
-#endif
-
 #ifdef __ANDROID__
 #include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
