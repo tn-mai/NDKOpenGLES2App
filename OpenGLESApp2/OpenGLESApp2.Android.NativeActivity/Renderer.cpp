@@ -737,6 +737,17 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glBlendFunc(GL_ONE, GL_ZERO);
   glDisable(GL_CULL_FACE);
 
+  static const int32_t stride = sizeof(Vertex);
+  static const void* const offPosition = reinterpret_cast<void*>(offsetof(Vertex, position));
+  static const void* const offTexCoord = reinterpret_cast<void*>(offsetof(Vertex, texCoord[0]));
+  for (int i = 0; i < VertexAttribLocation_Max; ++i) {
+	glDisableVertexAttribArray(i);
+  }
+  glEnableVertexAttribArray(VertexAttribLocation_Position);
+  glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
+  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
+  glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord);
+
   const Matrix4x4 mP = { {
 	  2.0f / viewport[2], 0,                  0,                                    0,
 	  0,                  -2.0f / viewport[3], 0,                                    0,
@@ -748,6 +759,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glUniform1i(shader.texDiffuse, 0);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureList["ascii"]->TextureId());
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
   const Mesh& mesh = meshList["ascii"];
   float x = pos.x;
   for (const char* p = str; *p; ++p) {
