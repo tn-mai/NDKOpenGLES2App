@@ -85,7 +85,21 @@ namespace Mai {
 		return std::make_shared<AndroidFile>(pAsset);
 	  }
 	  return nullptr;
-    }
+	}
+
+	boost::optional<FileDescriptor> GetFileDescriptor(const char* filepath) {
+	  AAsset* pAsset = AAssetManager_open(pAssetManager, filepath, 0);
+	  if (pAsset) {
+		FileDescriptor fd;
+		fd.fd = AAsset_openFileDescriptor(pAsset, &fd.start, &fd.length);
+		if (fd.fd < 0) {
+		  return boost::none;
+		}
+		AAsset_close(pAsset);
+		return fd;	
+	  }
+	  return boost::none;
+	}
 #else
 	void Initialize() {
 	}

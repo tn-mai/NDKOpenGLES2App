@@ -23,6 +23,12 @@ namespace Mai {
   namespace FileSystem {
 #ifdef __ANDROID__
 	void Initialize(AAssetManager*);
+	struct FileDescriptor {
+		int fd;
+		off_t start;
+		off_t length;
+	};
+	boost::optional<FileDescriptor> GetFileDescriptor(const char*);
 #else
 	void Initialize();
 #endif

@@ -74,6 +74,7 @@
     <Content Include="assets\Meshes\chickenegg.msh" />
     <Content Include="assets\Meshes\flyingpan.msh" />
     <Content Include="assets\Meshes\titlelogo.msh" />
+    <Content Include="assets\Midis\wind.mid" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
     <Content Include="assets\Shaders\bitmapfont.frag" />

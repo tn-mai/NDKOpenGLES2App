@@ -22,5 +22,6 @@
     <ClCompile Include="TangentSpaceData.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="AndroidWindow.cpp" />
+    <ClCompile Include="AndroidAudio.cpp" />
   </ItemGroup>
 </Project>

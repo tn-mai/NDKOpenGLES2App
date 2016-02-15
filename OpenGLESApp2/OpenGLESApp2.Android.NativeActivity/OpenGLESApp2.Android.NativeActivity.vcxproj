@@ -86,7 +86,7 @@
       <EnableNeonCodegen>false</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;m</LibraryDependencies>
+      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;OpenSLES;m</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -101,7 +101,7 @@
       <EnableNeonCodegen>true</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;m</LibraryDependencies>
+      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;OpenSLES;m</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
@@ -115,7 +115,7 @@
       <CppLanguageStandard>c++11</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;m</LibraryDependencies>
+      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;OpenSLES;m</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
@@ -129,7 +129,7 @@
       <CppLanguageStandard>c++11</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;m</LibraryDependencies>
+      <LibraryDependencies>%(LibraryDependencies);log;android;EGL;GLESv2;OpenSLES;m</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -145,6 +145,7 @@
     <ClInclude Include="TouchSwipeCamera.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AndroidAudio.cpp" />
     <ClCompile Include="AndroidWindow.cpp" />
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="Collision.cpp" />
