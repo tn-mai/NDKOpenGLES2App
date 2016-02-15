@@ -503,7 +503,7 @@ namespace SunnySideUp {
 		renderer.FadeIn(1.0f);
 		const float scale = objFlyingPan->Scale().x;
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
-		const float distance = std::sqrtf(v.x * v.x + v.z + v.z);
+		const float distance = std::sqrt(v.x * v.x + v.z + v.z);
 		if (distance <= 1.0f * scale) {
 		  return SCENEID_SUCCESS;
 		}
@@ -622,7 +622,7 @@ namespace SunnySideUp {
 		  if (countDownTimer < countDownTimerStartTime) {
 			const int index = static_cast<int>(countDownTimer);
 			float dummy;
-			const float scale = 4.0f - std::modff(countDownTimer, &dummy) * 2.0f;
+			const float scale = 4.0f - std::modf(countDownTimer, &dummy) * 2.0f;
 			const float w = renderer.GetStringWidth(strNumber[index]) * 0.5f * scale;
 			const float h = renderer.GetStringHeight(strNumber[index]) * 0.5f * scale;
 			const GLbyte a = static_cast<GLbyte>(255.0f * (2.0f - scale * 0.5f));
