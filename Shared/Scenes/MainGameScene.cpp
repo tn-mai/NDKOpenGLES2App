@@ -21,13 +21,13 @@ namespace SunnySideUp {
 	DebugData()
 	  : debug(false)
 	  , dragging(false)
-	  , camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
 	  , mouseX(-1)
 	  , mouseY(-1)
+	  , camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
 	{}
 
 	void SetDebugObj(size_t i, const ObjectPtr& obj) {
-	  if (i >= 0 && i < debugObj.size()) {
+	  if (i < debugObj.size()) {
 		debugObj[i] = obj;
 	  }
 	}
