@@ -45,4 +45,4 @@ const FontInfo& GetSpecialFontInfo(SpecialFontId);
 
 } // namespace Mai
 
-#endif MAI_FONTINFO_H_INCLUDED
+#endif // MAI_FONTINFO_H_INCLUDED
