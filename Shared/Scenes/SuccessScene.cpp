@@ -92,6 +92,9 @@ namespace SunnySideUp {
 		hasFinishRequest = true;
 	  }
 	  break;
+	default:
+	  /* DO NOTING */
+	  break;
 	}
   }
   

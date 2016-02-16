@@ -365,6 +365,9 @@ namespace SunnySideUp {
 		case KEY_D:
 		  directionKeyDownList[DIRECTIONKEY_RIGHT] = true;
 		  break;
+		default:
+		  /* DO NOTING */
+		  break;
 		}
 		break;
 	  case Event::EVENT_KEY_RELEASED:
@@ -380,6 +383,9 @@ namespace SunnySideUp {
 		  break;
 		case KEY_D:
 		  directionKeyDownList[DIRECTIONKEY_RIGHT] = false;
+		  break;
+		default:
+		  /* DO NOTING */
 		  break;
 		}
 		break;
