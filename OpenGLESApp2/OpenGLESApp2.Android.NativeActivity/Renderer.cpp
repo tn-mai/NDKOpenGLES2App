@@ -1600,7 +1600,7 @@ void Renderer::Unload()
 		glDeleteBuffers(1, &vbo);
 		vbo = 0;
 	}
-	if (vboFont) {
+	if (vboFont[0]) {
 	  glDeleteBuffers(2, vboFont);
 	  vboFont[0] = vboFont[1] = 0;
 	}
