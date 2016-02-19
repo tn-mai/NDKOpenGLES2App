@@ -1423,7 +1423,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform4f(shader.materialColor, color.x, color.y, color.z, color.w);
 
 	  static const int texSource[] = { 0, 1, 2 };
-	  glUniform1iv(shader.texSource, 4, texSource);
+	  glUniform1iv(shader.texSource, 3, texSource);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
 	  glActiveTexture(GL_TEXTURE1);
