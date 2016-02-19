@@ -2,6 +2,8 @@
 */
 #include "Audio.h"
 #include "../../Shared/File.h"
+#include "android_native_app_glue.h"
+#include <android/log.h>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 #include <vector>
@@ -9,10 +11,13 @@
 #include <algorithm>
 #include <stdint.h>
 
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "SunnySideUp.Audio", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "SunnySideUp.Audio", __VA_ARGS__))
+
 namespace Mai {
 
-/// MIDI
-struct MIDIPlayer {
+/// MP3 player.
+struct AudioPlayer {
   SLObjectItf   player;
   SLmillisecond dur;
   SLmillisecond pos;
@@ -43,7 +48,7 @@ private:
 
   std::string  bgmFilename;
 
-  MIDIPlayer   midiPlayer;
+  AudioPlayer  player;
 };
 
 struct SampleBuffer {
@@ -68,104 +73,131 @@ SampleBufferList allocateSampleBufs(uint32_t count, uint32_t sizeInByte) {
   return bufs;
 }
 
-AudioImpl::AudioImpl() {
+AudioImpl::AudioImpl()
+  : engineObject(nullptr)
+  , engineInterface(nullptr)
+  , mixObject(nullptr)
+  , volumeInterface(nullptr)
+  , bgmFilename()
+  , player{ nullptr }
+{
 }
 
-/** Create MIDI player object.
+/** Create audio player object.
   @sa DestroyMidiPlayer()
 */
-bool CreateMidiPlayer(MIDIPlayer& mp, SLEngineItf eng, SLObjectItf mix) {
-  auto fd = FileSystem::GetFileDescriptor("Midis/wind.mid");
+bool CreateAudioPlayer(AudioPlayer& mp, SLEngineItf& eng, SLObjectItf& mix, const std::string& filename) {
+  auto fd = FileSystem::GetFileDescriptor(filename.c_str());
   SLDataLocator_AndroidFD fileLoc = { SL_DATALOCATOR_ANDROIDFD, fd->fd, fd->start, fd->length };
-  SLDataFormat_MIME fileFmt = { SL_DATAFORMAT_MIME, (SLchar*)"audio/x-midi", SL_CONTAINERTYPE_SMF };
+  SLDataFormat_MIME fileFmt = { SL_DATAFORMAT_MIME, nullptr, SL_CONTAINERTYPE_UNSPECIFIED };
+  SLDataSource fileSrc = { &fileLoc, &fileFmt };
 
-  const SLboolean required[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE };
-  const SLInterfaceID iidArray[] = { SL_IID_SEEK, SL_IID_PLAY, SL_IID_VOLUME };
-
-  SLDataSource fileSrc = { &fileFmt, &fileLoc };
   SLDataLocator_OutputMix audOutLoc = { SL_DATALOCATOR_OUTPUTMIX, mix };
-  SLDataSink    audOutSnk = { &audOutLoc, nullptr };
+  SLDataSink audOutSnk = { &audOutLoc, nullptr };
 
-  SLresult result = (*eng)->CreateMidiPlayer(eng, &mp.player, &fileSrc, nullptr, &audOutSnk, nullptr, nullptr, 1, iidArray, required);
+  const SLboolean required[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
+  const SLInterfaceID iidArray[] = { SL_IID_PLAY, SL_IID_SEEK };
+
+  SLresult result;
+  result = (*eng)->CreateAudioPlayer(eng, &mp.player, &fileSrc, &audOutSnk, 2, iidArray, required);
   if (result != SL_RESULT_SUCCESS) {
+	LOGW("Failed to create CreateAudioPlayer:0x%lx", result);
     return false;
   }
   result = (*mp.player)->Realize(mp.player, SL_BOOLEAN_FALSE);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed to realize AudioPlayer:0x%lx", result);
+	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_PLAY, &mp.playInterface);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed to get SL_IID_PLAY interface:0x%lx", result);
+	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_SEEK, &mp.seekInterface);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed to get SL_IID_SEEK interface:0x%lx", result);
+	return false;
   }
   result = (*mp.playInterface)->GetDuration(mp.playInterface, &mp.dur);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed to get duration:0x%lx", result);
+	return false;
   }
 
   (*mp.seekInterface)->SetLoop(mp.seekInterface, SL_BOOLEAN_TRUE, 0, SL_TIME_UNKNOWN);
+//  (*mp.playInterface)->SetPlayState(mp.playInterface, SL_PLAYSTATE_STOPPED);
   (*mp.playInterface)->SetPlayState(mp.playInterface, SL_PLAYSTATE_PLAYING);
 
+  LOGI("Create AudioPlayer");
   return true;
 }
 
-/** Destroy MIDI player object.
+/** Destroy audio player object.
   @sa CreateMidiPlayer()
 */
-void DestroyMidiPlayer(MIDIPlayer& mp) {
+void DestroyAudioPlayer(AudioPlayer& mp) {
   if (mp.player) {
 	(*mp.player)->Destroy(mp.player);
 	mp.player = nullptr;
+	LOGI("Destroy AudioPlayer");
   }
 }
 
 /** Initialize sound controller object.
 */
 bool AudioImpl::Initialize() {
-  SLresult result = slCreateEngine(&engineObject, 0, nullptr, 0, nullptr, nullptr);
+  const SLInterfaceID engineMixIIDs[] = { SL_IID_ENGINE };
+  const SLboolean engineMixReqs[] = { SL_BOOLEAN_TRUE };
+
+  SLresult result = slCreateEngine(&engineObject, 0, nullptr, 1, engineMixIIDs, engineMixReqs);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed slCreateEngine:0x%lx", result);
+	return false;
   }
   result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed to realize AudioEngine:0x%lx", result);
+	return false;
   }
   result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineInterface);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed to get SL_IID_ENGINE interface:0x%lx", result);
+	return false;
   }
 
-  const SLInterfaceID ids[1] = {SL_IID_VOLUME};
-  const SLboolean req[1] = {SL_BOOLEAN_TRUE};
-  result = (*engineInterface)->CreateOutputMix(engineInterface, &mixObject, 1, ids, req);
+  const SLInterfaceID ids[] = {};
+  const SLboolean req[] = {};
+  result = (*engineInterface)->CreateOutputMix(engineInterface, &mixObject, 0, ids, req);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed CreateOutputMix:0x%lx", result);
+	return false;
   }
   result = (*mixObject)->Realize(mixObject, SL_BOOLEAN_FALSE);
   if (result != SL_RESULT_SUCCESS) {
-    return false;
+	LOGW("Failed to realize OutputMix:0x%lx", result);
+	return false;
   }
-  result = (*mixObject)->GetInterface(mixObject, SL_IID_VOLUME, &volumeInterface);
-  if (result != SL_RESULT_SUCCESS) {
-    return false;
-  }
+//  result = (*mixObject)->GetInterface(mixObject, SL_IID_VOLUME, &volumeInterface);
+//  if (result != SL_RESULT_SUCCESS) {
+//    return false;
+//  }
 
+  LOGI("Create AudioEngine");
   return true;
 }
 
 void AudioImpl::Finalize() {
-  DestroyMidiPlayer(midiPlayer);
+  DestroyAudioPlayer(player);
   if (mixObject) {
     (*mixObject)->Destroy(mixObject);
     mixObject = nullptr;
+	LOGI("Destroy OutputMix");
   }
   if (engineObject) {
     (*engineObject)->Destroy(engineObject);
     engineObject = nullptr;
+	LOGI("Destroy AudioEngine");
   }
 }
 
@@ -180,16 +212,16 @@ void AudioImpl::PlaySE(const char* id) {
 }
 
 void AudioImpl::PlayBGM(const char* filename) {
-  if (!midiPlayer.player || bgmFilename != filename) {
-    if (CreateMidiPlayer(midiPlayer, engineInterface, mixObject)) {
+  if (!player.player || bgmFilename != filename) {
+    if (CreateAudioPlayer(player, engineInterface, mixObject, filename)) {
       bgmFilename = filename;
     }
   }
 }
 
 void AudioImpl::StopBGM() {
-  if (midiPlayer.playInterface) {
-    (*midiPlayer.playInterface)->SetPlayState(midiPlayer.playInterface, SL_PLAYSTATE_STOPPED);
+  if (player.playInterface) {
+    (*player.playInterface)->SetPlayState(player.playInterface, SL_PLAYSTATE_STOPPED);
   }
 }
 
@@ -201,7 +233,13 @@ void AudioImpl::Clear() {
   @return the pointer to the interface of the sound engine implementation.
 */
 AudioInterfacePtr CreateAudioEngine() {
-  return AudioInterfacePtr(new AudioImpl());
+  std::shared_ptr<AudioImpl> p(new AudioImpl());
+  if (p) {
+	if (!p->Initialize()) {
+	  return nullptr;
+	}
+  }
+  return p;
 }
 
 } // namespace Mai
