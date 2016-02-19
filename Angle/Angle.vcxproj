@@ -159,6 +159,7 @@
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Win32Audio.cpp" />
     <ClCompile Include="Win32Window.cpp" />
   </ItemGroup>
   <ItemGroup>
