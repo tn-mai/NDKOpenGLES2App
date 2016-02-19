@@ -737,6 +737,9 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glBlendFunc(GL_ONE, GL_ZERO);
   glDisable(GL_CULL_FACE);
 
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+
   static const int32_t stride = sizeof(Vertex);
   static const void* const offPosition = reinterpret_cast<void*>(offsetof(Vertex, position));
   static const void* const offTexCoord = reinterpret_cast<void*>(offsetof(Vertex, texCoord[0]));
@@ -759,7 +762,6 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glUniform1i(shader.texDiffuse, 0);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureList["ascii"]->TextureId());
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
   const Mesh& mesh = meshList["ascii"];
   float x = pos.x;
   for (const char* p = str; *p; ++p) {
@@ -842,6 +844,7 @@ void Renderer::DrawFontFoo()
   glBindTexture(GL_TEXTURE_2D, textureList["font"]->TextureId());
 
   glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
   for (int i = 0; i < VertexAttribLocation_Max; ++i) {
 	glDisableVertexAttribArray(i);
