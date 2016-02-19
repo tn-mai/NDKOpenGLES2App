@@ -79,10 +79,14 @@ namespace SunnySideUp {
 	This is the update function called from Update().
 	*/
 	int DoFadeIn(Engine& engine, float) {
-	  Renderer& r = engine.GetRenderer();
-	  r.SetFilterColor(Color4B(0, 0, 0, 255));
-	  r.FadeIn(1.0f);
-	  updateFunc = &TitleScene::DoUpdate;
+	  if (engine.IsInitialized()) {
+		Renderer& r = engine.GetRenderer();
+		r.SetFilterColor(Color4B(0, 0, 0, 255));
+		r.FadeIn(1.0f);
+		AudioInterface& audio = engine.GetAudio();
+		audio.PlayBGM("Audio/background.mp3");
+		updateFunc = &TitleScene::DoUpdate;
+	  }
 	  return SCENEID_CONTINUE;
 	}
 
@@ -113,6 +117,7 @@ namespace SunnySideUp {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 		r.FadeIn(1.0f);
+		engine.GetAudio().StopBGM();
 		return SCENEID_STARTEVENT;
 	  }
 	  return SCENEID_CONTINUE;

@@ -82,11 +82,14 @@ namespace Mai {
 		return STATE_TERMINATE;
 
 	  case Event::EVENT_INIT_WINDOW:
+		audio.reset();
+		audio = CreateAudioEngine();
 		InitDisplay();
 		break;
 
 	  case Event::EVENT_TERM_WINDOW:
 		TermDisplay();
+		audio.reset();
 		break;
 
 	  default:

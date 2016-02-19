@@ -64,6 +64,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Content Include="assets\accelerator.dae" />
+    <Content Include="assets\Audio\background.mp3" />
     <Content Include="assets\block1.dae" />
     <Content Include="assets\brokenegg.dae" />
     <Content Include="assets\chickenegg.dae" />
@@ -74,7 +75,6 @@
     <Content Include="assets\Meshes\chickenegg.msh" />
     <Content Include="assets\Meshes\flyingpan.msh" />
     <Content Include="assets\Meshes\titlelogo.msh" />
-    <Content Include="assets\Midis\wind.mid" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
     <Content Include="assets\Shaders\bitmapfont.frag" />

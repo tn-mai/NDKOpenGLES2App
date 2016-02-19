@@ -2,6 +2,7 @@
 #define MAI_COMMON_ENGINE_H_INCLUDED
 #include "Window.h"
 #include "Vector.h"
+#include "Audio.h"
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/SpacePartitioner.h"
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Collision.h"
@@ -51,6 +52,9 @@ namespace Mai {
 	Renderer& GetRenderer() { return renderer; }
 	const Renderer& GetRenderer() const { return renderer; }
 
+	AudioInterface& GetAudio() { return *audio; }
+	const AudioInterface& GetAudio() const { return *audio; }
+
   private:
 	State ProcessWindowEvent(Window&);
 	void Draw();
@@ -61,6 +65,7 @@ namespace Mai {
 
 	Window* pWindow;
 	Renderer renderer;
+	AudioInterfacePtr audio;
 
 	// frame rate control.
 	float avgFps;
