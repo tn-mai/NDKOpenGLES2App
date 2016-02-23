@@ -58,10 +58,11 @@ void main(void)
 #if 1
   // material parameter
   lowp vec3 Idiff = vec3(0.0, 0.0, 0.0);
-  lowp vec3 Ispec = vec3(0.0, 0.0, 0.0);
+  mediump vec3 Ispec = vec3(0.0, 0.0, 0.0);
 
   lowp vec4 col = texture2D(texDiffuse, texCoord.xy);
   col.rgb *= materialColor.rgb;
+  // note: the alpha component contains the metallic paramter rathar than the transparency.
   col.a = min(1.0, max(0.0, col.a + metallicAndRoughness.x));
 
   mediump vec4 normal = texture2D(texNormal, texCoord.xy);
@@ -139,7 +140,7 @@ void main(void)
 	mediump vec3 colIBL = mix(iblColor[0].rgb , iblColor[1].rgb, min(mipmapLevel, 1.0));
 	colIBL = mix(colIBL, iblColor[2].rgb, max(mipmapLevel - 1.0, 0.0));
 	mediump float dotNV2 = max(dot(eyeVectorW, normal.xyz), 0.0001);
-	Ispec += colIBL * FresnelSchlick(F0, dotNV2);
+	Ispec += max(colIBL * FresnelSchlick(F0, dotNV2), vec3(0.0, 0.0, 0.0));
 	Idiff = iblColor[2].rgb * col.rgb * col.a;
 #else
 	mediump vec3 refVector2 = reflect(eyeVectorW, normal.xyz);
@@ -170,7 +171,7 @@ void main(void)
 	}
 	//	}
 #endif
-
+/*
 #ifdef DEBUG
 	int iDebug = int(debug);
 	if (iDebug == 0) {
@@ -208,4 +209,5 @@ void main(void)
 	  gl_FragColor.rgb = vec3(0.0, 0.0, normal.z * 0.25 + 0.25);
 	}
 #endif // DEBUG
+*/
 }
