@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)File.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Matrix.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\TitleScene.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\StartEventScene.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\MainGameScene.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\SuccessScene.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\FailureScene.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\GameOverScene.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)FontInfo.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Event.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)File.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Keyboard.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Matrix.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Mouse.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Quaternion.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vector.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Window.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\Scene.h">
+      <Filter>Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)FontInfo.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Audio.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Scenes">
+      <UniqueIdentifier>{86a587b2-1b16-4204-a45a-0b068b40d285}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
