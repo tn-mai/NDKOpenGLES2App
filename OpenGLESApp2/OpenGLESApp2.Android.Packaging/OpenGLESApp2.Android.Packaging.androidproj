@@ -65,6 +65,7 @@
   <ItemGroup>
     <Content Include="assets\accelerator.dae" />
     <Content Include="assets\Audio\background.mp3" />
+    <Content Include="assets\Audio\dive.mp3" />
     <Content Include="assets\block1.dae" />
     <Content Include="assets\brokenegg.dae" />
     <Content Include="assets\chickenegg.dae" />
