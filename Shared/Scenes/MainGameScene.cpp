@@ -1,6 +1,7 @@
 /** @file MainGameScene.cpp
 */
 #include "Scene.h"
+#include "../Audio.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
 #include <array>
@@ -320,6 +321,8 @@ namespace SunnySideUp {
 		}
 	  }
 #endif
+	  AudioInterface& audio = engine.GetAudio();
+	  audio.PlayBGM("Audio/dive.mp3");
 	  status = STATUSCODE_RUNNABLE;
 	  return true;
 	}
@@ -506,6 +509,8 @@ namespace SunnySideUp {
 		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
 	  }
 	  if (renderer.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+		AudioInterface& audio = engine.GetAudio();
+		audio.StopBGM();
 		renderer.FadeIn(1.0f);
 		const float scale = objFlyingPan->Scale().x;
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
