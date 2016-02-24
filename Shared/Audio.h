@@ -13,8 +13,8 @@ public:
   virtual ~AudioInterface() {}
   virtual bool LoadSE(const char* id, const char* filename) = 0;
   virtual void PrepareSE(const char* id) = 0;
-  virtual void PlaySE(const char* id) = 0;
-  virtual void PlayBGM(const char* filename) = 0;
+  virtual void PlaySE(const char* id, float volume = 0.5f) = 0;
+  virtual void PlayBGM(const char* f, float volume = 0.5f) = 0;
   virtual void StopBGM() = 0;
   virtual void Clear() = 0;
 };

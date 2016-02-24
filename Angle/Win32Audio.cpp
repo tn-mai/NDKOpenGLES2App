@@ -14,8 +14,8 @@ public:
   virtual void Finalize();
   virtual bool LoadSE(const char* id, const char* filename);
   virtual void PrepareSE(const char* id);
-  virtual void PlaySE(const char* id);
-  virtual void PlayBGM(const char* filename);
+  virtual void PlaySE(const char* id, float);
+  virtual void PlayBGM(const char* filename, float);
   virtual void StopBGM();
   virtual void Clear();
 };
@@ -38,10 +38,10 @@ bool AudioImpl::LoadSE(const char* id, const char* filename) {
 void AudioImpl::PrepareSE(const char* id)  {
 }
 
-void AudioImpl::PlaySE(const char* id) {
+void AudioImpl::PlaySE(const char* id, float) {
 }
 
-void AudioImpl::PlayBGM(const char* filename) {
+void AudioImpl::PlayBGM(const char* filename, float) {
 }
 
 void AudioImpl::StopBGM() {

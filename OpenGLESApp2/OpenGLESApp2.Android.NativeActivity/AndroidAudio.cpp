@@ -23,6 +23,7 @@ struct AudioPlayer {
   SLmillisecond pos;
   SLPlayItf     playInterface;
   SLSeekItf     seekInterface;
+  SLVolumeItf   volumeInterface;
 };
 
 /** The sound engine implementation.
@@ -35,8 +36,8 @@ public:
   virtual void Finalize();
   virtual bool LoadSE(const char* id, const char* filename);
   virtual void PrepareSE(const char* id);
-  virtual void PlaySE(const char* id);
-  virtual void PlayBGM(const char* filename);
+  virtual void PlaySE(const char* id, float);
+  virtual void PlayBGM(const char* filename, float);
   virtual void StopBGM();
   virtual void Clear();
 
@@ -95,11 +96,11 @@ bool CreateAudioPlayer(AudioPlayer& mp, SLEngineItf& eng, SLObjectItf& mix, cons
   SLDataLocator_OutputMix audOutLoc = { SL_DATALOCATOR_OUTPUTMIX, mix };
   SLDataSink audOutSnk = { &audOutLoc, nullptr };
 
-  const SLboolean required[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
-  const SLInterfaceID iidArray[] = { SL_IID_PLAY, SL_IID_SEEK };
+  const SLboolean required[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
+  const SLInterfaceID iidArray[] = { SL_IID_PLAY, SL_IID_SEEK, SL_IID_VOLUME };
 
   SLresult result;
-  result = (*eng)->CreateAudioPlayer(eng, &mp.player, &fileSrc, &audOutSnk, 2, iidArray, required);
+  result = (*eng)->CreateAudioPlayer(eng, &mp.player, &fileSrc, &audOutSnk, 3, iidArray, required);
   if (result != SL_RESULT_SUCCESS) {
 	LOGW("Failed to create CreateAudioPlayer:0x%lx", result);
     return false;
@@ -117,6 +118,11 @@ bool CreateAudioPlayer(AudioPlayer& mp, SLEngineItf& eng, SLObjectItf& mix, cons
   result = (*mp.player)->GetInterface(mp.player, SL_IID_SEEK, &mp.seekInterface);
   if (result != SL_RESULT_SUCCESS) {
 	LOGW("Failed to get SL_IID_SEEK interface:0x%lx", result);
+	return false;
+  }
+  result = (*mp.player)->GetInterface(mp.player, SL_IID_VOLUME, &mp.volumeInterface);
+  if (result != SL_RESULT_SUCCESS) {
+	LOGW("Failed to get SL_IID_VOLUME interface:0x%lx", result);
 	return false;
   }
   result = (*mp.playInterface)->GetDuration(mp.playInterface, &mp.dur);
@@ -208,19 +214,29 @@ bool AudioImpl::LoadSE(const char* id, const char* filename) {
 void AudioImpl::PrepareSE(const char* id)  {
 }
 
-void AudioImpl::PlaySE(const char* id) {
+void AudioImpl::PlaySE(const char* id, float volume) {
 }
 
-void AudioImpl::PlayBGM(const char* filename) {
-  if (!player.player || bgmFilename != filename) {
-    if (CreateAudioPlayer(player, engineInterface, mixObject, filename)) {
-      bgmFilename = filename;
-    }
+void AudioImpl::PlayBGM(const char* filename, float volume) {
+  if (player.player) {
+	if (bgmFilename == filename) {
+	  (*player.seekInterface)->SetPosition(player.seekInterface, 0, SL_SEEKMODE_FAST);
+	  (*player.playInterface)->SetPlayState(player.playInterface, SL_PLAYSTATE_PLAYING);
+	  return;
+	} else {
+	  DestroyAudioPlayer(player);
+	}
+  }
+  if (CreateAudioPlayer(player, engineInterface, mixObject, filename)) {
+	const float bell = std::log(2.0f) / std::log(1.0f / volume);
+	SLmillibel vol = static_cast<SLmillibel>(-1000.0f * bell);
+	(*player.volumeInterface)->SetVolumeLevel(player.volumeInterface, vol);
+	bgmFilename = filename;
   }
 }
 
 void AudioImpl::StopBGM() {
-  if (player.playInterface) {
+  if (player.player) {
     (*player.playInterface)->SetPlayState(player.playInterface, SL_PLAYSTATE_STOPPED);
   }
 }
