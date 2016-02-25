@@ -56,7 +56,7 @@ private:
   float  bgmFadeTime;
   float  bgmFadeTimer;
 
-  AudioPlayer  player;
+  AudioPlayer  bgmPlayer;
 };
 
 struct SampleBuffer {
@@ -88,7 +88,7 @@ AudioImpl::AudioImpl()
   , bgmFilename()
   , bgmIsPlay(true)
   , bgmFadeTimer(0)
-  , player{ nullptr }
+  , bgmPlayer{ nullptr }
 {
 }
 
@@ -197,7 +197,7 @@ bool AudioImpl::Initialize() {
 }
 
 void AudioImpl::Finalize() {
-  DestroyAudioPlayer(player);
+  DestroyAudioPlayer(bgmPlayer);
   if (mixObject) {
     (*mixObject)->Destroy(mixObject);
     mixObject = nullptr;
@@ -221,18 +221,18 @@ void AudioImpl::PlaySE(const char* id, float volume) {
 }
 
 void AudioImpl::PlayBGM(const char* filename, float volume) {
-  if (player.player) {
+  if (bgmPlayer.player) {
 	if (bgmFilename == filename) {
-	  (*player.seekInterface)->SetPosition(player.seekInterface, 0, SL_SEEKMODE_FAST);
-	  (*player.playInterface)->SetPlayState(player.playInterface, SL_PLAYSTATE_STOPPED);
-	  (*player.playInterface)->SetPlayState(player.playInterface, SL_PLAYSTATE_PLAYING);
+	  (*bgmPlayer.seekInterface)->SetPosition(bgmPlayer.seekInterface, 0, SL_SEEKMODE_FAST);
+	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_STOPPED);
+	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_PLAYING);
 	  SetBGMVolume(volume);
 	  return;
 	} else {
-	  DestroyAudioPlayer(player);
+	  DestroyAudioPlayer(bgmPlayer);
 	}
   }
-  if (CreateAudioPlayer(player, engineInterface, mixObject, filename)) {
+  if (CreateAudioPlayer(bgmPlayer, engineInterface, mixObject, filename)) {
 	bgmFilename = filename;
 	bgmIsPlay = true;
 	SetBGMVolume(volume);
@@ -240,18 +240,18 @@ void AudioImpl::PlayBGM(const char* filename, float volume) {
 }
 
 void AudioImpl::StopBGM(float fadeoutTimeSec) {
-  if (player.player) {
+  if (bgmPlayer.player) {
 	bgmFadeTime = bgmFadeTimer = std::max(0.0f ,fadeoutTimeSec);
 	if (fadeoutTimeSec == 0.0f) {
 	  bgmIsPlay = false;
-	  (*player.playInterface)->SetPlayState(player.playInterface, SL_PLAYSTATE_PAUSED);
+	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_PAUSED);
 	  LOGI("StopBGM: %s", bgmFilename.c_str());
 	}
   }
 }
 
 void AudioImpl::SetBGMVolume(float volume) {
-  if (player.player) {
+  if (bgmPlayer.player) {
 	bgmVolume = std::min(1.0f, std::max(0.0f, volume));
 	bgmFadeTimer = bgmFadeTime = 0.0f;
 	UpdateBGMVolume();
@@ -259,10 +259,10 @@ void AudioImpl::SetBGMVolume(float volume) {
 }
 
 void AudioImpl::UpdateBGMVolume() {
-  if (player.player) {
+  if (bgmPlayer.player) {
 	const float volume = bgmFadeTimer > 0.0f ? bgmVolume * bgmFadeTimer / bgmFadeTime : bgmVolume;
 	const SLmillibel millibell = volume < 0.01f ? SL_MILLIBEL_MIN : static_cast<SLmillibel>(8000.0f * std::log10(volume));
-	(*player.volumeInterface)->SetVolumeLevel(player.volumeInterface, millibell);
+	(*bgmPlayer.volumeInterface)->SetVolumeLevel(bgmPlayer.volumeInterface, millibell);
   }
 }
 
@@ -270,9 +270,9 @@ void AudioImpl::Clear() {
 }
 
 void AudioImpl::Update(float tick) {
-  if (player.player) {
+  if (bgmPlayer.player) {
 	SLuint32 state;
-	(*player.playInterface)->GetPlayState(player.playInterface, &state);
+	(*bgmPlayer.playInterface)->GetPlayState(bgmPlayer.playInterface, &state);
 	switch (state) {
 	case SL_PLAYSTATE_PLAYING:
 	  if (bgmFadeTimer > 0.0f) {
@@ -280,7 +280,7 @@ void AudioImpl::Update(float tick) {
 		UpdateBGMVolume();
 		if (bgmFadeTimer <= 0.0f) {
 		  bgmIsPlay = false;
-		  (*player.playInterface)->SetPlayState(player.playInterface, SL_PLAYSTATE_PAUSED);
+		  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_PAUSED);
 		  LOGI("StopBGM: %s", bgmFilename.c_str());
 		}
 	  }
