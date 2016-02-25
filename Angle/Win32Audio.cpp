@@ -16,8 +16,9 @@ public:
   virtual void PrepareSE(const char* id);
   virtual void PlaySE(const char* id, float);
   virtual void PlayBGM(const char* filename, float);
-  virtual void StopBGM();
+  virtual void StopBGM(float);
   virtual void Clear();
+  virtual void Update(float);
 };
 
 AudioImpl::AudioImpl() {
@@ -44,10 +45,13 @@ void AudioImpl::PlaySE(const char* id, float) {
 void AudioImpl::PlayBGM(const char* filename, float) {
 }
 
-void AudioImpl::StopBGM() {
+void AudioImpl::StopBGM(float) {
 }
 
 void AudioImpl::Clear() {
+}
+
+void AudioImpl::Update(float) {
 }
 
 /** Create the sound engine object.

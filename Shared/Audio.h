@@ -15,8 +15,9 @@ public:
   virtual void PrepareSE(const char* id) = 0;
   virtual void PlaySE(const char* id, float volume = 0.5f) = 0;
   virtual void PlayBGM(const char* f, float volume = 0.5f) = 0;
-  virtual void StopBGM() = 0;
+  virtual void StopBGM(float fadeoutTimeSec = 0.5f) = 0;
   virtual void Clear() = 0;
+  virtual void Update(float tick) = 0;
 };
 
 typedef std::shared_ptr<AudioInterface> AudioInterfacePtr;

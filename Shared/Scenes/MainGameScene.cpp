@@ -322,7 +322,7 @@ namespace SunnySideUp {
 	  }
 #endif
 	  AudioInterface& audio = engine.GetAudio();
-	  audio.PlayBGM("Audio/dive.mp3");
+	  audio.PlayBGM("Audio/dive.mp3", 1.0f);
 	  status = STATUSCODE_RUNNABLE;
 	  return true;
 	}
@@ -492,6 +492,8 @@ namespace SunnySideUp {
 	  }
 #endif
 	  if (objPlayer->Position().y <= goalHeight) {
+		AudioInterface& audio = engine.GetAudio();
+		audio.StopBGM(5.0f);
 		renderer.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
 		updateFunc = &MainGameScene::DoFadeOut;
 	  }
@@ -509,8 +511,6 @@ namespace SunnySideUp {
 		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
 	  }
 	  if (renderer.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
-		AudioInterface& audio = engine.GetAudio();
-		audio.StopBGM();
 		renderer.FadeIn(1.0f);
 		const float scale = objFlyingPan->Scale().x;
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();

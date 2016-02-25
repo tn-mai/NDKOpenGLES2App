@@ -245,6 +245,9 @@ namespace Mai {
 		  break;
 		}
 	  }
+	  if (audio) {
+		audio->Update(deltaTime);
+	  }
 	  DrawFrame();
 	}
   }
