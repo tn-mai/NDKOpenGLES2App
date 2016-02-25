@@ -45,7 +45,6 @@ private:
   SLObjectItf  engineObject;
   SLEngineItf  engineInterface;
   SLObjectItf  mixObject;
-  SLVolumeItf  volumeInterface;
 
   std::string  bgmFilename;
 
@@ -78,7 +77,6 @@ AudioImpl::AudioImpl()
   : engineObject(nullptr)
   , engineInterface(nullptr)
   , mixObject(nullptr)
-  , volumeInterface(nullptr)
   , bgmFilename()
   , player{ nullptr }
 {
@@ -184,10 +182,6 @@ bool AudioImpl::Initialize() {
 	LOGW("Failed to realize OutputMix:0x%lx", result);
 	return false;
   }
-//  result = (*mixObject)->GetInterface(mixObject, SL_IID_VOLUME, &volumeInterface);
-//  if (result != SL_RESULT_SUCCESS) {
-//    return false;
-//  }
 
   LOGI("Create AudioEngine");
   return true;
