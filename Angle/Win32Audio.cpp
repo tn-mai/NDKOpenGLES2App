@@ -4,7 +4,15 @@
 
 namespace Mai {
 
-/** The sound engine implementation.
+class AudioCueImpl : public AudioCue {
+public:
+  AudioCueImpl() {}
+  virtual ~AudioCueImpl() {}
+  virtual bool IsPrepared() const { return true; }
+  virtual void Play(float) {}
+};
+
+  /** The sound engine implementation.
 */
 class AudioImpl: public AudioInterface {
 public:
@@ -13,7 +21,7 @@ public:
   virtual bool Initialize();
   virtual void Finalize();
   virtual bool LoadSE(const char* id, const char* filename);
-  virtual void PrepareSE(const char* id);
+  virtual AudioCuePtr PrepareSE(const char* id);
   virtual void PlaySE(const char* id, float);
   virtual void PlayBGM(const char* filename, float);
   virtual void StopBGM(float);
@@ -36,7 +44,8 @@ bool AudioImpl::LoadSE(const char* id, const char* filename) {
   return false;
 }
 
-void AudioImpl::PrepareSE(const char* id)  {
+AudioCuePtr AudioImpl::PrepareSE(const char* id)  {
+  return AudioCuePtr(new AudioCueImpl);
 }
 
 void AudioImpl::PlaySE(const char* id, float) {

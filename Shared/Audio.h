@@ -6,13 +6,23 @@
 
 namespace Mai {
 
+/** The sound cue.
+*/
+class AudioCue {
+public:
+  virtual ~AudioCue() {}
+  virtual bool IsPrepared() const = 0;
+  virtual void Play(float volume = 1.0f) = 0;
+};
+typedef std::shared_ptr<AudioCue> AudioCuePtr;
+
 /** The sound manager.
 */
 class AudioInterface {
 public:
   virtual ~AudioInterface() {}
   virtual bool LoadSE(const char* id, const char* filename) = 0;
-  virtual void PrepareSE(const char* id) = 0;
+  virtual AudioCuePtr PrepareSE(const char* id) = 0;
   virtual void PlaySE(const char* id, float volume = 0.5f) = 0;
   virtual void PlayBGM(const char* f, float volume = 0.5f) = 0;
   virtual void StopBGM(float fadeoutTimeSec = 0.5f) = 0;
