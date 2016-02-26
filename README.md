@@ -4,8 +4,8 @@ It is for Android.
 But for testing, it can execute on Windows using Google Angle.
 It include audio support by OpenSL ES for Android.
 
-!(ScreenShot/Title.jpg)
+![Title](ScreenShot/Title.jpg)
 
-!(ScreenShot/MainGame.jpg)
+![MainGame](ScreenShot/MainGame.jpg)
 
-!(ScreenShot/Failure.jpg)
+![Failure](ScreenShot/Failure.jpg)
