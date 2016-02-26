@@ -322,6 +322,9 @@ namespace SunnySideUp {
 	  }
 #endif
 	  AudioInterface& audio = engine.GetAudio();
+	  audio.LoadSE("bound", "Audio/bound.wav");
+	  audio.LoadSE("success", "Audio/success.wav");
+	  audio.LoadSE("failure", "Audio/miss.wav");
 	  audio.PlayBGM("Audio/dive.mp3", 1.0f);
 	  status = STATUSCODE_RUNNABLE;
 	  return true;
@@ -439,6 +442,9 @@ namespace SunnySideUp {
 		}
 	  }
 	  pPartitioner->Update(deltaTime);
+	  if (rigidCamera && rigidCamera->hasLatestCollision) {
+		engine.GetAudio().PlaySE("bound", 1.0f);
+	  }
 #else
 	  const Position3F prevCamPos = debugCamera.Position();
 	  debugCamera.Update(deltaTime, fusedOrientation);
@@ -516,8 +522,10 @@ namespace SunnySideUp {
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
 		const float distance = std::sqrt(v.x * v.x + v.z + v.z);
 		if (distance <= 1.0f * scale) {
+		  engine.GetAudio().PlaySE("success", 1.0f);
 		  return SCENEID_SUCCESS;
 		}
+		engine.GetAudio().PlaySE("failure", 1.0f);
 		return SCENEID_FAILURE;
 	  }
 	  return SCENEID_CONTINUE;
