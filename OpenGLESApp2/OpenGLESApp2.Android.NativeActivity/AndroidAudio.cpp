@@ -60,6 +60,13 @@ struct BufferQueueAudioPlayer {
   const WaveSource* pSource; ///< the player can play new sound if nullptr.
 };
 
+/** The BufferQueue callback function.
+*/
+void BufferQueueCallback(SLAndroidSimpleBufferQueueItf caller, void* pContext) {
+  BufferQueueAudioPlayer* p = static_cast<BufferQueueAudioPlayer*>(pContext);
+  (*p->playInterface)->SetPlayState(p->playInterface, SL_PLAYSTATE_STOPPED);
+}
+
 class AudioCueImpl : public AudioCue {
 public:
   AudioCueImpl(BufferQueueAudioPlayer* p) : pPlayer(p) {}
@@ -245,6 +252,11 @@ bool CreateAudioPlayer(BufferQueueAudioPlayer& mp, SLEngineItf& eng, SLObjectItf
   result = (*mp.playInterface)->GetDuration(mp.playInterface, &mp.dur);
   if (result != SL_RESULT_SUCCESS) {
 	LOGW("Failed to get duration:0x%lx", result);
+	return false;
+  }
+  result = (*mp.bufferQueueInterface)->RegisterCallback(mp.bufferQueueInterface, BufferQueueCallback, &mp);
+  if (result != SL_RESULT_SUCCESS) {
+	LOGW("Failed to register callback:0x%lx", result);
 	return false;
   }
 
