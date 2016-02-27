@@ -395,6 +395,22 @@ namespace SunnySideUp {
 		  break;
 		}
 		break;
+	  case Event::EVENT_TILT:
+		if (std::abs(e.Tilt.Z) < 0.1f) {
+		  playerMovement.x = 0.0f;
+		} else if (e.Tilt.Z < 0.0f) {
+		  playerMovement.x = -(e.Tilt.Z + 0.1f);
+		} else {
+		  playerMovement.x = -(e.Tilt.Z - 0.1f);
+		}
+		if (std::abs(e.Tilt.Y) < 0.1f) {
+		  playerMovement.z = 0.0f;
+		} else if (e.Tilt.Y < 0.0f) {
+		  playerMovement.z = e.Tilt.Y + 0.1f;
+		} else {
+		  playerMovement.z = e.Tilt.Y - 0.1f;
+		}
+		break;
 	  default:
 		break;
 	  }
@@ -420,6 +436,7 @@ namespace SunnySideUp {
 		if (objPlayer->Position().y >= goalHeight) {
 		  stopWatch += deltaTime;
 		}
+#ifndef __ANDROID__
 		playerMovement.z = 0.0f;
 		if (directionKeyDownList[DIRECTIONKEY_UP]) {
 		  playerMovement.z += 1.0f;
@@ -435,11 +452,15 @@ namespace SunnySideUp {
 		  playerMovement.x -= 1.0f;
 		}
 		rigidCamera->accel += playerMovement;
-		{
-		  playerRotation.x = std::min(0.5f, std::max(-0.5f, playerRotation.x - playerMovement.z * 0.05f));
-		  playerRotation.z = std::min(0.5f, std::max(-0.5f, playerRotation.z + playerMovement.x * 0.05f));
-		  objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
-		}
+		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerRotation.x - playerMovement.z * 0.05f));
+		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerRotation.z + playerMovement.x * 0.05f));
+		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
+#else
+		rigidCamera->accel += playerMovement;
+		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerMovement.z * -0.5f));
+		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * 0.5f));
+		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
+#endif // __ANDROID__
 	  }
 	  pPartitioner->Update(deltaTime);
 	  if (rigidCamera && rigidCamera->hasLatestCollision) {
