@@ -281,6 +281,7 @@ void DestroyAudioPlayer(BufferQueueAudioPlayer& mp) {
   if (mp.player) {
 	(*mp.player)->Destroy(mp.player);
 	mp.player = nullptr;
+	mp.pSource = nullptr;
 	LOGI("Destroy BufferQueueAudioPlayer");
   }
 }
@@ -325,6 +326,9 @@ bool AudioImpl::Initialize() {
 }
 
 void AudioImpl::Finalize() {
+  for (auto& e : sePlayerList) {
+	DestroyAudioPlayer(e);
+  }
   DestroyAudioPlayer(bgmPlayer);
   if (mixObject) {
     (*mixObject)->Destroy(mixObject);
@@ -336,6 +340,7 @@ void AudioImpl::Finalize() {
     engineObject = nullptr;
 	LOGI("Destroy AudioEngine");
   }
+  seList.clear();
 }
 
 struct RiffHeader {
