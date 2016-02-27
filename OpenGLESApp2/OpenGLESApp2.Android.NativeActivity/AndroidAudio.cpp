@@ -267,7 +267,12 @@ bool CreateAudioPlayer(BufferQueueAudioPlayer& mp, SLEngineItf& eng, SLObjectItf
 }
 
 /** Destroy audio player object.
-  @sa CreateMidiPlayer()
+
+  If mp was destroyed already, this function does nothing.
+
+  @param mp  the reference to the AudioPlayer that is destroyed.
+
+  @sa AudioPlayer, CreateMidiPlayer()
 */
 void DestroyAudioPlayer(AudioPlayer& mp) {
   if (mp.player) {
@@ -277,6 +282,14 @@ void DestroyAudioPlayer(AudioPlayer& mp) {
   }
 }
 
+/** Destroy the buffer quene audio player object.
+
+  If mp was destroyed already, this function does nothing.
+
+  @param mp  the reference to the BufferQueueAudioPlayer that is destroyed.
+
+  @sa BufferQueueAudioPlayer, CreateMidiPlayer()
+*/
 void DestroyAudioPlayer(BufferQueueAudioPlayer& mp) {
   if (mp.player) {
 	(*mp.player)->Destroy(mp.player);
