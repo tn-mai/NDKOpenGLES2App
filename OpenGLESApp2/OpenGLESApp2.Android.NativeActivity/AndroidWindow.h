@@ -19,6 +19,10 @@ namespace Mai {
 	virtual void Destroy();
 	virtual void SetVisible(bool isVisible) {}
 
+	virtual bool SaveUserFile(const char* filename, const void* data, size_t size);
+	virtual size_t GetUserFileSize(const char* filename);
+	virtual bool LoadUserFile(const char* filename, void* data);
+
 	void CalcFusedOrientation();
 	void CommandHandler(int32_t);
 	bool InputHandler(AInputEvent*);

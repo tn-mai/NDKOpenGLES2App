@@ -216,6 +216,16 @@ namespace Mai {
   void AndroidWindow::Destroy() {
   }
 
+  bool AndroidWindow::SaveUserFile(const char* filename, const void* data, size_t size) {
+	return true;
+  }
+  size_t AndroidWindow::GetUserFileSize(const char* filename) {
+	return 0;
+  }
+  bool AndroidWindow::LoadUserFile(const char* filename, void* data) {
+	return true;
+  }
+
   void AndroidWindow::CalcFusedOrientation() {
 	const float coeff = 0.98f;
 	const float oneMinusCoeff = 1.0f - coeff;

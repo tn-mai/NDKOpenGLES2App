@@ -644,4 +644,15 @@ namespace Mai {
 	ShowWindow(nativeWindow, flag);
   }
 
+
+  bool Win32Window::SaveUserFile(const char* filename, const void* data, size_t size) {
+	return true;
+  }
+  size_t Win32Window::GetUserFileSize(const char* filename) {
+	return 0;
+  }
+  bool Win32Window::LoadUserFile(const char* filename, void* data) {
+	return true;
+  }
+
 } // namespace Mai
