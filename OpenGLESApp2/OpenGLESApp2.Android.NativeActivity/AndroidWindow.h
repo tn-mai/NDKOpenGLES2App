@@ -21,7 +21,7 @@ namespace Mai {
 
 	virtual bool SaveUserFile(const char* filename, const void* data, size_t size);
 	virtual size_t GetUserFileSize(const char* filename);
-	virtual bool LoadUserFile(const char* filename, void* data);
+	virtual bool LoadUserFile(const char* filename, void* data, size_t size);
 
 	void CalcFusedOrientation();
 	void CommandHandler(int32_t);
