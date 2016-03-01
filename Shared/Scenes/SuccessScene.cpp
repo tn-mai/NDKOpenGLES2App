@@ -149,11 +149,27 @@ namespace SunnySideUp {
   
   void SuccessScene::Draw(Engine& engine) {
 	Renderer& r = engine.GetRenderer();
-	const char str[] = "THAT'S YUMMY!";
 	float scale = 1.0f;
-	const float w = r.GetStringWidth(str) * scale;
-	r.AddString(0.51f - w * 0.5f, 0.26f, scale, Color4B(20, 10, 10, 128), str);
-	r.AddString(0.5f - w * 0.5f, 0.25f, scale, Color4B(250, 250, 250, 255), str);
+	{
+	  const char str[] = "THAT'S YUMMY!";
+	  const float w = r.GetStringWidth(str) * scale;
+	  r.AddString(0.51f - w * 0.5f, 0.26f, scale, Color4B(20, 10, 10, 128), str);
+	  r.AddString(0.5f - w * 0.5f, 0.25f, scale, Color4B(250, 250, 250, 255), str);
+	}
+	{
+	  const char str[] = "YOUR TIME IS:";
+	  const float w = r.GetStringWidth(str) * scale;
+	  r.AddString(0.51f - w * 0.5f, 0.7f, scale, Color4B(20, 10, 10, 128), str);
+	  r.AddString(0.5f - w * 0.5f, 0.7f, scale, Color4B(250, 250, 250, 255), str);
+	}
+	{
+	  const float time = static_cast<float>(engine.GetCommonData<CommonData>()->currentTime) / 1000.0f;
+	  char buf[32];
+	  sprintf(buf, "%03.3fs", time);
+	  const float w = r.GetStringWidth(buf);
+	  r.AddString(0.51f - w * 0.5f, 0.75f, scale, Color4B(20, 10, 10, 128), buf);
+	  r.AddString(0.5f - w * 0.5f, 0.75f, scale, Color4B(250, 250, 250, 255), buf);
+	}
 	r.Render(&objList[0], &objList[0] + objList.size());
   }
 

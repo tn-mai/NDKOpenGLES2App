@@ -20,6 +20,7 @@ int main() {
   engine.RegisterSceneCreator(SSU::SCENEID_SUCCESS, SSU::CreateSuccessScene);
   engine.RegisterSceneCreator(SSU::SCENEID_FAILURE, SSU::CreateFailureScene);
   engine.RegisterSceneCreator(SSU::SCENEID_GAMEOVER, SSU::CreateGameOverScene);
+  engine.CreateCommonData<SSU::CommonData>();
   engine.Run(window, SSU::SCENEID_TITLE);
 
   return 0;

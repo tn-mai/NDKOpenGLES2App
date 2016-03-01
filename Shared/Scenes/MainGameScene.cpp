@@ -538,11 +538,12 @@ namespace SunnySideUp {
 		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
 	  }
 	  if (renderer.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+		engine.GetCommonData<CommonData>()->currentTime = static_cast<int64_t>(stopWatch * 1000.0f);
 		renderer.FadeIn(1.0f);
 		const float scale = objFlyingPan->Scale().x;
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
 		const float distance = std::sqrt(v.x * v.x + v.z + v.z);
-		if (distance <= 1.0f * scale) {
+		if (distance <= 1.25f * scale) {
 		  engine.GetAudio().PlaySE("success", 1.0f);
 		  return SCENEID_SUCCESS;
 		}

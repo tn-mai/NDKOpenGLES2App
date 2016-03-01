@@ -1,6 +1,7 @@
 #ifndef SCENE_SCENE_H_INCLUDED
 #define SCENE_SCENE_H_INCLUDED
 #include "../Engine.h"
+#include <cstdint>
 #include <boost/math/constants/constants.hpp>
 
 namespace SunnySideUp {
@@ -12,6 +13,11 @@ namespace SunnySideUp {
 	SCENEID_SUCCESS,
 	SCENEID_FAILURE,
 	SCENEID_GAMEOVER,
+  };
+
+  struct CommonData {
+	CommonData() : currentTime(-1) {}
+	int64_t currentTime;
   };
 
   Mai::ScenePtr CreateTitleScene(Mai::Engine&);

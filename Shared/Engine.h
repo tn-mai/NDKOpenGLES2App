@@ -41,6 +41,7 @@ namespace Mai {
 	typedef ScenePtr(*CreateSceneFunc)(Engine&);
 
 	Engine(Window*);
+	~Engine();
 	void RegisterSceneCreator(int, CreateSceneFunc);
 	void Run(Window&, int);
 	void InitDisplay();
@@ -53,6 +54,22 @@ namespace Mai {
 
 	AudioInterface& GetAudio() { return *audio; }
 	const AudioInterface& GetAudio() const { return *audio; }
+
+	template<typename T, typename ... Args>
+	T* CreateCommonData(Args... args) {
+	  if (commonDataDeleter) {
+		commonDataDeleter(commonData.data());
+	  }
+	  commonData.resize(sizeof(T));
+	  commonData.shrink_to_fit();
+	  new(commonData.data()) T(args...);
+	  commonDataDeleter = &::Mai::Engine::DeleteCommonData<T>;
+	  return reinterpret_cast<T*>(commonData.data());
+	}
+	template<typename T>
+	T* GetCommonData() { return reinterpret_cast<T*>(commonData.data()); }
+	template<typename T>
+	const T* GetCommonData() const { return reinterpret_cast<const T*>(commonData.data()); }
 
   private:
 	State ProcessWindowEvent(Window&);
@@ -78,6 +95,17 @@ namespace Mai {
 	ScenePtr pCurrentScene;
 	ScenePtr pNextScene;
 	ScenePtr pUnloadingScene;
+
+	// common data.
+	// it is like a state that is shared between scenes.
+	// User can define any structure, and set it.
+	std::vector<uint8_t> commonData;
+	void(*commonDataDeleter)(void*);
+
+	template<typename T>
+	static void DeleteCommonData(void* p) {
+	  reinterpret_cast<T*>(p)->~T();
+	}
   };
 
   /** A part of the game flow.

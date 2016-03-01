@@ -70,7 +70,15 @@ namespace Mai {
 	, frames(0)
 	, latestFps(30)
 	, startTime(0)
+
+	, commonDataDeleter(nullptr)
   {
+  }
+
+  Engine::~Engine() {
+	if (commonDataDeleter) {
+	  commonDataDeleter(commonData.data());
+	}
   }
 
   Engine::State Engine::ProcessWindowEvent(Window& window) {
