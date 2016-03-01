@@ -45,7 +45,6 @@ namespace Mai {
 	void Run(Window&, int);
 	void InitDisplay();
 	void TermDisplay();
-	State Update(Window*, float);
 	void DrawFrame();
 	bool IsInitialized() const { return renderer.HasDisplay() && initialized; }
 
