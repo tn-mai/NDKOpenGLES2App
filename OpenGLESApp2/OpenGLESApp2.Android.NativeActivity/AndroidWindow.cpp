@@ -219,48 +219,35 @@ namespace Mai {
   void AndroidWindow::Destroy() {
   }
 
-  boost::optional<std::string> GetFilesDir(JNIEnv* env, jobject mainactivity, const char* filename) {
-	jclass cls = env->GetObjectClass(mainactivity);
-	jmethodID getFilesDir = env->GetMethodID(cls, "getFilesDir", "()Ljava/io/File;");
-	jobject dirobj = env->CallObjectMethod(mainactivity, getFilesDir);
-	jclass dir = env->GetObjectClass(dirobj);
-	jmethodID getStoragePath = env->GetMethodID(dir, "getAbsolutePath", "()Ljava/lang/String;");
-	jstring path = (jstring)env->CallObjectMethod(dirobj, getStoragePath);
-	const char *pathstr = env->GetStringUTFChars(path, 0);
-	std::string strPath = pathstr;
-	env->ReleaseStringUTFChars(path, pathstr);
-	return strPath + '/' + filename;
+  std::string GetFilesDir(const android_app* app, const char* filename) {
+	return std::string(app->activity->internalDataPath) + '/' + filename;
   }
 
   bool AndroidWindow::SaveUserFile(const char* filename, const void* data, size_t size) {
-	if (auto path = GetFilesDir(app->activity->env, app->activity->clazz, filename)) {
-	  if (FILE* fp = fopen(path->c_str(), "rb")) {
-		std::fwrite(data, size, 1, fp);
-		return true;
-	  }
+	const std::string path = GetFilesDir(app, filename);
+	if (FILE* fp = fopen(path.c_str(), "rb")) {
+	  std::fwrite(data, size, 1, fp);
+	  return true;
 	}
 	return false;
   }
   size_t AndroidWindow::GetUserFileSize(const char* filename) {
-	if (auto path = GetFilesDir(app->activity->env, app->activity->clazz, filename)) {
-	  struct stat s;
-	  if (stat(path->c_str(), &s) >= 0) {
-		return s.st_size;
-	  }
+	const std::string path = GetFilesDir(app, filename);
+	struct stat s;
+	if (stat(path.c_str(), &s) >= 0) {
+	  return s.st_size;
 	}
 	return 0;
   }
   bool AndroidWindow::LoadUserFile(const char* filename, void* data, size_t size) {
-	if (auto path = GetFilesDir(app->activity->env, app->activity->clazz, filename)) {
-	  size = std::min(size, GetUserFileSize(filename));
-	  if (FILE* fp = fopen(path->c_str(), "wb")) {
-		std::fread(data, size, 1, fp);
-		return true;
-	  }
+	const std::string path = GetFilesDir(app, filename);
+	size = std::min(size, GetUserFileSize(filename));
+	if (FILE* fp = fopen(path.c_str(), "wb")) {
+	  std::fread(data, size, 1, fp);
+	  return true;
 	}
 	return true;
   }
-
   void AndroidWindow::CalcFusedOrientation() {
 	const float coeff = 0.98f;
 	const float oneMinusCoeff = 1.0f - coeff;
