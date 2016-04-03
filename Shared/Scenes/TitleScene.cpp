@@ -16,33 +16,39 @@ namespace SunnySideUp {
 
 	virtual bool Load(Engine& engine) {
 	  if (!loaded) {
+		eyePos = Position3F(8, 19.5f, 5);
+		eyeDir = Vector3F(-0.6f, 0.06f, -0.84f).Normalize();
 		objList.reserve(8);
 		Renderer& r = engine.GetRenderer();
-		{
+
+        boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
+		r.SetTimeOfScene(static_cast<TimeOfScene>(TimeOfScene_Noon + random() % 3));
+
+        {
 		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		  obj->SetTranslation(Vector3F(1.125f, 4.5f, -2.5f));
-		  obj->SetRotation(degreeToRadian<float>(140), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  obj->SetTranslation(Vector3F(5.1f, 21.2f, 1.0f));
+		  obj->SetRotation(degreeToRadian<float>(103), degreeToRadian<float>(2), degreeToRadian<float>(-46));
 		  //obj->SetScale(Vector3F(5, 5, 5));
 		  objList.push_back(obj);
 		}
 		{
 		  auto obj = r.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		  obj->SetAnimation(r.GetAnimation("Wait0"));
-		  obj->SetTranslation(Vector3F(2.0f, 5, -6.1f));
-		  obj->SetRotation(degreeToRadian<float>(30), degreeToRadian<float>(-30), degreeToRadian<float>(-15));
+		  obj->SetTranslation(Vector3F(3.9f, 19.25f, -2));
+		  obj->SetRotation(degreeToRadian<float>(-6), degreeToRadian<float>(11), degreeToRadian<float>(1));
 		  objList.push_back(obj);
 		}
 		{
 		  auto obj = r.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		  obj->SetTranslation(Vector3F(-4.5f, -5.5, -14));
+		  obj->SetTranslation(Vector3F(1.5f, 6, 2));
 		  obj->SetScale(Vector3F(3, 3, 3));
-		  obj->SetRotation(degreeToRadian<float>(35), degreeToRadian<float>(-20), degreeToRadian<float>(0));
+		  obj->SetRotation(degreeToRadian<float>(-5), degreeToRadian<float>(22), degreeToRadian<float>(14));
 		  objList.push_back(obj);
 		}
 		{
 		  auto obj = r.CreateObject("cloud0", Material(Color4B(255, 240, 250, 128), 0, 0), "cloud");
 		  obj->SetTranslation(Vector3F(30, 0, -75));
-		  obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
+		  //obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  objList.push_back(obj);
 		}
 		animeNo = 0;
@@ -68,7 +74,7 @@ namespace SunnySideUp {
 		e->Update(tick);
 	  }
 	  Renderer& r = engine.GetRenderer();
-	  r.Update(tick, Position3F(0, 0, 0), Vector3F(0.25f, 1, -1), Vector3F(0, 0, 1));
+	  r.Update(tick, eyePos, eyeDir, Vector3F(0, 1, 0));
 
 	  return (this->*updateFunc)(engine, tick);
 	}
@@ -133,16 +139,26 @@ namespace SunnySideUp {
 			updateFunc = &TitleScene::DoFadeOut;
 		  }
 		  break;
-		case Event::EVENT_KEY_PRESSED: {
-		  if (e.Key.Code == KEY_SPACE) {
+#ifndef NDEBUG
+		case Event::EVENT_KEY_PRESSED:
+		  switch (e.Key.Code) {
+		  case KEY_A:
+			eyeDir = (Matrix4x4::RotationY(degreeToRadian(1.0f)) * eyeDir).ToVec3();
+			break;
+		  case KEY_D:
+			eyeDir = (Matrix4x4::RotationY(degreeToRadian(-1.0f)) * eyeDir).ToVec3();
+			break;
+		  case KEY_SPACE: {
 			static const char* const animeNameList[] = {
 			  "Stand", "Wait0", "Wait1", "Walk", "Dive"
 			};
 			animeNo = (animeNo + 1) % 5;
 			objList[1]->SetAnimation(engine.GetRenderer().GetAnimation(animeNameList[animeNo]));
+			break;
+		  }
 		  }
 		  break;
-		}
+#endif // NDEBUG
 		default:
 		  break;
 		}
@@ -167,6 +183,8 @@ namespace SunnySideUp {
 
   private:
 	std::vector<ObjectPtr> objList;
+	Position3F eyePos;
+	Vector3F eyeDir;
 	int animeNo;
 	bool loaded;
 	float scaleTick;
