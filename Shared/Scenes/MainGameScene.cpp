@@ -165,6 +165,8 @@ namespace SunnySideUp {
 	virtual bool Load(Engine& engine) {
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
+
+      renderer.SetTimeOfScene(static_cast<TimeOfScene>(TimeOfScene_Noon + random() % 3));
 #if 1
 	  // ランダムにオブジェクトを発生させてみる.
 	  const int regionCount = static_cast<int>(std::ceil((region.max.y - region.min.y) / unitRegionSize));
@@ -247,7 +249,7 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj);
 	  }
 #endif
-	  {
+      {
 		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		debugData.SetDebugObj(0, obj);
 		Object& o = *obj;
@@ -395,22 +397,25 @@ namespace SunnySideUp {
 		  break;
 		}
 		break;
-	  case Event::EVENT_TILT:
-		if (std::abs(e.Tilt.Z) < 0.1f) {
-		  playerMovement.x = 0.0f;
-		} else if (e.Tilt.Z < 0.0f) {
-		  playerMovement.x = -(e.Tilt.Z + 0.1f);
-		} else {
-		  playerMovement.x = -(e.Tilt.Z - 0.1f);
-		}
-		if (std::abs(e.Tilt.Y) < 0.1f) {
-		  playerMovement.z = 0.0f;
-		} else if (e.Tilt.Y < 0.0f) {
-		  playerMovement.z = e.Tilt.Y + 0.1f;
-		} else {
-		  playerMovement.z = e.Tilt.Y - 0.1f;
-		}
-		break;
+      case Event::EVENT_TILT: {
+        const float tz = e.Tilt.Z - 0.0f;
+        if (std::abs(tz) < 0.1f) {
+          playerMovement.x = 0.0f;
+        } else if (tz < 0.0f) {
+          playerMovement.x = -(tz * 2.0f + 0.1f);
+        } else {
+          playerMovement.x = -(tz * 2.0f - 0.1f);
+        }
+		const float ty = e.Tilt.Y - 0.1f;
+        if (std::abs(ty) < 0.1f) {
+          playerMovement.z = 0.0f;
+        } else if (ty < 0.0f) {
+          playerMovement.z = e.Tilt.Y * 2.0f + 0.1f;
+        } else {
+          playerMovement.z = e.Tilt.Y * 2.0f - 0.1f;
+        }
+        break;
+      }
 	  default:
 		break;
 	  }
