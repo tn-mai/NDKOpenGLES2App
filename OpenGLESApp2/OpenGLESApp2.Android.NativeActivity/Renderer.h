@@ -200,6 +200,7 @@ namespace Mai {
 	GLint lightPos;
 	GLint materialColor;
 	GLint materialMetallicAndRoughness;
+	GLint dynamicRangeFactor;
 
 	GLint texDiffuse;
 	GLint texNormal;
@@ -229,6 +230,13 @@ namespace Mai {
 	VertexAttribLocation_BoneID,
 	VertexAttribLocation_Color,
 	VertexAttribLocation_Max,
+  };
+
+  /// ÉVÅ[ÉìÇÃéûçèê›íË.
+  enum TimeOfScene {
+    TimeOfScene_Noon, ///< íã.
+    TimeOfScene_Sunset, ///< ó[ï˚.
+    TimeOfScene_Night, ///< ñÈ.
   };
 
   /**
@@ -326,6 +334,12 @@ namespace Mai {
 	int32_t Height() const { return height; }
 	void Swap();
 
+    void SetTimeOfScene(TimeOfScene toc) {
+      if (toc >= 0 && toc < 3) {
+        timeOfScene = toc;
+      }
+    }
+    TimeOfScene GetTimeOfScene() const { return timeOfScene; }
 	void SetFilterColor(const Color4B&);
 	const Color4B& GetFilterColor() const;
 	void FadeOut(const Color4B&, float);
@@ -375,6 +389,8 @@ namespace Mai {
 	std::string texBaseDir;
 
 	boost::random::mt19937 random;
+
+    TimeOfScene timeOfScene;
 
 	Position3F cameraPos;
 	Vector3F cameraDir;

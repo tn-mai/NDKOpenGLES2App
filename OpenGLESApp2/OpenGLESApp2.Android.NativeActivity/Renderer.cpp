@@ -257,6 +257,7 @@ namespace {
 		s.lightPos = glGetUniformLocation(program, "lightPos");
 		s.materialColor = glGetUniformLocation(program, "materialColor");
 		s.materialMetallicAndRoughness = glGetUniformLocation(program, "metallicAndRoughness");
+		s.dynamicRangeFactor = glGetUniformLocation(program, "dynamicRangeFactor");
 		s.texDiffuse = glGetUniformLocation(program, "texDiffuse");
 		s.texNormal = glGetUniformLocation(program, "texNormal");
 		s.texMetalRoughness = glGetUniformLocation(program, "texMetalRoughness");
@@ -457,6 +458,7 @@ Renderer::Renderer()
   : isInitialized(false)
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
+  , timeOfScene(TimeOfScene_Noon)
   , fboMain(0)
   , fboSub(0)
   , fboShadow0(0)
@@ -1129,6 +1131,21 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  5000.0f
 	);
 
+	static const char* const iblNameArray[][3] = {
+	  { "iblNoonHigh", "iblNoonLow", "iblNoonIrr" },
+	  { "iblSunsetHigh", "iblSunsetLow", "iblSunsetIrr" },
+	  { "iblNightHigh", "iblNightLow", "iblNightIrr" },
+	};
+	static struct {
+	  float range;
+	  float inverse;
+	} iblDynamicRangeArray[] = {
+	  { 0.6f, 1.0f / 0.6f },
+	  { 1.0f, 1.0f / 1.0f },
+	  { 1.0f, 1.0f / 1.0f },
+	};
+	const float dynamicRangeFactor = iblDynamicRangeArray[timeOfScene].range;
+
 	// 適当にライトを置いてみる.
 	const Vector4F lightPos(50, 50, 50, 1.0);
 	const Vector3F lightColor(7000.0f, 6000.0f, 5000.0f);
@@ -1136,6 +1153,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	{
 	  const Shader& shader = shaderList["skybox"];
 	  glUseProgram(shader.program);
+
+	  glUniform1f(shader.dynamicRangeFactor, dynamicRangeFactor);
 
 	  Matrix4x4 mTrans(Matrix4x4::Unit());
 	  mTrans.SetVector(3, Vector4F(eye.x, eye.y, eye.z, 1));
@@ -1145,7 +1164,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
+	  glBindTexture(GL_TEXTURE_CUBE_MAP, textureList[iblNameArray[timeOfScene][0]]->TextureId());
 	  glActiveTexture(GL_TEXTURE1);
 	  glBindTexture(GL_TEXTURE_2D, 0);
 	  glActiveTexture(GL_TEXTURE2);
@@ -1173,6 +1192,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUseProgram(shader.program);
 			currentProgramId = shader.program;
 
+			glUniform1f(shader.dynamicRangeFactor, dynamicRangeFactor);
+
 			glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mProj.f);
 			glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mView.f);
 			glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
@@ -1188,12 +1209,10 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUniform1i(shader.texShadow, 5);
 
 			// IBL用テクスチャを設定.
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_high"]->TextureId());
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["skybox_low"]->TextureId());
-			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, textureList["irradiance"]->TextureId());
+			for (int i = 0; i < 3; ++i) {
+			  glActiveTexture(GL_TEXTURE2 + i);
+			  glBindTexture(GL_TEXTURE_CUBE_MAP, textureList[iblNameArray[timeOfScene][i]]->TextureId());
+			}
 			glActiveTexture(GL_TEXTURE5);
 			glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 
@@ -1417,6 +1436,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  const Shader& shader = shaderList["applyhdr"];
 	  glUseProgram(shader.program);
 	  glBlendFunc(GL_ONE, GL_ZERO);
+
+	  glUniform1f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].inverse);
 
 	  Matrix4x4 mtx = Matrix4x4::Unit();
 	  mtx.Scale(1.0f, -1.0f, 1.0f);
@@ -2695,9 +2716,16 @@ void Renderer::InitTexture()
 	textureList.insert({ "dummy", Texture::CreateDummy2D() });
 	textureList.insert({ "ascii", Texture::LoadKTX("Textures/Common/ascii.ktx") });
 
-	textureList.insert({ "skybox_high", Texture::LoadKTX((texBaseDir + "skybox_high.ktx").c_str()) });
-	textureList.insert({ "skybox_low", Texture::LoadKTX((texBaseDir + "skybox_low.ktx").c_str()) });
-	textureList.insert({ "irradiance", Texture::LoadKTX((texBaseDir + "irradiance.ktx").c_str()) });
+	textureList.insert({ "iblNoonHigh", Texture::LoadKTX((texBaseDir + "ibl_noonHigh.ktx").c_str()) });
+	textureList.insert({ "iblNoonLow", Texture::LoadKTX((texBaseDir + "ibl_noonLow.ktx").c_str()) });
+	textureList.insert({ "iblNoonIrr", Texture::LoadKTX((texBaseDir + "ibl_noonIrr.ktx").c_str()) });
+	textureList.insert({ "iblSunsetHigh", Texture::LoadKTX((texBaseDir + "ibl_sunsetHigh.ktx").c_str()) });
+	textureList.insert({ "iblSunsetLow", Texture::LoadKTX((texBaseDir + "ibl_sunsetLow.ktx").c_str()) });
+	textureList.insert({ "iblSunsetIrr", Texture::LoadKTX((texBaseDir + "ibl_sunsetIrr.ktx").c_str()) });
+	textureList.insert({ "iblNightHigh", Texture::LoadKTX((texBaseDir + "ibl_nightHigh.ktx").c_str()) });
+	textureList.insert({ "iblNightLow", Texture::LoadKTX((texBaseDir + "ibl_nightLow.ktx").c_str()) });
+	textureList.insert({ "iblNightIrr", Texture::LoadKTX((texBaseDir + "ibl_nightIrr.ktx").c_str()) });
+
 	textureList.insert({ "wood", Texture::LoadKTX((texBaseDir + "wood.ktx").c_str()) });
 	textureList.insert({ "wood_nml", Texture::LoadKTX((texBaseDir + "woodNR.ktx").c_str()) });
 	textureList.insert({ "Sphere", Texture::LoadKTX((texBaseDir + "sphere.ktx").c_str()) });

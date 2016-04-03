@@ -6,6 +6,7 @@ uniform lowp vec3 lightColor;
 
 uniform lowp vec4 materialColor;
 uniform lowp vec2 metallicAndRoughness;
+uniform lowp float dynamicRangeFactor;
 
 uniform sampler2D texDiffuse;
 uniform sampler2D texNormal;
@@ -133,10 +134,10 @@ void main(void)
 	// Alpha component has the strength of color. it has (255 / strength).
 	// We can restore the actual color by multiply (1.0 / alpha). And we want
 	// to compress the diffuse range 0-2 to 0-1, because keep the HDR
-	// luminance. So, we use (0.5 / alpha).
-	iblColor[0].rgb *= 0.5 / iblColor[0].a;
-	iblColor[1].rgb *= 0.5 / iblColor[1].a;
-	iblColor[2].rgb *= 0.5 / iblColor[2].a;
+	// luminance. So, we use (dynamicRangeFactor / alpha).
+	iblColor[0].rgb *= dynamicRangeFactor / iblColor[0].a;
+	iblColor[1].rgb *= dynamicRangeFactor / iblColor[1].a;
+	iblColor[2].rgb *= dynamicRangeFactor / iblColor[2].a;
 
 	mediump vec3 colIBL = mix(iblColor[0].rgb , iblColor[1].rgb, min(mipmapLevel, 1.0));
 	colIBL = mix(colIBL, iblColor[2].rgb, max(mipmapLevel - 1.0, 0.0));
