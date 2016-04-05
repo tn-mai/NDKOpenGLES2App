@@ -183,7 +183,8 @@ namespace SunnySideUp {
 			Object& o = *obj;
 			const Vector3F trans(tx, ty + i * unitRegionSize, tz);
 			o.SetTranslation(trans);
-			const float scale = RandomFloat(40) / 10.0f + 1.0f;
+			static const float scalingArray[] = { 3, 6, 10 };
+			const float scale = scalingArray[random() % 3];
 			o.SetScale(Vector3F(scale, scale, scale));
 			const float rx = degreeToRadian<float>(RandomFloat(30));
 			const float ry = degreeToRadian<float>(RandomFloat(360));
@@ -197,7 +198,7 @@ namespace SunnySideUp {
 			Object& o = *obj;
 			const Vector3F trans(tx, ty + i * unitRegionSize, tz);
 			o.SetTranslation(trans);
-			//		  o.SetScale(Vector3F(2, 2, 2));
+			o.SetScale(Vector3F(5, 5, 5));
 			const float rx = degreeToRadian<float>(RandomFloat(360));
 			const float ry = degreeToRadian<float>(RandomFloat(360));
 			const float rz = degreeToRadian<float>(RandomFloat(360));
