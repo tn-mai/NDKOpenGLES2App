@@ -249,25 +249,6 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj);
 	  }
 #endif
-      {
-		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		debugData.SetDebugObj(0, obj);
-		Object& o = *obj;
-		//	  o.SetScale(Vector3F(2, 2, 2));
-		o.SetTranslation(Vector3F(-15, 100, 0));
-		o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(0), degreeToRadian<float>(0));
-		pPartitioner->Insert(obj);
-	  }
-#if 0
-	  {
-		auto obj = renderer.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0.1f, 0), "default");
-		debugData.SetDebugObj(1, obj);
-		Object& o = *obj;
-		o.SetScale(Vector3F(3, 3, 3));
-		o.SetTranslation(Vector3F(15, 11, 0));
-		pPartitioner->Insert(obj);
-	  }
-#endif
 	  {
 		auto obj = renderer.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
@@ -276,25 +257,6 @@ namespace SunnySideUp {
 		p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p);
 	  }
-
-	  if (0) {
-		auto obj0 = renderer.CreateObject("BrokenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		Object& o0 = *obj0;
-		o0.SetScale(Vector3F(3, 3, 3));
-		o0.SetTranslation(Vector3F(-12, 0.75f, 0));
-		pPartitioner->Insert(obj0);
-		auto obj2 = renderer.CreateObject("EggYolk", Material(Color4B(255, 255, 255, 255), -0.05f, 0), "default");
-		Object& o2 = *obj2;
-		o2.SetScale(Vector3F(3, 3, 3));
-		o2.SetTranslation(Vector3F(-15.0f, 0.7f, 0.0));
-		pPartitioner->Insert(obj2);
-		auto obj1 = renderer.CreateObject("EggWhite", Material(Color4B(255, 255, 255, 64), -0.5f, 0), "defaultWithAlpha");
-		Object& o1 = *obj1;
-		o1.SetScale(Vector3F(3, 3, 3));
-		o1.SetTranslation(Vector3F(-15, 1, 0));
-		pPartitioner->Insert(obj1);
-	  }
-
 #if 1
 	  for (int i = 0; i < 5; ++i) {
 		const int cloudCount = i * i / 2 + 1;
