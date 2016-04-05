@@ -215,7 +215,7 @@ namespace SunnySideUp {
 		auto obj = renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
 		o.SetAnimation(renderer.GetAnimation("Dive"));
-		const Vector3F trans(5, startingHeightRange.min, 4.5f);
+		const Vector3F trans(5, static_cast<GLfloat>(startingHeightRange.min), 4.5f);
 		o.SetTranslation(trans);
 		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
 		//o.SetScale(Vector3F(5, 5, 5));
@@ -268,11 +268,11 @@ namespace SunnySideUp {
 		for (int j = 0; j < cloudCount; ++j) {
 		  static const char* const idList[] = { "cloud0", "cloud1", "cloud2", "cloud3" };
 		  const int index = boost::random::uniform_int_distribution<>(0, 3)(random);
-		  const int y = boost::random::uniform_int_distribution<>(heightMin, heightMax)(random);
-		  int r = boost::random::uniform_int_distribution<>(10, radiusMax)(random);
+		  const float y = static_cast<float>(boost::random::uniform_int_distribution<>(heightMin, heightMax)(random));
+		  float r = static_cast<float>(boost::random::uniform_int_distribution<>(10, radiusMax)(random));
 		  //r = radiusMax - r * r / radiusMax2;
-		  const int a0 = boost::random::uniform_int_distribution<>(0, 359)(random);
-		  const int a1 = boost::random::uniform_int_distribution<>(30, 60)(random);
+		  const float a0 = static_cast<float>(boost::random::uniform_int_distribution<>(0, 359)(random));
+		  const float a1 = static_cast<float>(boost::random::uniform_int_distribution<>(30, 60)(random));
 		  const float scale = boost::random::uniform_int_distribution<>(10, 30)(random) *  0.1f;
 		  auto obj = renderer.CreateObject(idList[index], Material(Color4B(255, 255, 255, 64), 0, 0), "cloud");
 		  Object& o = *obj;
