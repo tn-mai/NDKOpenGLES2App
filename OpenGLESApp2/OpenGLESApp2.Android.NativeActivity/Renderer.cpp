@@ -1140,9 +1140,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  float range;
 	  float inverse;
 	} iblDynamicRangeArray[] = {
-	  { 0.6f, 1.0f / 0.6f },
-	  { 1.0f, 1.0f / 1.0f },
-	  { 1.0f, 1.0f / 1.0f },
+	  { 0.5f, 1.0f / 0.5f },
+	  { 0.5f, 1.0f / 0.5f },
+	  { 0.5f, 1.0f / 4.0f },
 	};
 	const float dynamicRangeFactor = iblDynamicRangeArray[timeOfScene].range;
 
