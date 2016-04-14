@@ -1749,6 +1749,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/flyingpan.msh", "flyingpan", "flyingpan_nml");
 	LoadFBX("Meshes/chickenegg.msh", "chickenegg", "chickenegg_nml");
 	LoadFBX("Meshes/titlelogo.msh", "titlelogo", "titlelogo_nml");
+	LoadFBX("Meshes/rock_collection.msh", "rock_s", "rock_s_nml");
 
 	CreateSkyboxMesh();
 	CreateOctahedronMesh();
@@ -2748,6 +2749,8 @@ void Renderer::InitTexture()
 	textureList.insert({ "flyingpan_nml", Texture::LoadKTX((texBaseDir + "flyingpanNR.ktx").c_str()) });
 	textureList.insert({ "accelerator", Texture::LoadKTX((texBaseDir + "accelerator.ktx").c_str()) });
 	textureList.insert({ "accelerator_nml", Texture::LoadKTX((texBaseDir + "acceleratorNR.ktx").c_str()) });
+	textureList.insert({ "rock_s", Texture::LoadKTX((texBaseDir + "rock_s.ktx").c_str()) });
+	textureList.insert({ "rock_s_nml", Texture::LoadKTX((texBaseDir + "rock_s_NR.ktx").c_str()) });
 	textureList.insert({ "cloud", Texture::LoadKTX("Textures/Common/cloud.ktx") });
 	textureList.insert({ "titlelogo", Texture::LoadKTX("Textures/Common/titlelogo.ktx") });
 	textureList.insert({ "titlelogo_nml", Texture::LoadKTX("Textures/Common/titlelogoNR.ktx") });

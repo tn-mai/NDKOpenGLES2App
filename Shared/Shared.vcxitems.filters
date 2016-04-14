@@ -23,6 +23,9 @@
       <Filter>Scenes</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)FontInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\LevelInfo.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine.h" />
@@ -39,6 +42,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)FontInfo.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Audio.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\LevelInfo.h">
+      <Filter>Scenes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scenes">

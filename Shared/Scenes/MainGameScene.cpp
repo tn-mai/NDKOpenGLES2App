@@ -1,10 +1,12 @@
 /** @file MainGameScene.cpp
 */
+#include "LevelInfo.h"
 #include "Scene.h"
 #include "../Audio.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
 #include <array>
+#include <tuple>
 
 namespace SunnySideUp {
 
@@ -134,12 +136,115 @@ namespace SunnySideUp {
   static const float countDownTimerInitialTime = 3.5f;
   static const float countDownTimerStartTime = 3.0f;
   static const float countDownTimerTrailingTime = -1.0f;
+  static const int goalHeight = 50;
+  static const int unitObstructsSize = 100;
+  static const int minObstructHeight = goalHeight + 100;
+  static const int offsetTopObstructs = -200;
 
-  const struct {
-	int min;
-	int max;
-  } startingHeightRange = { 2000, 4000 };
-  static const int goalHeight = 100;
+  /** De Boor algorithm for B-Spline.
+
+    @param k       The counter of the recursion. At first, it shoud equal to 'degree'.
+	@param degree  The degree of B-Spline.
+	@param i       The interval of line. At first, it should be 'floor(x)'.
+	@param x       The position of line. It should be 1 to the size of 'points'.
+	@param points  The vector of the control point. It must have a size greater than 'degree'.
+
+	@param The point in the current recursion.
+
+	@note This is the internal function. Please call DeBoor() instead of this.
+  */
+  Vector3F DeBoorI(int k, int degree, int i, float x, const std::vector<Vector3F>& points) {
+	if (k == 0) {
+	  return points[std::max(0, std::min<int>(i, points.size() - 1))];
+	}
+	const float alpha = (x - static_cast<float>(i)) / static_cast<float>(degree + 1 - k);
+	const Vector3F a = DeBoorI(k - 1, degree, i - 1, x, points);
+	const Vector3F b = DeBoorI(k - 1, degree, i, x, points);
+	return a * (1.0f - alpha) + b * alpha;
+  }
+
+  /** De Boor algorithm for B-Spline.
+
+    @param degree  The degree of B-Spline.
+    @param x       The position of line. It should be 1 to the size of 'points'.
+    @param points  The vector of the control point. It must have a size greater than 'degree'.
+
+    @param The point in the current recursion.
+  */
+  Vector3F DeBoor(int degree, float x, const std::vector<Vector3F>& points) {
+	const int i = static_cast<int>(x);
+	return DeBoorI(degree, degree, i, x, points);
+  }
+
+  /** Create the degree 3 B-Spline curve.
+
+    @param points  The vector of the control point. It must have a size greater than 3.
+	@param numOfSegments  The division nunmber of the line.
+
+	@return B-Spline curve. it will contain the 'numOfSegments' elements.
+  */
+  std::vector<Position3F> CreateBSpline(const std::vector<Vector3F>& points, int numOfSegments) {
+	std::vector<Position3F> v;
+	v.reserve(numOfSegments);
+	const float n = static_cast<float>(points.size() + 1);
+	for (int i = 0; i < numOfSegments - 1; ++i) {
+	  const float ratio = static_cast<float>(i) / static_cast<float>(numOfSegments - 1);
+	  const float x = ratio * n + 1;
+	  const Vector3F pos = DeBoor(3, x, points);
+	  v.emplace_back(pos.x, pos.y, pos.z);
+	}
+	v.push_back(points.back().ToPosition3F());
+	return v;
+  }
+
+  /** Create the control points.
+
+    @param start   The first control point.
+	@param goal    The last control point.
+	@param count   The number of the control point with 'start' and 'goal'.
+	@param random  The random number generator.
+
+	@return B-Spline curve. It will contain the 'numOfSegments' elements.
+  */
+  template<typename R>
+  std::vector<Vector3F> CreateControlPoints(const Position3F& start, const Position3F& goal, int count, R& random) {
+	count = std::max(4, count);
+	std::vector<Vector3F> v;
+	v.reserve(count);
+	v.emplace_back(start.x, start.y, start.z);
+	const Vector3F distance = goal - start;
+	Position3F center(0, 0, 0);
+	for (int i = 1; i < count - 1; ++i) {
+	  const Position3F p = start + distance * static_cast<float>(i) / static_cast<float>(count - 1);
+	  const float theta = degreeToRadian(static_cast<float>(random() % 360));
+	  const float r = static_cast<float>(random() % 190) + 10.0f;
+	  const float tx = center.x + std::cos(theta) * r;
+	  const float tz = center.z + std::sin(theta) * r;
+	  v.emplace_back(p.x + tx, p.y, p.z + tz);
+	  center = Position3F(tx, 0, tz) * (r - 200.0f) / r;
+	}
+	v.emplace_back(goal.x, goal.y, goal.z);
+	return v;
+  }
+
+  /** Create the model route.
+
+    @param start   The start point of the route.
+	@param goal    The end(goal) point of the route.
+	@param random  The random number generator.
+
+	@return The model route.
+
+	This function creates the route based on B-Spline.
+	At first, generate some control points at regular intervals.
+	Then, generate more points at equal intervals on the curve.
+  */
+  template<typename R>
+  std::vector<Position3F> CreateModelRoute(const Position3F& start, const Position3F& goal, R& random) {
+	const int length = std::abs(static_cast<int>(goal.y - start.y));
+	const std::vector<Vector3F> controlPoints = CreateControlPoints(start, goal, (length + 999) / 1000 + 2, random);
+	return CreateBSpline(controlPoints, (length + 99) / 100);
+  }
 
   /** Control the main game play.
 
@@ -166,56 +271,26 @@ namespace SunnySideUp {
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
 
-      renderer.SetTimeOfScene(static_cast<TimeOfScene>(TimeOfScene_Noon + random() % 3));
-#if 1
-	  // ランダムにオブジェクトを発生させてみる.
-	  const int regionCount = static_cast<int>(std::ceil((region.max.y - region.min.y) / unitRegionSize));
-	  for (int i = 0; i < regionCount; ++i) {
-		int objectCount = random() % 2 + 1;
-		while (--objectCount >= 0) {
-		  const float theta = degreeToRadian<float>(RandomFloat(360));
-		  const float distance = RandomFloat(200);
-		  const float tx = std::cos(theta) * distance;
-		  const float tz = std::sin(theta) * distance;
-		  const float ty = RandomFloat(100);
-		  if (boost::random::uniform_int_distribution<>(0, 99)(random) < 70) {
-			auto obj = renderer.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-			Object& o = *obj;
-			const Vector3F trans(tx, ty + i * unitRegionSize, tz);
-			o.SetTranslation(trans);
-			static const float scalingArray[] = { 3, 6, 10 };
-			const float scale = scalingArray[random() % 3];
-			o.SetScale(Vector3F(scale, scale, scale));
-			const float rx = degreeToRadian<float>(RandomFloat(30));
-			const float ry = degreeToRadian<float>(RandomFloat(360));
-			const float rz = degreeToRadian<float>(RandomFloat(30));
-			o.SetRotation(rx, ry, rz);
-			Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.5, 3, 2.5) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
-			p->thrust = Vector3F(0, 9.8f, 0);
-			pPartitioner->Insert(obj, p, Vector3F(-1.47f, 0.25f, 2.512f) * scale);
-		  } else {
-			auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-			Object& o = *obj;
-			const Vector3F trans(tx, ty + i * unitRegionSize, tz);
-			o.SetTranslation(trans);
-			o.SetScale(Vector3F(5, 5, 5));
-			const float rx = degreeToRadian<float>(RandomFloat(360));
-			const float ry = degreeToRadian<float>(RandomFloat(360));
-			const float rz = degreeToRadian<float>(RandomFloat(360));
-			o.SetRotation(rx, ry, rz);
-			Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(5, 1, 4) * 2, 10 * 1 * 8));
-			p->thrust = Vector3F(0, 9.8f, 0);
-			pPartitioner->Insert(obj, p, Vector3F(0, 0, -1) * 2);
-		  }
+	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
+	  const LevelInfo& levelInfo = GetLevelInfo(level);
+
+	  const TimeOfScene tos = [levelInfo]() {
+		if (levelInfo.hoursOfDay >= 7 && levelInfo.hoursOfDay < 16) {
+		  return TimeOfScene_Noon;
+		} else if (levelInfo.hoursOfDay >= 16 && levelInfo.hoursOfDay < 19) {
+		  return TimeOfScene_Sunset;
+		} else {
+		  return TimeOfScene_Night;
 		}
-	  }
-#endif
+	  }();
+      renderer.SetTimeOfScene(tos);
+
 	  // The player character.
 	  {
 		auto obj = renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
 		o.SetAnimation(renderer.GetAnimation("Dive"));
-		const Vector3F trans(5, static_cast<GLfloat>(startingHeightRange.min), 4.5f);
+		const Vector3F trans(5, static_cast<GLfloat>(levelInfo.startHeight), 4.5f);
 		o.SetTranslation(trans);
 		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
 		//o.SetScale(Vector3F(5, 5, 5));
@@ -240,6 +315,83 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj);
 		objFlyingPan = obj;
 	  }
+
+	  {
+		const std::vector<Position3F> modelRoute = CreateModelRoute(Position3F(5, static_cast<float>(levelInfo.startHeight), 4.5f), objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
+		const auto end = modelRoute.end() - 2;
+		const float step = static_cast<float>(unitObstructsSize) * std::max(1.0f, (4.0f - static_cast<float>(levelInfo.difficulty) * 0.5f));
+		const int density = std::min<int>(4, levelInfo.density);
+		for (float height = static_cast<float>(levelInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= step) {
+		  auto itr = std::upper_bound(modelRoute.begin(), modelRoute.end(), height,
+			[](float h, const Position3F& p) { return h > p.y; }
+		  );
+		  if (itr >= end) {
+			continue;
+		  }
+		  const Position3F& e = *itr;
+		  Vector3F axis(*(itr + 1) - e);
+		  axis.y = 0;
+		  if (axis.LengthSq() < 1.0f) {
+			continue;
+		  }
+		  axis.Normalize();
+		  axis *= RandomFloat(10) + 70.0f;
+		  const Vector3F posList[] = {
+			Vector3F(e.x - axis.x, e.y, e.z - axis.z),
+			Vector3F(e.x + axis.z, e.y, e.z - axis.x),
+			Vector3F(e.x - axis.z, e.y, e.z + axis.x),
+			Vector3F(e.x + axis.z, e.y, e.z + axis.x)
+		  };
+		  for (int j = 0; j < density; ++j) {
+			if (random() % 3 < 2) {
+			  auto obj = renderer.CreateObject("rock_s", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+			  Object& o = *obj;
+			  const Vector3F trans = posList[j];
+			  o.SetTranslation(trans);
+			  const float scale = 12;
+			  o.SetScale(Vector3F(scale, scale, scale));
+			  const float rx = degreeToRadian<float>(RandomFloat(30));
+			  const float ry = degreeToRadian<float>(RandomFloat(360));
+			  const float rz = degreeToRadian<float>(RandomFloat(30));
+			  o.SetRotation(rx, ry, rz);
+			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(1, 1.5f, 1) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
+			  p->thrust = Vector3F(0, 9.8f, 0);
+			  pPartitioner->Insert(obj, p);
+			} else {
+			  auto obj = renderer.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+			  Object& o = *obj;
+			  const Vector3F trans = posList[j];
+			  o.SetTranslation(trans);
+			  const float scale = 6;
+			  o.SetScale(Vector3F(scale, scale, scale));
+			  const float rx = degreeToRadian<float>(RandomFloat(30));
+			  const float ry = degreeToRadian<float>(RandomFloat(360));
+			  const float rz = degreeToRadian<float>(RandomFloat(30));
+			  o.SetRotation(rx, ry, rz);
+			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.5, 3, 2.5) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
+			  p->thrust = Vector3F(0, 9.8f, 0);
+			  pPartitioner->Insert(obj, p, Vector3F(-1.47f, 0.25f, 2.512f) * scale);
+			}
+		  }
+		}
+	  }
+	  for (float height = static_cast<float>(levelInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= static_cast<float>(unitObstructsSize) * 5) {
+		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		Object& o = *obj;
+		const float h = RandomFloat(unitObstructsSize * 4) + static_cast<float>(unitObstructsSize) * 0.5f;
+		const float theta = degreeToRadian<float>(RandomFloat(360));
+		const float distance = RandomFloat(150);
+		const Vector3F trans(std::cos(theta) * distance, height + h, std::sin(theta) * distance);
+		o.SetTranslation(trans);
+		const float scale = 5.0f;
+		o.SetScale(Vector3F(scale, scale, scale));
+		const float rx = degreeToRadian<float>(RandomFloat(90) - 45.0f);
+		const float ry = degreeToRadian<float>(RandomFloat(360));
+		o.SetRotation(rx, ry, 0);
+		Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(5, 1, 4) * scale, 10 * 1 * 8));
+		p->thrust = Vector3F(0, 9.8f, 0);
+		pPartitioner->Insert(obj, p, Vector3F(0, 0, -1) * 2);
+	  }
 #if 0
 	  {
 		auto obj = renderer.CreateObject("Accelerator", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
@@ -258,34 +410,37 @@ namespace SunnySideUp {
 		p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p);
 	  }
-#if 1
-	  for (int i = 0; i < 5; ++i) {
-		const int cloudCount = i * i / 2 + 1;
-		const int heightMax = 2600 - i * 400;
-		const int heightMin = heightMax - 400;
-		const int radiusMax = (i * i + 4) * 50;
-		const int radiusMax2 = radiusMax * radiusMax;
-		for (int j = 0; j < cloudCount; ++j) {
-		  static const char* const idList[] = { "cloud0", "cloud1", "cloud2", "cloud3" };
-		  const int index = boost::random::uniform_int_distribution<>(0, 3)(random);
-		  const float y = static_cast<float>(boost::random::uniform_int_distribution<>(heightMin, heightMax)(random));
-		  float r = static_cast<float>(boost::random::uniform_int_distribution<>(10, radiusMax)(random));
-		  //r = radiusMax - r * r / radiusMax2;
-		  const float a0 = static_cast<float>(boost::random::uniform_int_distribution<>(0, 359)(random));
-		  const float a1 = static_cast<float>(boost::random::uniform_int_distribution<>(30, 60)(random));
-		  const float scale = boost::random::uniform_int_distribution<>(10, 30)(random) *  0.1f;
-		  auto obj = renderer.CreateObject(idList[index], Material(Color4B(255, 255, 255, 64), 0, 0), "cloud");
-		  Object& o = *obj;
-		  const Quaternion rot0(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
-		  const Quaternion rot1(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
-		  const Vector3F trans = rot0.Apply(Vector3F(0, y, r));
-		  o.SetTranslation(trans);
-		  o.SetRotation(rot1);
-		  o.SetScale(Vector3F(scale, scale, scale));
-		  pPartitioner->Insert(obj);
+
+	  // Add cloud.
+	  {
+		for (int i = 0; i < 5; ++i) {
+		  const int cloudCount = ((i * i / 2 + 1) * levelInfo.cloudage) / levelInfo.maxCloudage;
+		  const int heightMax = 2600 - i * 400;
+		  const int heightMin = heightMax - 400;
+		  const int radiusMax = (i * i + 4) * 25;
+		  const int radiusMax2 = radiusMax * radiusMax;
+		  for (int j = 0; j < cloudCount; ++j) {
+			static const char* const idList[] = { "cloud0", "cloud1", "cloud2", "cloud3" };
+			const int index = boost::random::uniform_int_distribution<>(0, 3)(random);
+			const float y = static_cast<float>(boost::random::uniform_int_distribution<>(heightMin, heightMax)(random));
+			float r = static_cast<float>(boost::random::uniform_int_distribution<>(10, radiusMax)(random));
+			//r = radiusMax - r * r / radiusMax2;
+			const float a0 = static_cast<float>(boost::random::uniform_int_distribution<>(0, 359)(random));
+			const float a1 = static_cast<float>(boost::random::uniform_int_distribution<>(30, 60)(random));
+			const float scale = boost::random::uniform_int_distribution<>(10, 30)(random) *  0.1f;
+			auto obj = renderer.CreateObject(idList[index], Material(Color4B(255, 255, 255, 64), 0, 0), "cloud");
+			Object& o = *obj;
+			const Quaternion rot0(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
+			const Quaternion rot1(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
+			const Vector3F trans = rot0.Apply(Vector3F(0, y, r));
+			o.SetTranslation(trans);
+			o.SetRotation(rot1);
+			o.SetScale(Vector3F(scale, scale, scale));
+			pPartitioner->Insert(obj);
+		  }
 		}
 	  }
-#endif
+
 	  AudioInterface& audio = engine.GetAudio();
 	  audio.LoadSE("bound", "Audio/bound.wav");
 	  audio.LoadSE("success", "Audio/success.wav");

@@ -1,6 +1,7 @@
 /**
  @file SuccessScene.cpp
 */
+#include "LevelInfo.h"
 #include "Scene.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <vector>
@@ -142,6 +143,8 @@ namespace SunnySideUp {
 	Renderer& r = engine.GetRenderer();
 	if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 	  r.FadeIn(1.0f);
+	  CommonData& commonData = *engine.GetCommonData<CommonData>();
+	  commonData.level = std::min(commonData.level + 1, GetMaximumLevel());
 	  return SCENEID_MAINGAME;
 	}
 	return SCENEID_CONTINUE;

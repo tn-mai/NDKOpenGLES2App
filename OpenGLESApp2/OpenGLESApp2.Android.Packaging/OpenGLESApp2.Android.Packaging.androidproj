@@ -79,6 +79,7 @@
     <Content Include="assets\Meshes\block1.msh" />
     <Content Include="assets\Meshes\chickenegg.msh" />
     <Content Include="assets\Meshes\flyingpan.msh" />
+    <Content Include="assets\Meshes\rock_collection.msh" />
     <Content Include="assets\Meshes\titlelogo.msh" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
@@ -138,6 +139,8 @@
     <Content Include="assets\Textures\Adreno\ibl_sunsetIrr.ktx" />
     <Content Include="assets\Textures\Adreno\ibl_sunsetLow.ktx" />
     <Content Include="assets\Textures\Adreno\irradiance.ktx" />
+    <Content Include="assets\Textures\Adreno\rock_s.ktx" />
+    <Content Include="assets\Textures\Adreno\rock_s_NR.ktx" />
     <Content Include="assets\Textures\Adreno\sphere.ktx" />
     <Content Include="assets\Textures\Adreno\sphereNR.ktx" />
     <Content Include="assets\Textures\Adreno\sunnysideup.ktx" />
@@ -174,6 +177,8 @@
     <Content Include="assets\Textures\Others\ibl_sunsetIrr.ktx" />
     <Content Include="assets\Textures\Others\ibl_sunsetLow.ktx" />
     <Content Include="assets\Textures\Others\landscapeNR.ktx" />
+    <Content Include="assets\Textures\Others\rock_s.ktx" />
+    <Content Include="assets\Textures\Others\rock_s_NR.ktx" />
     <Content Include="assets\Textures\Others\sphere.ktx" />
     <Content Include="assets\Textures\Others\sphereNR.ktx" />
     <Content Include="assets\Textures\Others\sunnysideup.ktx" />
