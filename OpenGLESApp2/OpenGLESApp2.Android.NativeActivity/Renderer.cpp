@@ -1712,19 +1712,34 @@ void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* no
 {
   if (auto pBuf = FileSystem::LoadFile(filename)) {
 	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd);
-	for (auto m : result.meshes) {
-	  const auto itr = textureList.find(diffuse);
-	  if (itr != textureList.end()) {
-		m.texDiffuse = itr->second;
+	if (result.result == ImportMeshResult::Result::success) {
+	  for (auto m : result.meshes) {
+		const auto itr = textureList.find(diffuse);
+		if (itr != textureList.end()) {
+		  m.texDiffuse = itr->second;
+		}
+		const auto itrNml = textureList.find(normal);
+		if (itrNml != textureList.end()) {
+		  m.texNormal = itrNml->second;
+		}
+		meshList.insert({ m.id, m });
 	  }
-	  const auto itrNml = textureList.find(normal);
-	  if (itrNml != textureList.end()) {
-		m.texNormal = itrNml->second;
+	  for (auto e : result.animations) {
+		animationList.insert({ e.id, e });
 	  }
-	  meshList.insert({ m.id, m });
-	}
-	for (auto e : result.animations) {
-	  animationList.insert({ e.id, e });
+	} else {
+	  static const char* const errorDescList[] = {
+		"success",
+		"invalidHeader",
+		"noData",
+		"invalidMeshInfo",
+		"invalidIBO",
+		"invalidVBO",
+		"invalidJointInfo",
+		"invalidAnimationInfo",
+		"indexOverflow"
+	  };
+	  LOGE("ImportMesh fail by %s: '%s'", errorDescList[static_cast<int>(result.result)], filename);
 	}
   }
 }
@@ -1735,16 +1750,13 @@ void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* no
 */
 void Renderer::InitMesh()
 {
-	LoadMesh("cubes.dae", TangentSpaceData::defaultData, "wood", "wood_nml");
-	LoadMesh("sphere.dae", TangentSpaceData::sphereData, "Sphere", "Sphere_nml");
-	LoadMesh("flyingrock.dae", TangentSpaceData::flyingrockData, "flyingrock", "flyingrock_nml");
-//	LoadMesh("block1.dae", TangentSpaceData::block1Data, "block1", "block1_nml");
-//	LoadMesh("chickenegg.dae", TangentSpaceData::chickeneggData, "chickenegg", "chickenegg_nml");
-	LoadMesh("sunnysideup.dae", TangentSpaceData::sunnysideupData, "sunnysideup", "sunnysideup_nml");
-//	LoadMesh("flyingpan.dae", TangentSpaceData::flyingpanData, "flyingpan", "flyingpan_nml");
-	LoadMesh("brokenegg.dae", TangentSpaceData::brokeneggData, "brokenegg", "brokenegg_nml");
-	LoadMesh("accelerator.dae", TangentSpaceData::acceleratorData, "accelerator", "accelerator_nml");
-
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	LoadFBX("Meshes/sphere.msh", "Sphere", "Sphere_nml");
+	LoadFBX("Meshes/flyingrock.msh", "flyingrock", "flyingrock_nml");
+	LoadFBX("Meshes/brokenegg.msh", "brokenegg", "brokenegg_nml");
+	LoadFBX("Meshes/accelerator.msh", "accelerator", "accelerator_nml");
+	LoadFBX("Meshes/sunnysideup.msh", "sunnysideup", "sunnysideup_nml");
 	LoadFBX("Meshes/block1.msh", "block1", "block1_nml");
 	LoadFBX("Meshes/flyingpan.msh", "flyingpan", "flyingpan_nml");
 	LoadFBX("Meshes/chickenegg.msh", "chickenegg", "chickenegg_nml");
