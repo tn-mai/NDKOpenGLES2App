@@ -158,7 +158,6 @@
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Collision.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.cpp" />
-    <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Win32Audio.cpp" />
@@ -169,7 +168,6 @@
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Mesh.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\SpacePartitioner.h" />
-    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.h" />
     <ClInclude Include="Win32Window.h" />
   </ItemGroup>

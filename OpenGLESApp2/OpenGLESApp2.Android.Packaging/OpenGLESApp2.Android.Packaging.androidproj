@@ -63,23 +63,21 @@
     </AntPackage>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Content Include="assets\accelerator.dae" />
     <Content Include="assets\Audio\background.mp3" />
     <Content Include="assets\Audio\bound.wav" />
     <Content Include="assets\Audio\dive.mp3" />
     <Content Include="assets\Audio\miss.wav" />
     <Content Include="assets\Audio\success.wav" />
     <Content Include="assets\Audio\wind.wav" />
-    <Content Include="assets\block1.dae" />
-    <Content Include="assets\brokenegg.dae" />
-    <Content Include="assets\chickenegg.dae" />
-    <Content Include="assets\cubes.dae" />
-    <Content Include="assets\flyingpan.dae" />
-    <Content Include="assets\flyingrock.dae" />
+    <Content Include="assets\Meshes\accelerator.msh" />
     <Content Include="assets\Meshes\block1.msh" />
+    <Content Include="assets\Meshes\brokenegg.msh" />
     <Content Include="assets\Meshes\chickenegg.msh" />
     <Content Include="assets\Meshes\flyingpan.msh" />
+    <Content Include="assets\Meshes\flyingrock.msh" />
     <Content Include="assets\Meshes\rock_collection.msh" />
+    <Content Include="assets\Meshes\sphere.msh" />
+    <Content Include="assets\Meshes\sunnysideup.msh" />
     <Content Include="assets\Meshes\titlelogo.msh" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
@@ -113,8 +111,6 @@
     <Content Include="assets\Shaders\skybox.vert" />
     <Content Include="assets\Shaders\tbn.frag" />
     <Content Include="assets\Shaders\tbn.vert" />
-    <Content Include="assets\sphere.dae" />
-    <Content Include="assets\sunnysideup.dae" />
     <Content Include="assets\Textures\Adreno\accelerator.ktx" />
     <Content Include="assets\Textures\Adreno\acceleratorNR.ktx" />
     <Content Include="assets\Textures\Adreno\block1.ktx" />

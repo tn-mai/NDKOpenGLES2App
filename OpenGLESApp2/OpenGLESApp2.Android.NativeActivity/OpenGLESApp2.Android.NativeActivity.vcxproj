@@ -136,7 +136,6 @@
     <ClInclude Include="Collision.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="SpacePartitioner.h" />
-    <ClInclude Include="TangentSpaceData.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="android_native_app_glue.h" />
@@ -149,7 +148,6 @@
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="TangentSpaceData.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />

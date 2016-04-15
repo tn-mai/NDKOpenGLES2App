@@ -40,9 +40,9 @@ namespace SunnySideUp {
 		}
 		{
 		  auto obj = r.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-		  obj->SetTranslation(Vector3F(1.5f, 6, 2));
-		  obj->SetScale(Vector3F(3, 3, 3));
-		  obj->SetRotation(degreeToRadian<float>(-5), degreeToRadian<float>(22), degreeToRadian<float>(14));
+		  obj->SetTranslation(Vector3F(4, 11.5, -3.5));
+		  obj->SetScale(Vector3F(5, 5, 5));
+		  obj->SetRotation(degreeToRadian<float>(5), degreeToRadian<float>(22+180), degreeToRadian<float>(-14));
 		  objList.push_back(obj);
 		}
 		{

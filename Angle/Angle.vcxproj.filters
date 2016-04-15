@@ -7,7 +7,6 @@
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.cpp" />
     <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.cpp" />
     <ClCompile Include="Win32Window.cpp" />
-    <ClCompile Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.cpp" />
     <ClCompile Include="Win32Audio.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -17,6 +16,5 @@
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\Renderer.h" />
     <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\texture.h" />
     <ClInclude Include="Win32Window.h" />
-    <ClInclude Include="..\OpenGLESApp2\OpenGLESApp2.Android.NativeActivity\TangentSpaceData.h" />
   </ItemGroup>
 </Project>

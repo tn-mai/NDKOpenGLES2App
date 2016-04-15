@@ -8,7 +8,6 @@
     <ClInclude Include="TouchSwipeCamera.h" />
     <ClInclude Include="SpacePartitioner.h" />
     <ClInclude Include="Collision.h" />
-    <ClInclude Include="TangentSpaceData.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="AndroidWindow.h" />
   </ItemGroup>
@@ -19,7 +18,6 @@
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="TouchSwipeCamera.cpp" />
     <ClCompile Include="Collision.cpp" />
-    <ClCompile Include="TangentSpaceData.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="AndroidWindow.cpp" />
     <ClCompile Include="AndroidAudio.cpp" />

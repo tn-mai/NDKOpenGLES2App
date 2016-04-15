@@ -1,6 +1,5 @@
 #include "Renderer.h"
 #include "Mesh.h"
-#include "TangentSpaceData.h"
 #include "../../Shared/File.h"
 #include "../../Shared/Window.h"
 #include "../../Shared/FontInfo.h"
@@ -13,22 +12,14 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <boost/optional.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
 #include <boost/math/constants/constants.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
-#include <boost/lexical_cast.hpp>
 #include <vector>
 #include <numeric>
-#include <streambuf>
 #include <math.h>
 #include <chrono>
 
 namespace Mai {
-
-namespace BPT = boost::property_tree;
 
 #ifdef __ANDROID__
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
@@ -1665,28 +1656,6 @@ void Renderer::Swap()
 }
 
 namespace {
-	BPT::ptree::const_iterator findElement(const BPT::ptree& pt, const std::string& element, const std::string& attr, const std::string& id) {
-		return std::find_if(
-			pt.begin(),
-			pt.end(),
-			[&element, &attr, &id](const BPT::ptree::value_type& t) -> bool { return t.first == element && t.second.get<std::string>(attr) == id; }
-		);
-	}
-
-	std::string getSourceArray(const BPT::ptree& pt, const std::string& id, const char* subElemName) {
-		const BPT::ptree::const_iterator itr = findElement(pt, "source", "<xmlattr>.id", id);
-		if (itr == pt.end()) {
-			return std::string();
-		}
-		return itr->second.get<std::string>(subElemName);
-	}
-	std::string getSourceArray(const BPT::ptree& pt, const std::string& id) {
-		return getSourceArray(pt, id, "float_array");
-	}
-	std::string getSourceNameArray(const BPT::ptree& pt, const std::string& id) {
-		return getSourceArray(pt, id, "Name_array");
-	}
-
 	Vector3F MakeTangentVector(const Vector3F& normal) {
 	  Vector3F c1 = normal.Cross(Vector3F(0.0f, 1.0f, 0.0f));
 	  Vector3F c2 = normal.Cross(Vector3F(0.0f, 0.0f, 1.0f));
@@ -1712,19 +1681,34 @@ void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* no
 {
   if (auto pBuf = FileSystem::LoadFile(filename)) {
 	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd);
-	for (auto m : result.meshes) {
-	  const auto itr = textureList.find(diffuse);
-	  if (itr != textureList.end()) {
-		m.texDiffuse = itr->second;
+	if (result.result == ImportMeshResult::Result::success) {
+	  for (auto m : result.meshes) {
+		const auto itr = textureList.find(diffuse);
+		if (itr != textureList.end()) {
+		  m.texDiffuse = itr->second;
+		}
+		const auto itrNml = textureList.find(normal);
+		if (itrNml != textureList.end()) {
+		  m.texNormal = itrNml->second;
+		}
+		meshList.insert({ m.id, m });
 	  }
-	  const auto itrNml = textureList.find(normal);
-	  if (itrNml != textureList.end()) {
-		m.texNormal = itrNml->second;
+	  for (auto e : result.animations) {
+		animationList.insert({ e.id, e });
 	  }
-	  meshList.insert({ m.id, m });
-	}
-	for (auto e : result.animations) {
-	  animationList.insert({ e.id, e });
+	} else {
+	  static const char* const errorDescList[] = {
+		"success",
+		"invalidHeader",
+		"noData",
+		"invalidMeshInfo",
+		"invalidIBO",
+		"invalidVBO",
+		"invalidJointInfo",
+		"invalidAnimationInfo",
+		"indexOverflow"
+	  };
+	  LOGE("ImportMesh fail by %s: '%s'", errorDescList[static_cast<int>(result.result)], filename);
 	}
   }
 }
@@ -1735,16 +1719,13 @@ void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* no
 */
 void Renderer::InitMesh()
 {
-	LoadMesh("cubes.dae", TangentSpaceData::defaultData, "wood", "wood_nml");
-	LoadMesh("sphere.dae", TangentSpaceData::sphereData, "Sphere", "Sphere_nml");
-	LoadMesh("flyingrock.dae", TangentSpaceData::flyingrockData, "flyingrock", "flyingrock_nml");
-//	LoadMesh("block1.dae", TangentSpaceData::block1Data, "block1", "block1_nml");
-//	LoadMesh("chickenegg.dae", TangentSpaceData::chickeneggData, "chickenegg", "chickenegg_nml");
-	LoadMesh("sunnysideup.dae", TangentSpaceData::sunnysideupData, "sunnysideup", "sunnysideup_nml");
-//	LoadMesh("flyingpan.dae", TangentSpaceData::flyingpanData, "flyingpan", "flyingpan_nml");
-	LoadMesh("brokenegg.dae", TangentSpaceData::brokeneggData, "brokenegg", "brokenegg_nml");
-	LoadMesh("accelerator.dae", TangentSpaceData::acceleratorData, "accelerator", "accelerator_nml");
-
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	LoadFBX("Meshes/sphere.msh", "Sphere", "Sphere_nml");
+	LoadFBX("Meshes/flyingrock.msh", "flyingrock", "flyingrock_nml");
+	LoadFBX("Meshes/brokenegg.msh", "brokenegg", "brokenegg_nml");
+	LoadFBX("Meshes/accelerator.msh", "accelerator", "accelerator_nml");
+	LoadFBX("Meshes/sunnysideup.msh", "sunnysideup", "sunnysideup_nml");
 	LoadFBX("Meshes/block1.msh", "block1", "block1_nml");
 	LoadFBX("Meshes/flyingpan.msh", "flyingpan", "flyingpan_nml");
 	LoadFBX("Meshes/chickenegg.msh", "chickenegg", "chickenegg_nml");
@@ -2169,536 +2150,6 @@ void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
   vboEnd += vertecies.size() * sizeof(Vertex);
   glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
   iboEnd += indices.size() * sizeof(GLushort);
-}
-
-void Renderer::LoadMesh(const char* filename, const void* pTD, const char* texDiffuse, const char* texNormal)
-{
-	if (auto pBuf = FileSystem::LoadFile(filename)) {
-		// property_treeを使ってCOLLADAファイルを解析.
-		FileSystem::RawBufferType& buf = *pBuf;
-		struct membuf : public std::streambuf {
-			explicit membuf(char* b, char* e) { this->setg(b, b, e); }
-		};
-		membuf mb((char*)&buf[0], (char*)&buf[0] + buf.size());
-		std::istream is(&mb);
-		BPT::ptree collada;
-		try {
-			BPT::read_xml(is, collada);
-			LOGI("XML READ SUCCESS %s", filename);
-		}
-		catch (BPT::xml_parser_error& e) {
-			LOGI("%s", e.message().c_str());
-		}
-		std::vector<std::string> boneNameList;
-		try {
-			/* library_geometries.geometory.mesh.triangles
-			<xmlattr>.count           三角形の数.
-			input.<xmlattr>.semantic  入力の種類(VERTEX/NORMAL/TEXCOORD)
-			input.<xmlattr>.source    入力元データID. mesh.sourceのうちIDの一致するもの.
-			input.<xmlattr>.offset    各ソースに対応するインデックス配列内のオフセット.
-			input.<xmlattr>.set       同じセマンティックの入力が複数ある場合に、それぞれを識別するためのインデックス.
-			とりあえずTEXCOORDのみ対応する.
-			*/
-			/* すべての入力のインデックスを連結したものを、その頂点のIDとする.
-			新しいインデックスによるIDについて、既存の頂点IDに一致するものがあれば、既存の頂点を採用し
-			新しい頂点を生成しない.
-			*/
-			/* library_controllers.controller
-			<xmlattr>.id  node要素のinstance_controller.<xmlattr>url属性で指定されるID.
-			skin
-			  <xmlattr>.source                この頂点ウェイトに対応するメッシュID.
-			  joints.input.<xmlattr>.semantic 入力の種類(JOINT/INV_BIND_MATRIX).
-			                                  JOINTの入力データは対応するジョイントを示す文字列で、アニメーションデータと
-											  関連付けるために使われる.
-			  joints.input.<xmlattr>.source   入力元データID. skin.sourceのうちIDの一致するもの.
-			  vertex_weight.<xmlattr>.count          頂点ウェイトデータの数.
-			  vertex_weight.input.<xmlattr>.semantic 入力の種類(JOINT/WEIGHT).
-			  vertex_weight.input.<xmlattr>.source   入力元データID. skin.sourceのうちIDの一致するもの.
-			  vertex_weight.input.<xmlattr>.offset   各ソースに対応するインデックス配列内のオフセット.
-			  vertex_weight.vcount                   各頂点に結び付けられるデータ数.
-			  vertex_weight.v                        inputに対応するインデックス配列.
-
-			頂点ウェイトデータは暗黙的に頂点座標に結び付けられるようだ.
-			頂点ウェイトデータとメッシュデータの関連付けは、NODE型のnode要素の子要素であるinstance_controller.<xmlattr>.urlと
-			instance_material.<xmlattr>.symbolによって行われるが、頂点ウェイトデータの数とメッシュの頂点座標の数は一致していな
-			ければならないようだ(ウェイトと座標を明示的に結びつけるデータを持たないぽい).
-
-			libyrary_visual_scene.visual_scene
-			  node
-			    <xmlattr>.type
-				  NODEの場合、ジョイントとメッシュを関連付けるデータとして扱う. 下記のデータを参照する.
-			      instance_controller
-				    <xmlattr>.url  頂点ウェイトデータのURL.
-				    skeleton インスタンスに関連付けられるジョイントノードを指定する.
-			                 この要素はヒントのようなもので、簡単なモデルの場合は無くても動作するようだ.
-
-				  JOINTの場合、ジョイントノードのツリーとして扱う.
-				  <xmlattr>.sid            アニメーションデータの適用先を識別するために使われる.
-				  translate, rotate, scale ジョイントの基本姿勢データ.
-				                           また、各要素の<xmlattr>sidは、アニメーションデータの適用先を識別するために使われる.
-
-			COLLADAのアニメーションは、独立したアニメーションデータをチャンネルで指定された適用先に流し込む、というイメージ.
-			channelがsamplerを指定しsamplerは複数のデータ列からなるアニメーション入力ソースを指定する.
-			各アニメーションデータは1次元のパラメータしか持たないことに注意. つまり、3軸回転のためには3つのチャンネルが必要となる.
-			COLLADAの仕様では3軸に個別にキーフレームを振ることも可能だが、普通は3軸ともに共通の値が使われると思うので、実装でも3軸
-			をまとめて扱うことにする(というか、回転をクォータニオンに変換して球面線形補間したい).
-			あと適用先IDは当然ながら文字列になってて、ジョイント側のIDが一致する要素が適用先になる. なので、厳密にアニメーションを
-			解釈しようとするなら、ジョイント側の座標変換に関わる要素を全て保持しておいて、一致する要素の軸で回転させたり、移動させ
-			たりする必要がある. のだが、面倒なので適用先IDは決め打ちにする.
-			TODO: 気が向いたらちゃんと実装しよう.
-
-			animation.channel
-			  <xmlattr>.source アニメーションサンプラID.
-			  <xmlattr>.target アニメーションの適用先ID.
-			animation.sampler
-			  <xmlattr>.id  channel.<xmlattr>.sourceに対応するID.
-			  input 入力ソース.
-			*/
-			bool fromBlender = false;
-			if (const auto& upAxisNode = collada.get_child_optional("COLLADA.asset.up_axis")) {
-				if (upAxisNode->data() == "Z_UP") {
-					fromBlender = true;
-				}
-			}
-			const BPT::ptree& scenesNode = collada.get_child("COLLADA.library_visual_scenes.visual_scene");
-			struct SkinInfo {
-				std::vector<Matrix4x4> invBindPoseMatrixList;
-				std::vector<std::array<int, 4> >  boneIdList;
-				std::vector<std::array<float, 4> >  weightList;
-				std::string meshId;
-			};
-			static const size_t defaultMaxVertexCount = 10000;
-			std::vector<Vertex> vertecies;
-			std::vector<GLushort> indices;
-			vertecies.reserve(defaultMaxVertexCount);
-			indices.reserve(defaultMaxVertexCount * 3);
-			GLintptr baseIndexOffset = iboEnd;
-#ifdef SHOW_TANGENT_SPACE
-			GLintptr baseVertexOffsetTBN = vboTBNEnd;
-#endif // SHOW_TANGENT_SPACE
-			int baseVertexOffset = vboEnd / sizeof(Vertex);
-			for (auto& e : scenesNode) {
-				if (e.first != "node" || e.second.get<std::string>("<xmlattr>.type") != "NODE") {
-					continue;
-				}
-				const BPT::ptree& nodeElem = e.second;
-				Vector3F nodeBaseScale(1, 1, 1);
-				if (auto opt = nodeElem.get_optional<std::string>("scale")) {
-					const std::vector<float> list = split<float>(opt.get(), ' ', [](const std::string& s) { return atof(s.c_str()); });
-					if (list.size() >= 3) {
-						nodeBaseScale.x = list[0];
-						nodeBaseScale.y = list[1];
-						nodeBaseScale.z = list[2];
-					}
-				}
-				Vector3F nodeBaseTranslate(0, 0, 0);
-				if (auto opt = nodeElem.get_optional<std::string>("translate")) {
-				  const std::vector<float> list = split<float>(opt.get(), ' ', [](const std::string& s) { return atof(s.c_str()); });
-				  if (list.size() >= 3) {
-					nodeBaseTranslate.x = list[0];
-					nodeBaseTranslate.y = list[1];
-					nodeBaseTranslate.z = list[2];
-				  }
-				}
-				SkinInfo skinInfo;
-				const BPT::ptree::const_assoc_iterator itrControllerUrl = e.second.find("instance_controller");
-				if (itrControllerUrl != e.second.not_found()) {
-					const std::string contollerId = itrControllerUrl->second.get<std::string>("<xmlattr>.url").substr(1);
-					const BPT::ptree& controllersElem = collada.get_child("COLLADA.library_controllers");
-					for (auto& e : controllersElem) {
-						if (e.first != "controller" || e.second.get<std::string>("<xmlattr>.id") != contollerId) {
-							continue;
-						}
-						const BPT::ptree& skinElem = e.second.get_child("skin");
-						skinInfo.meshId = skinElem.get<std::string>("<xmlattr>.source").substr(1);
-						const BPT::ptree& jointsElem = skinElem.get_child("joints");
-						for (auto& e : jointsElem) {
-							if (e.first != "input") {
-								continue;
-							}
-							const std::string semantic = e.second.get<std::string>("<xmlattr>.semantic");
-							const std::string srcId = e.second.get<std::string>("<xmlattr>.source").substr(1);
-							if (semantic == "JOINT") {
-								// TODO: skin配下のsource要素から一致するデータを検索し、アニメーション連携用のジョイント名配列として保存する.
-								boneNameList = split<std::string>(getSourceNameArray(skinElem, srcId), ' ', [](const std::string& s) { return s; });
-							} else if (semantic == "INV_BIND_MATRIX") {
-								// TODO: skin配下のsource要素から一致するデータを検索し、ボーンオフセット行列として保存する.
-								//       ボーン本体はJOINT型node要素なのに、このデータがskin要素に置かれているのは奇妙に思えるが、この行列が必要
-								//       なのはスキニングを行う場合に(ほぼ)限られることを考えれば、それほど不思議ではない.
-								const std::vector<float> tmp = split<float>(getSourceArray(skinElem, srcId), ' ', [](const std::string& s) { return atof(s.c_str()); });
-								for (size_t i = 0; tmp.size() - i >= 16; i += 16) {
-									Matrix4x4 m;
-									std::copy(tmp.begin() + i, tmp.begin() + i + 16, m.f);
-									skinInfo.invBindPoseMatrixList.push_back(m);
-								}
-							}
-						}
-						const BPT::ptree& weightsElem = skinElem.get_child("vertex_weights");
-						int boneIdOffset = 0, weightOffset = 0;
-						std::vector<float> weightList;
-						for (auto& e : weightsElem) {
-							if (e.first != "input") {
-								continue;
-							}
-							const std::string semantic = e.second.get<std::string>("<xmlattr>.semantic");
-							const std::string sourceId = e.second.get<std::string>("<xmlattr>.source").substr(1);
-							if (semantic == "JOINT") {
-								boneIdOffset = e.second.get<int>("<xmlattr>.offset");
-							} else if (semantic == "WEIGHT") {
-								weightOffset = e.second.get<int>("<xmlattr>.offset");
-								weightList = split<float>(getSourceArray(skinElem, sourceId), ' ', [](const std::string& s) { return atof(s.c_str()); });
-							}
-						}
-						const std::vector<int> vcount = split<int>(weightsElem.get<std::string>("vcount"), ' ', [](const std::string& s) { return atoi(s.c_str()); });
-						const std::vector<int> indexList = split<int>(weightsElem.get<std::string>("v"), ' ', [](const std::string& s) { return atoi(s.c_str()); });
-						size_t offset = 0;
-						for (auto& e : vcount) {
-							std::array<int, 4> boneId = { { 0, 0, 0, 0 } };
-							std::array<float, 4> weight = { { 0, 0, 0, 0 } };
-							for (int i = 0; i < e; ++i) {
-								boneId[i] = indexList[offset + 2 * i + boneIdOffset];
-								weight[i] = weightList[indexList[offset + 2 * i + weightOffset]];
-							}
-							skinInfo.boneIdList.push_back(boneId);
-							skinInfo.weightList.push_back(weight);
-							offset += 4 * 2;
-							if (offset >= indexList.size()) {
-								break;
-							}
-						}
-					}
-				} else {
-					const BPT::ptree::const_assoc_iterator itrGeometryUrl = e.second.find("instance_geometry");
-					if (itrGeometryUrl == e.second.not_found()) {
-						continue;
-					}
-					skinInfo.meshId = itrGeometryUrl->second.get<std::string>("<xmlattr>.url").substr(1);
-				}
-				const BPT::ptree& libGeoElem = collada.get_child("COLLADA.library_geometries");
-				const BPT::ptree::const_iterator itr = std::find_if(libGeoElem.begin(), libGeoElem.end(), [&skinInfo](const BPT::ptree::value_type& v) { return v.first == "geometry" && v.second.get<std::string>("<xmlattr>.id") == skinInfo.meshId; });
-				if (itr == libGeoElem.end()) {
-					LOGI("Geometory '%s' not found.", skinInfo.meshId.c_str());
-					continue;
-				}
-				const BPT::ptree& meshNode = itr->second.get_child("mesh");
-				const BPT::ptree* pTriangleNode;
-				if (auto p = meshNode.get_child_optional("triangles")) {
-					pTriangleNode = &p.get();
-				}  else if (auto p = meshNode.get_child_optional("polylist")) {
-					pTriangleNode = &p.get();
-				} else {
-					LOGI("%s has not triangles or polylist.", nodeElem.get<std::string>("<xmlattr>.id").c_str());
-					continue;
-				}
-				const BPT::ptree& trianglesNode = *pTriangleNode;
-
-				// input要素を解析し、対応するソース及びオフセットを得る.
-				std::vector<Position3F> posArray;
-				std::vector<Vector3F> normalArray;
-				typedef std::pair<int, Position2S> TexCoordType;
-				std::vector<TexCoordType> texcoordArray[VERTEX_TEXTURE_COUNT_MAX];
-				int vertexOff = -1, normalOff = -1, texcoordOff[VERTEX_TEXTURE_COUNT_MAX] = { -1, -1 };
-				int offsetMax = 0;
-				for (auto& e : trianglesNode) {
-					if (e.first != "input") {
-						continue;
-					}
-					const std::string semantic = e.second.get<std::string>("<xmlattr>.semantic");
-					if (semantic == "VERTEX") {
-						LOGI("VERTEX FOUND");
-						const std::string vertSrcId = e.second.get<std::string>("<xmlattr>.source").substr(1);
-						LOGI("VERTEX SOURCE:%s", vertSrcId.c_str());
-						std::string srcId;
-						for (auto& e : meshNode) {
-							if (e.first == "vertices" &&
-								e.second.get<std::string>("<xmlattr>.id") == vertSrcId &&
-								e.second.get<std::string>("input.<xmlattr>.semantic") == "POSITION") {
-								srcId = e.second.get<std::string>("input.<xmlattr>.source").substr(1);
-								LOGI("POSITION SOURCE: #%s", vertSrcId.c_str());
-								break;
-							}
-						}
-						const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return static_cast<float>(atof(s.c_str())); });
-						posArray.shrink_to_fit();
-						posArray.reserve(tmp.size() / 3);
-						for (size_t i = 0; i + 2 < tmp.size(); i += 3) {
-							posArray.push_back(Position3F(tmp[i], tmp[i + 1], tmp[i + 2]) * nodeBaseScale + nodeBaseTranslate);
-						}
-						LOGI("POS ARRAY SIZE:%d", posArray.size());
-						vertexOff = e.second.get<int>("<xmlattr>.offset");
-						offsetMax = std::max(offsetMax, vertexOff);
-					}
-					else if (semantic == "NORMAL") {
-						LOGI("NORMAL FOUND");
-						const std::string srcId = e.second.get<std::string>("<xmlattr>.source").substr(1);
-						LOGI("NORMAL SOURCE: #%s", srcId.c_str());
-						const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return static_cast<float>(atof(s.c_str())); });
-						normalArray.shrink_to_fit();
-						normalArray.reserve(tmp.size() / 3);
-						for (size_t i = 0; i + 2 < tmp.size(); i += 3) {
-							normalArray.push_back(Vector3F(tmp[i], tmp[i + 1], tmp[i + 2]));
-						}
-						LOGI("NORMAL ARRAY SIZE:%d", normalArray.size());
-						normalOff = e.second.get<int>("<xmlattr>.offset");
-						offsetMax = std::max(offsetMax, normalOff);
-					}
-					else if (semantic == "TEXCOORD") {
-						LOGI("TEXCOORD FOUND");
-						const unsigned int index = e.second.get<unsigned int>("<xmlattr>.set", 0);
-						if (index < VERTEX_TEXTURE_COUNT_MAX) {
-							const std::string srcId = e.second.get<std::string>("<xmlattr>.source").substr(1);
-							LOGI("TEXCOORD[%d] SOURCE: #%s", index, srcId.c_str());
-							const std::vector<float> tmp = split<float>(getSourceArray(meshNode, srcId), ' ', [](const std::string& s) -> float { return static_cast<float>(atof(s.c_str())); });
-							auto& list = texcoordArray[index];
-							list.shrink_to_fit();
-							list.reserve(tmp.size() / 2);
-							for (size_t i = 0; i + 1 < tmp.size(); i += 2) {
-								// 既に同じ座標データが存在していたら、そのデータのインデックスを自分のインデックスとして記録する.
-							    const Position2S uv = Position2S::FromFloat(tmp[i], tmp[i + 1]);
-								const auto& itr = std::find_if(list.begin(), list.end(), [uv](const TexCoordType& obj) { return obj.second == uv; });
-								const int id = (itr == list.end()) ? (i / 2) : itr->first;
-								list.push_back(std::make_pair(id, uv));
-							}
-							LOGI("TEXCOORD[%d] ARRAY SIZE:%d", index, list.size());
-							texcoordOff[index] = e.second.get<int>("<xmlattr>.offset");
-							offsetMax = std::max(offsetMax, texcoordOff[index]);
-						}
-					}
-				}
-				const int stride = offsetMax + 1; // 頂点ごとに必要とするインデックスの数.
-				LOGI("STRIDE:%d", stride);
-
-				const int indexCount = trianglesNode.get<int>("<xmlattr>.count") * 3; // trianglesノードの場合、count要素は三角形の個数を示すので、インデックスの要素数にするため3を掛けている.
-				std::vector<uint_fast64_t> vertIdList;
-				vertIdList.reserve(indexCount);
-				const std::vector<int> indexList = split<int>(trianglesNode.get<std::string>("p"), ' ', [](const std::string& s)->int { return atoi(s.c_str()); });
-				for (size_t i = 0; i < indexList.size(); i += stride) {
-					const uint_fast64_t posId64 = indexList[i + vertexOff];
-					const uint_fast64_t idNormal = (normalOff != -1) ? indexList[i + normalOff] : 0xfff;
-					uint_fast64_t idTexcoord[VERTEX_TEXTURE_COUNT_MAX];
-					for (int j = 0; j < VERTEX_TEXTURE_COUNT_MAX; ++j) {
-					  if (texcoordOff[j] != -1) {
-						const int tmpIndex = indexList[i + texcoordOff[j]];
-						idTexcoord[j] = texcoordArray[j][tmpIndex].first;
-					  } else {
-						idTexcoord[j] = 0xfff;
-					  }
-					}
-					const uint_fast64_t vertId = (posId64 << 0) | (idNormal << 12) | (idTexcoord[0] << 24) | (idTexcoord[1] << 36);
-					const size_t posId = static_cast<size_t>(posId64);
-					// LOGI("vertId: %llx", vertId);
-					auto itr = std::find(vertIdList.begin(), vertIdList.end(), vertId);
-					if (itr != vertIdList.end()) {
-						indices.push_back(itr - vertIdList.begin() + baseVertexOffset);
-					} else {
-						Vertex v;
-						v.position = (vertexOff != -1) ? posArray[posId] : Position3F(0, 0, 0);
-						v.normal = (normalOff != -1) ? normalArray[static_cast<size_t>(idNormal)] : Vector3F(0, 0, 1);
-						v.tangent = Vector3F(0, 0, 0);
-						for (int j = 0; j < VERTEX_TEXTURE_COUNT_MAX; ++j) {
-							v.texCoord[j] = (texcoordOff[j] != -1) ? texcoordArray[j][static_cast<size_t>(idTexcoord[j])].second : Position2S(0, 0);
-						}
-						// TODO: transformにおける量子化の結果、合計が255(=1.0)にならないことがあるため、補正処理が必要.
-						if (boneNameList.empty()) {
-							static const GLubyte defaultWeight[] = { 255, 0, 0, 0 };
-							static const GLubyte defaultBoneID[] = { 0, 0, 0, 0 };
-							std::copy(defaultWeight, defaultWeight + 4, v.weight);
-							std::copy(defaultBoneID, defaultBoneID + 4, v.boneID);
-						} else {
-							std::transform(skinInfo.weightList[posId].begin(), skinInfo.weightList[posId].end(), v.weight, [](float w) { return static_cast<GLubyte>(w * 255.0f + 0.5f); });
-							std::copy(skinInfo.boneIdList[posId].begin(), skinInfo.boneIdList[posId].end(), v.boneID);
-						}
-						indices.push_back(static_cast<GLushort>(vertIdList.size() + baseVertexOffset));
-						vertecies.push_back(v);
-						vertIdList.push_back(vertId);
-					}
-				}
-				// for (auto e : vertecies) {
-				//	LOGI("VERT:%f,%f,%f", e.position.x, e.position.y, e.position.z);
-				// }
-				// for (int i = 0; indices.size() - i >= 3; i += 3) {
-				//	LOGI("INDEX:%d, %d, %d", indices[i + 0], indices[i + 1], indices[i + 2]);
-				// }
-
-				// ジョイントノードツリーを取得する.
-				struct local {
-					static Joint* AddJoint(std::vector<Joint>& list, const BPT::ptree& pt, const std::vector<std::string>& nameList) {
-						Joint* pJoint = nullptr;
-						Joint* pFirstSibling = nullptr;
-						for (const BPT::ptree::value_type& e : boost::make_iterator_range(pt.equal_range("node"))) {
-							if (e.second.get<std::string>("<xmlattr>.type") != "JOINT") {
-								continue;
-							}
-							const std::string sid = e.second.get<std::string>("<xmlattr>.sid");
-							auto itr = std::find(nameList.begin(), nameList.end(), sid);
-							if (itr == nameList.end()) {
-								LOGI("JOINT '%s' is undefined in name list.", sid.c_str());
-								break;
-							}
-							const int index = itr - nameList.begin();
-
-							const std::vector<float> transList = split<float>(e.second.get<std::string>("translate"), ' ', [](const std::string& s) { return atof(s.c_str()); });
-							RotTrans rotTrans = { Quaternion(0, 0, 0, 1), Vector3F(transList[0], transList[1], transList[2]) };
-							for (auto&& r : boost::make_iterator_range(e.second.equal_range("rotate"))) {
-								const std::vector<float> rotData = split<float>(r.second.data(), ' ', [](const std::string& s) { return atof(s.c_str()); });
-								const Quaternion q(Vector3F(rotData[0], rotData[1], rotData[2]), degreeToRadian(rotData[3]));
-								rotTrans.rot = q * rotTrans.rot;
-							}
-							Joint* pChild = AddJoint(list, e.second, nameList);
-							Joint& j = list[index];
-							j.initialPose = rotTrans;
-							j.offChild = pChild ? pChild - &j : 0;
-							j.offSibling = 0;
-							if (pJoint) {
-								pJoint->offSibling = &j - pJoint;
-							} else {
-								pFirstSibling = &j;
-							}
-							pJoint = &j;
-						}
-						return pFirstSibling;
-					}
-				};
-
-				Mesh mesh = Mesh(nodeElem.get<std::string>("<xmlattr>.id"), baseIndexOffset, indexCount);
-#ifdef SHOW_TANGENT_SPACE
-				mesh.vboTBNOffset = baseVertexOffsetTBN / sizeof(TBNVertex);
-				mesh.vboTBNCount = vertIdList.size() * 3 * 2;
-				baseVertexOffsetTBN += vertIdList.size() * 3 * 2;
-#endif // SHOW_TANGENT_SPACE
-				if (!boneNameList.empty()) {
-					std::vector<Joint> joints;
-					joints.resize(boneNameList.size());
-					for (size_t i = 0; i < joints.size(); ++i) {
-						skinInfo.invBindPoseMatrixList[i].Decompose(&joints[i].invBindPose.rot, nullptr, &joints[i].invBindPose.trans);
-					}
-					local::AddJoint(joints, scenesNode, boneNameList);
-					mesh.SetJoint(boneNameList, joints);
-				}
-				if (texDiffuse) {
-					const auto itr = textureList.find(texDiffuse);
-					if (itr != textureList.end()) {
-						mesh.texDiffuse = itr->second;
-					}
-				}
-				if (texNormal) {
-					const auto itr = textureList.find(texNormal);
-					if (itr != textureList.end()) {
-						mesh.texNormal = itr->second;
-					}
-				}
-				meshList.insert({ mesh.id, mesh });
-				baseIndexOffset += sizeof(GLushort) * indexCount;
-				baseVertexOffset += vertIdList.size();
-			}
-
-			// 軸変換
-			if (fromBlender) {
-				for (auto& e : vertecies) {
-					e.position = Position3F(-e.position.x, e.position.z, e.position.y);
-					e.normal = Vector3F(-e.normal.x, e.normal.z, e.normal.y).Normalize();
-				}
-			}
-
-			// 頂点タンジェントを計算する.
-			TangentSpaceData::CalculateTangent(static_cast<const TangentSpaceData::Data*>(pTD), indices, vboEnd, vertecies);
-
-#ifdef SHOW_TANGENT_SPACE
-			{
-			  std::vector<TBNVertex> tbn;
-			  tbn.reserve(vertecies.size() * 3 * 2);
-			  static const Color4B red(255, 0, 0, 255), green(0, 255, 0, 255), blue(0, 0, 255, 255);
-			  static const float lentgh = 0.2f;
-			  for (auto& e : vertecies) {
-				const Vector3F t = e.tangent.ToVec3();
-				const Vector3F b = e.normal.Cross(t).Normalize() * e.tangent.w;
-				tbn.push_back(TBNVertex(e.position, green, e.boneID, e.weight));
-				tbn.push_back(TBNVertex(e.position + b * lentgh, green, e.boneID, e.weight));
-				tbn.push_back(TBNVertex(e.position, red, e.boneID, e.weight));
-				tbn.push_back(TBNVertex(e.position + t * lentgh, red, e.boneID, e.weight));
-				tbn.push_back(TBNVertex(e.position, blue, e.boneID, e.weight));
-				tbn.push_back(TBNVertex(e.position + e.normal * lentgh, blue, e.boneID, e.weight));
-			  }
-			  glBindBuffer(GL_ARRAY_BUFFER, vboTBN);
-			  glBufferSubData(GL_ARRAY_BUFFER, vboTBNEnd, tbn.size() * sizeof(TBNVertex), &tbn[0]);
-			  vboTBNEnd += tbn.size() * sizeof(TBNVertex);
-			}
-#endif // SHOW_TANGENT_SPACE
-
-			LOGI("MAKING VERTEX LIST SUCCESS:%d, %d", vertecies.size(), indices.size());
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
-			vboEnd += vertecies.size() * sizeof(Vertex);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
-			iboEnd += indices.size() * sizeof(GLushort);
-		}
-		catch (BPT::ptree_bad_path& e) {
-			LOGI("BAD PATH: %s", e.what());
-		}
-
-		// アニメーションデータを取得する.
-		const boost::optional<BPT::ptree&> libAnimeElem = collada.get_child_optional("COLLADA.library_animations");
-		if (libAnimeElem) {
-			try {
-				for (auto&& rootAnime : boost::make_iterator_range(libAnimeElem->equal_range("animation"))) {
-					Animation animation;
-					animation.id = rootAnime.second.get<std::string>("<xmlattr>.id");
-					for (auto&& subAnime : boost::make_iterator_range(rootAnime.second.equal_range("animation"))) {
-						const BPT::ptree& channelElem = subAnime.second.get_child("channel");
-						const std::string srcId = channelElem.get<std::string>("<xmlattr>.source").substr(1);
-						const BPT::ptree::const_iterator itrSampler = findElement(subAnime.second, "sampler", "<xmlattr>.id", srcId);
-						if (itrSampler == subAnime.second.end()) {
-							LOGI("Element not found: <sampler> in <channel source=\"#%s\">", srcId.c_str());
-							continue;
-						}
-						const BPT::ptree::const_iterator itrInput = findElement(itrSampler->second, "input", "<xmlattr>.semantic", "INPUT");
-						if (itrInput == itrSampler->second.end()) {
-							LOGI("Element not found: <input semantic=\"INPUT\"> in <channel source=\"#%s\">", srcId.c_str());
-							continue;
-						}
-						const BPT::ptree::const_iterator itrOutput = findElement(itrSampler->second, "input", "<xmlattr>.semantic", "OUTPUT");
-						if (itrOutput == itrSampler->second.end()) {
-							LOGI("Element not found: <input semantic=\"OUTPUT\"> in <channel source=\"%s\">", srcId.c_str());
-							continue;
-						}
-						const std::vector<float> timeList = split<float>(getSourceArray(subAnime.second, itrInput->second.get<std::string>("<xmlattr>.source").substr(1)), ' ', [](const std::string& s) { return atof(s.c_str()); });
-						const std::vector<float> angleList = split<float>(getSourceArray(subAnime.second, itrOutput->second.get<std::string>("<xmlattr>.source").substr(1)), ' ', [](const std::string& s) { return atof(s.c_str()); });
-						const std::string targetPath = channelElem.get<std::string>("<xmlattr>.target");
-						const size_t idSeparationPoint = targetPath.find_last_of('/');
-						const size_t sidSeparationPoint = targetPath.find_last_of('.');
-						const std::string jointId = targetPath.substr(0, idSeparationPoint);
-						const std::string jointSid = targetPath.substr(idSeparationPoint + 1, sidSeparationPoint - (idSeparationPoint + 1));
-						const std::string jointOption = targetPath.substr(sidSeparationPoint + 1);
-						const int index = std::find(boneNameList.begin(), boneNameList.end(), jointId) - boneNameList.begin();
-						auto itrData = std::find_if(animation.data.begin(), animation.data.end(), [index](const Animation::ElementList& n) { return n.first == index; });
-						if (itrData == animation.data.end()) {
-							animation.data.push_back(Animation::ElementList());
-							itrData = animation.data.end() - 1;
-							itrData->first = index;
-						}
-						const Vector3F axis = jointSid == "rotateX" ? Vector3F(1, 0, 0) : (jointSid == "rotateY" ? Vector3F(0, 1, 0) : Vector3F(0, 0, 1));
-						for (size_t i = 0; i < timeList.size(); ++i) {
-							const auto itr = std::lower_bound(itrData->second.begin(), itrData->second.end(), timeList[i], [](const Animation::Element& lhs, float rhs) { return lhs.time < rhs; });
-							if (itr != itrData->second.end() && itr->time == timeList[i]) {
-								itr->pose.rot *= Quaternion(axis, degreeToRadian(angleList[i]));
-								itr->pose.rot.Normalize();
-							} else {
-								Animation::Element newElem = { { Quaternion(axis, degreeToRadian(angleList[i])), Vector3F(0, 0, 0) }, timeList[i] };
-								newElem.pose.rot.Normalize();
-								itrData->second.insert(itr, newElem);
-							}
-						}
-					}
-					animationList.insert({ animation.id, animation });
-				}
-			}
-			catch (BPT::ptree_bad_path& e) {
-				LOGI("BAD PATH: %s", e.what());
-			}
-		}
-		LOGI("Success loading %s", filename);
-	}
 }
 
 void Renderer::InitTexture()

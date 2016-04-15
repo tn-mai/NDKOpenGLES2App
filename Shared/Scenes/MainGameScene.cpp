@@ -362,15 +362,15 @@ namespace SunnySideUp {
 			  Object& o = *obj;
 			  const Vector3F trans = posList[j];
 			  o.SetTranslation(trans);
-			  const float scale = 6;
+			  const float scale = 30;
 			  o.SetScale(Vector3F(scale, scale, scale));
 			  const float rx = degreeToRadian<float>(RandomFloat(30));
 			  const float ry = degreeToRadian<float>(RandomFloat(360));
 			  const float rz = degreeToRadian<float>(RandomFloat(30));
 			  o.SetRotation(rx, ry, rz);
-			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.5, 3, 2.5) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
+			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(1, 1, 1) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
 			  p->thrust = Vector3F(0, 9.8f, 0);
-			  pPartitioner->Insert(obj, p, Vector3F(-1.47f, 0.25f, 2.512f) * scale);
+			  pPartitioner->Insert(obj, p);
 			}
 		  }
 		}
@@ -390,7 +390,7 @@ namespace SunnySideUp {
 		o.SetRotation(rx, ry, 0);
 		Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(5, 1, 4) * scale, 10 * 1 * 8));
 		p->thrust = Vector3F(0, 9.8f, 0);
-		pPartitioner->Insert(obj, p, Vector3F(0, 0, -1) * 2);
+		pPartitioner->Insert(obj, p);
 	  }
 #if 0
 	  {
