@@ -365,7 +365,6 @@ namespace Mai {
 	  GLuint* p;
 	};
 	FBOInfo GetFBOInfo(int) const;
-	void LoadMesh(const char*, const void*, const char* = nullptr, const char* = nullptr);
 	void LoadFBX(const char* filename, const char* diffuse, const char* normal);
 	void CreateSkyboxMesh();
 	void CreateOctahedronMesh();
