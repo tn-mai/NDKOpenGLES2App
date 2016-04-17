@@ -516,21 +516,24 @@ namespace SunnySideUp {
 		}
 		break;
       case Event::EVENT_TILT: {
-        const float tz = e.Tilt.Z - 0.0f;
-        if (std::abs(tz) < 0.1f) {
+		static const float offsetY = 0.2f;
+		static const float margin = 0.05f;
+		static const float scale = 20.f;
+        const float tz = e.Tilt.Z;
+        if (std::abs(tz) <= margin) {
           playerMovement.x = 0.0f;
         } else if (tz < 0.0f) {
-          playerMovement.x = -(tz * 2.0f + 0.1f);
+          playerMovement.x = -(tz + margin) * scale;
         } else {
-          playerMovement.x = -(tz * 2.0f - 0.1f);
+          playerMovement.x = -(tz - margin) * scale;
         }
-		const float ty = e.Tilt.Y - 0.1f;
-        if (std::abs(ty) < 0.1f) {
+		const float ty = e.Tilt.Y + offsetY;
+        if (std::abs(ty) < margin) {
           playerMovement.z = 0.0f;
         } else if (ty < 0.0f) {
-          playerMovement.z = e.Tilt.Y * 2.0f + 0.1f;
+          playerMovement.z = (ty + margin) * scale;
         } else {
-          playerMovement.z = e.Tilt.Y * 2.0f - 0.1f;
+          playerMovement.z = (ty - margin) * scale;
         }
         break;
       }
@@ -560,28 +563,39 @@ namespace SunnySideUp {
 		  stopWatch += deltaTime;
 		}
 #ifndef __ANDROID__
-		playerMovement.z = 0.0f;
 		if (directionKeyDownList[DIRECTIONKEY_UP]) {
-		  playerMovement.z += 1.0f;
+		  rigidCamera->thrust.z = std::min(15.0f, rigidCamera->thrust.z + 1.0f);
+		} else if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
+		  rigidCamera->thrust.z = std::max(-15.0f, rigidCamera->thrust.z - 1.0f);
+		} else {
+		  rigidCamera->thrust.z *= 0.9f;
+		  if (std::abs(rigidCamera->thrust.z) < 0.1) {
+			rigidCamera->thrust.z = 0.0f;
+		  }
 		}
-		if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
-		  playerMovement.z -= 1.0f;
-		}
-		playerMovement.x = 0.0f;
 		if (directionKeyDownList[DIRECTIONKEY_LEFT]) {
-		  playerMovement.x += 1.0f;
+		  rigidCamera->thrust.x = std::min(15.0f, rigidCamera->thrust.x + 1.0f);
+		} else if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
+		  rigidCamera->thrust.x = std::max(-15.0f, rigidCamera->thrust.x - 1.0f);
+		} else {
+		  rigidCamera->thrust.x *= 0.9f;
+		  if (std::abs(rigidCamera->thrust.x) < 0.1) {
+			rigidCamera->thrust.x = 0.0f;
+		  }
 		}
-		if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
-		  playerMovement.x -= 1.0f;
-		}
-		rigidCamera->accel += playerMovement;
-		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerRotation.x - playerMovement.z * 0.05f));
-		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerRotation.z + playerMovement.x * 0.05f));
+		rigidCamera->thrust.y = 0.0f;
+		const float decelFactor = rigidCamera->thrust.Length() * 0.5f;
+		rigidCamera->thrust.y = decelFactor;
+		playerRotation.x = std::min(0.5f, std::max(-0.5f, rigidCamera->thrust.z * -0.05f));
+		playerRotation.z = std::min(0.5f, std::max(-0.5f, rigidCamera->thrust.x * 0.05f));
 		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
 #else
-		rigidCamera->accel += playerMovement;
-		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerMovement.z * -0.5f));
-		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * 0.5f));
+		rigidCamera->thrust = playerMovement;
+		rigidCamera->thrust.y = 0.0f;
+		const float decelFactor = rigidCamera->thrust.Length() * 0.5f;
+		rigidCamera->thrust.y = decelFactor;
+		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerMovement.z * -0.05f));
+		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * 0.05f));
 		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
 #endif // __ANDROID__
 	  }
@@ -763,7 +777,7 @@ namespace SunnySideUp {
 	  Renderer& renderer = engine.GetRenderer();
 	  if (rigidCamera) {
 		char buf[32];
-		sprintf(buf, "%03.0fKm/h", rigidCamera->accel.Length() * 3.6f);
+		sprintf(buf, "%03.0fKm/h", std::abs(rigidCamera->accel.y) * 3.6f);
 		const float width0 = renderer.GetStringWidth(buf) * 0.8f;
 		renderer.AddString(0.95f - width0, 0.05f, 0.8f, Color4B(255, 255, 255, 255), buf);
 
