@@ -362,13 +362,13 @@ namespace SunnySideUp {
 			  Object& o = *obj;
 			  const Vector3F trans = posList[j];
 			  o.SetTranslation(trans);
-			  const float scale = 30;
+			  const float scale = 6;
 			  o.SetScale(Vector3F(scale, scale, scale));
 			  const float rx = degreeToRadian<float>(RandomFloat(30));
 			  const float ry = degreeToRadian<float>(RandomFloat(360));
 			  const float rz = degreeToRadian<float>(RandomFloat(30));
 			  o.SetRotation(rx, ry, rz);
-			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(1, 1, 1) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
+			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.615f, 2.615f, 2.615f) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
 			  p->thrust = Vector3F(0, 9.8f, 0);
 			  pPartitioner->Insert(obj, p);
 			}

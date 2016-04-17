@@ -62,19 +62,19 @@ namespace SunnySideUp {
 	  auto obj0 = r.CreateObject("BrokenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 	  Object& o0 = *obj0;
 	  o0.SetScale(Vector3F(3, 3, 3));
-	  o0.SetTranslation(Vector3F(1, 0.75f, -1));
+	  o0.SetTranslation(Vector3F(0, 0.75f, 0));
 	  objList.push_back(obj0);
 
 	  auto obj2 = r.CreateObject("EggYolk", Material(Color4B(255, 255, 255, 255), -0.05f, 0), "default");
 	  Object& o2 = *obj2;
 	  o2.SetScale(Vector3F(3, 3, 3));
-	  o2.SetTranslation(Vector3F(-12.5f, 0.75f, -2.5));
+	  o2.SetTranslation(Vector3F(0, 0.75f, 0));
 	  objList.push_back(obj2);
 
-	  auto obj1 = r.CreateObject("EggWhite", Material(Color4B(255, 255, 255, 64), -0.25f, 0), "defaultWithAlpha");
+	  auto obj1 = r.CreateObject("EggWhite", Material(Color4B(255, 255, 255, 96), -0.25f, 0), "defaultWithAlpha");
 	  Object& o1 = *obj1;
 	  o1.SetScale(Vector3F(3, 3, 3));
-	  o1.SetTranslation(Vector3F(-12, 1, 0));
+	  o1.SetTranslation(Vector3F(0, 1, 0));
 	  objList.push_back(obj1);
 	}
 
