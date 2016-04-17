@@ -46,8 +46,18 @@ namespace SunnySideUp {
 		  objList.push_back(obj);
 		}
 		{
+		  auto obj = r.CreateObject("rock_s", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		  obj->SetTranslation(Vector3F(4, 19, -5));
+		  objList.push_back(obj);
+		}
+		{
+		  auto obj = r.CreateObject("rock_s", Material(Color4B(255, 255, 255, 224), 0, 0), "default");
+		  obj->SetTranslation(Vector3F(-15, 30, -20));
+		  objList.push_back(obj);
+		}
+		{
 		  auto obj = r.CreateObject("cloud0", Material(Color4B(255, 240, 250, 128), 0, 0), "cloud");
-		  obj->SetTranslation(Vector3F(30, 0, -75));
+		  obj->SetTranslation(Vector3F(-30, 0, -75));
 		  //obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  objList.push_back(obj);
 		}
@@ -110,7 +120,7 @@ namespace SunnySideUp {
 	  if (cloudRot > 360.0f) {
 		cloudRot -= 360.0f;
 	  }
-	  objList[3]->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(cloudRot), degreeToRadian<float>(0));
+	  objList[5]->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(cloudRot), degreeToRadian<float>(0));
 	  return SCENEID_CONTINUE;
 	}
 
