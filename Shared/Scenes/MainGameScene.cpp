@@ -777,7 +777,7 @@ namespace SunnySideUp {
 	  Renderer& renderer = engine.GetRenderer();
 	  if (rigidCamera) {
 		char buf[32];
-		sprintf(buf, "%03.0fKm/h", rigidCamera->accel.Length() * 3.6f);
+		sprintf(buf, "%03.0fKm/h", std::abs(rigidCamera->accel.y) * 3.6f);
 		const float width0 = renderer.GetStringWidth(buf) * 0.8f;
 		renderer.AddString(0.95f - width0, 0.05f, 0.8f, Color4B(255, 255, 255, 255), buf);
 
