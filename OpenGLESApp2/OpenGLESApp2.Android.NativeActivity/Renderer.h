@@ -362,6 +362,19 @@ namespace Mai {
 	void FadeIn(float);
 	FilterMode GetCurrentFilterMode() const;
 
+	void SetShadowLight(const Position3F& pos, const Vector3F& dir, float n, float f, float s) {
+	  shadowLightPos = pos;
+	  shadowLightDir = dir;
+	  shadowNear = n;
+	  shadowFar = f;
+	  shadowScale = s;
+	}
+	Position3F GetShadowLightPos() const { return shadowLightPos; }
+	Vector3F GetShadowLightDir() const { return shadowLightDir; }
+	float GetShadowNear() const { return shadowNear; }
+	float GetShadowFar() const { return shadowFar; }
+	float GetShadowMapScale() const { return shadowScale; }
+
   private:
 	enum FBOIndex {
 	  FBO_Main,
@@ -406,6 +419,11 @@ namespace Mai {
 	boost::random::mt19937 random;
 
     TimeOfScene timeOfScene;
+	Position3F shadowLightPos;
+	Vector3F shadowLightDir;
+	float shadowNear;
+	float shadowFar;
+	float shadowScale;
 
 	Position3F cameraPos;
 	Vector3F cameraDir;

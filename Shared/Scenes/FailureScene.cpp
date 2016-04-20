@@ -51,6 +51,8 @@ namespace SunnySideUp {
 
 	objList.reserve(8);
 	Renderer& r = engine.GetRenderer();
+	const Vector3F shadowDir = Normalize(Vector3F(0.2f, -1, 0.2f));
+	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 10, 500, 4);
 
 	{
 	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default");

@@ -61,6 +61,10 @@ namespace SunnySideUp {
 		  //obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  objList.push_back(obj);
 		}
+
+		const Vector3F shadowDir = Normalize(Vector3F(0.2f, -1, 0.2f));
+		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 10, 2000, 12);
+
 		animeNo = 0;
 		scaleTick = 0;
 		cloudRot = 0;

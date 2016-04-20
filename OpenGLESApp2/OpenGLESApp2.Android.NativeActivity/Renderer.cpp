@@ -450,6 +450,11 @@ Renderer::Renderer()
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
   , timeOfScene(TimeOfScene_Noon)
+  , shadowLightPos(0, 2000, 0)
+  , shadowLightDir(0, -1, 0)
+  , shadowNear(10)
+  ,	shadowFar(2000)
+  , shadowScale(4)
   , fboMain(0)
   , fboSub(0)
   , fboShadow0(0)
@@ -903,11 +908,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	Local::glGenFencesNV(5, fences);
 
 	// shadow path.
-	static const float shadowNear = 10.0f;
-	static const float shadowFar = 2000.0f; // ¸“x‚ðŠm•Û‚·‚é‚½‚ß’Z‚ß‚É‚µ‚Ä‚¨‚­.
-	static Position3F shadowEyePos(80, 600, -400);
-	//const Matrix4x4 mViewL = LookAt(eye + Vector3F(200, 500, 200), eye, Vector3F(0, 1, 0));
-	const Matrix4x4 mViewL = LookAt(eye + Vector3F(0, 200, 0), eye + Vector3F(20, 0, -20), Vector3F(0, 0, -1));
+	const Vector3F shadowUp = Vector2F(shadowLightDir.x, shadowLightDir.z).Length() >= std::abs(shadowLightDir.y) ? Vector3F(0, 1, 0) : Vector3F(0, 0, -1);
+	const Matrix4x4 mViewL = LookAt(shadowLightPos, shadowLightPos + shadowLightDir, shadowUp);
 	const Matrix4x4 mProjL = Olthographic(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
 	Matrix4x4 mCropL;
 	{
@@ -926,15 +928,12 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  const Vector3F vEye = (at - eye).Normalize();
 	  const Position3F frustumCenter = eye + (vEye * distance);
 	  Vector4F transformedCenter = mProjL * mViewL * Vector3F(frustumCenter.x, frustumCenter.y, frustumCenter.z);
-	  static float ms = 4.0f;// transformedCenter.w / frustumRadius;
-	  static float mss = 1.0f;
-	  static float mx = 0;// -transformedCenter.x / transformedCenter.w * mss;
-	  static float my = 0;// -transformedCenter.y / transformedCenter.w * mss;
+	  //static float ms = 4.0f;// transformedCenter.w / frustumRadius;
 	  const Matrix4x4 m = { {
-	    ms,  0,  0,  0,
-	     0, ms,  0,  0,
-	     0,  0,  1,  0,
-		mx, my,  0,  1,
+	    shadowScale, 0, 0, 0,
+	    0, shadowScale, 0, 0,
+	    0, 0, 1, 0,
+		0, 0, 0, 1,
 	  } };
 	  mCropL = m;
 	}
