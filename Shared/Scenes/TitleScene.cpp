@@ -153,10 +153,28 @@ namespace SunnySideUp {
 		case Event::EVENT_KEY_PRESSED:
 		  switch (e.Key.Code) {
 		  case KEY_A:
-			eyeDir = (Matrix4x4::RotationY(degreeToRadian(1.0f)) * eyeDir).ToVec3();
+			eyeDir = (Matrix4x4::RotationY(degreeToRadian(-1.0f)) * eyeDir).ToVec3();
 			break;
 		  case KEY_D:
-			eyeDir = (Matrix4x4::RotationY(degreeToRadian(-1.0f)) * eyeDir).ToVec3();
+			eyeDir = (Matrix4x4::RotationY(degreeToRadian(1.0f)) * eyeDir).ToVec3();
+			break;
+		  case KEY_W:
+			eyeDir = (Quaternion(eyeDir.Cross(Vector3F(0, 1, 0)), degreeToRadian(1.0f)).Apply(eyeDir));
+			break;
+		  case KEY_S:
+			eyeDir = (Quaternion(eyeDir.Cross(Vector3F(0, 1, 0)), degreeToRadian(-1.0f)).Apply(eyeDir));
+			break;
+		  case KEY_UP:
+			eyePos.y += 1.0f;
+			break;
+		  case KEY_DOWN:
+			eyePos.y -= 1.0f;
+			break;
+		  case KEY_LEFT:
+			eyePos -= eyeDir.Cross(Vector3F(0, 1, 0)).Normalize();
+			break;
+		  case KEY_RIGHT:
+			eyePos += eyeDir.Cross(Vector3F(0, 1, 0)).Normalize();
 			break;
 		  case KEY_SPACE: {
 			static const char* const animeNameList[] = {
