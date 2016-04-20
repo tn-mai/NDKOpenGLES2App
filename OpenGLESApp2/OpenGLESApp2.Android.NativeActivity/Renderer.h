@@ -239,6 +239,12 @@ namespace Mai {
     TimeOfScene_Night, ///< 夜.
   };
 
+  /// 影を生成する能力の有無.
+  enum class ShadowCapability : int8_t {
+	Disable, ///< Shadow passで描画されない.
+	Enable, ///< Shadow passで描画される..
+  };
+
   /**
   * 描画用オブジェクト.
   */
@@ -246,7 +252,14 @@ namespace Mai {
   {
   public:
 	Object() : shader(0) {}
-	Object(const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s) : material(mat), mesh(m), shader(s), rotTrans(rt), scale(Vector3F(1, 1, 1)) {
+	Object(const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc=ShadowCapability::Enable)
+	  : material(mat)
+	  , mesh(m)
+	  , shader(s)
+	  , rotTrans(rt)
+	  , scale(Vector3F(1, 1, 1))
+	  , shadowCapability(sc)
+	{
 	  if (mesh) {
 		bones.resize(mesh->jointList.size(), Matrix4x3::Unit());
 	  }
@@ -275,6 +288,9 @@ namespace Mai {
 	void SetScale(const Vector3F& s) { scale = s; }
 	Position3F Position() const { return rotTrans.trans.ToPosition3F(); }
 	const Vector3F& Scale() const { return scale; }
+
+  public:
+	ShadowCapability shadowCapability;
 
   private:
 	Material material;
@@ -312,7 +328,7 @@ namespace Mai {
   public:
 	Renderer();
 	~Renderer();
-	ObjectPtr CreateObject(const char* meshName, const Material& m, const char* shaderName);
+	ObjectPtr CreateObject(const char* meshName, const Material& m, const char* shaderName, ShadowCapability = ShadowCapability::Enable);
 	const Animation* GetAnimation(const char* name);
 	void Initialize(const Window&);
 	void Render(const ObjectPtr*, const ObjectPtr*);

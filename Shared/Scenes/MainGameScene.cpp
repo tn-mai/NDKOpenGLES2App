@@ -403,7 +403,7 @@ namespace SunnySideUp {
 	  }
 #endif
 	  {
-		auto obj = renderer.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		auto obj = renderer.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
 		Object& o = *obj;
 		o.SetRotation(degreeToRadian(-90.0f), 0, 0);
 		Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0), Vector3F(0, 1, 0), 1000 * 1000 * 1000));
@@ -428,7 +428,7 @@ namespace SunnySideUp {
 			const float a0 = static_cast<float>(boost::random::uniform_int_distribution<>(0, 359)(random));
 			const float a1 = static_cast<float>(boost::random::uniform_int_distribution<>(30, 60)(random));
 			const float scale = boost::random::uniform_int_distribution<>(10, 30)(random) *  0.1f;
-			auto obj = renderer.CreateObject(idList[index], Material(Color4B(255, 255, 255, 64), 0, 0), "cloud");
+			auto obj = renderer.CreateObject(idList[index], Material(Color4B(255, 255, 255, 64), 0, 0), "cloud", ShadowCapability::Disable);
 			Object& o = *obj;
 			const Quaternion rot0(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
 			const Quaternion rot1(Vector3F(0, 1, 0), degreeToRadian<float>(a0));

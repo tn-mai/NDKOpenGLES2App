@@ -966,17 +966,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glUseProgram(shader.program);
 		glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
 
-		const GLuint cloudProgramId = shaderList["cloud"].program;
 		for (const ObjectPtr* itr = begin; itr != end; ++itr) {
 			const Object& obj = *itr->get();
-			if (!obj.IsValid()) {
+			if (!obj.IsValid() || obj.shadowCapability == ShadowCapability::Disable) {
 				continue;
 			}
-			const Shader* pShader = obj.Shader();
-			if (pShader && pShader->program == cloudProgramId) {
-				continue;
-			}
-
 			const size_t boneCount = std::min(obj.GetBoneCount(), static_cast<size_t>(32));
 			if (boneCount) {
 				glUniform4fv(shader.bones, boneCount * 3, obj.GetBoneMatirxArray());
@@ -2219,7 +2213,7 @@ void Renderer::InitTexture()
 	textureList.insert({ "font", Texture::LoadKTX("Textures/Common/font.ktx") });
 }
 
-ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)
+ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName, ShadowCapability sc)
 {
 	Mesh* pMesh = nullptr;
 	auto mesh = meshList.find(meshName);
@@ -2235,7 +2229,7 @@ ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const 
 	} else {
 	  LOGI("Shader '%s' not found.", shaderName);
 	}
-	return ObjectPtr(new Object(RotTrans::Unit(), pMesh, m, pShader));
+	return ObjectPtr(new Object(RotTrans::Unit(), pMesh, m, pShader, sc));
 }
 
 const Animation* Renderer::GetAnimation(const char* name)

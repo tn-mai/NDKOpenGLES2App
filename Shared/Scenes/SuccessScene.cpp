@@ -57,7 +57,7 @@ namespace SunnySideUp {
 	{
 	  auto obj = r.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), -0.1f, 0), "default");
 	  obj->SetScale(Vector3F(7, 7, 7));
-	  obj->SetTranslation(Vector3F(0, 3, 0));
+	  obj->SetTranslation(Vector3F(0, 2.5f, 0));
 	  objList.push_back(obj);
 	}
 	{

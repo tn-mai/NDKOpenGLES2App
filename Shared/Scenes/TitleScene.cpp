@@ -25,7 +25,7 @@ namespace SunnySideUp {
 		r.SetTimeOfScene(static_cast<TimeOfScene>(TimeOfScene_Noon + random() % 3));
 
         {
-		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
 		  obj->SetTranslation(Vector3F(5.1f, 21.2f, 1.0f));
 		  obj->SetRotation(degreeToRadian<float>(13), degreeToRadian<float>(33), degreeToRadian<float>(2));
 		  //obj->SetScale(Vector3F(5, 5, 5));
@@ -56,7 +56,7 @@ namespace SunnySideUp {
 		  objList.push_back(obj);
 		}
 		{
-		  auto obj = r.CreateObject("cloud0", Material(Color4B(255, 240, 250, 128), 0, 0), "cloud");
+		  auto obj = r.CreateObject("cloud0", Material(Color4B(255, 240, 250, 128), 0, 0), "cloud", ShadowCapability::Disable);
 		  obj->SetTranslation(Vector3F(-30, 0, -75));
 		  //obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  objList.push_back(obj);
