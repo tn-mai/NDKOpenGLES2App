@@ -16,7 +16,32 @@
 
 namespace Texture {
 
-	struct KTXHeader {
+  /** Get the corrected texture filter mode.
+
+    @param mipCount  The number of mipmap level.
+	@param filter    The required filter mode.
+
+	@return The filter mode corrected by mipCount.
+  */
+  GLint CorrectFilter(int mipCount, GLint filter) {
+	if (mipCount > 1) {
+	  switch (filter) {
+	  case GL_NEAREST:
+		return GL_NEAREST_MIPMAP_NEAREST;
+	  case GL_LINEAR:
+	  default:
+		return GL_LINEAR_MIPMAP_LINEAR;
+	  case GL_NEAREST_MIPMAP_NEAREST:
+	  case GL_LINEAR_MIPMAP_NEAREST:
+	  case GL_NEAREST_MIPMAP_LINEAR:
+	  case GL_LINEAR_MIPMAP_LINEAR:
+		return filter;
+	  }
+	}
+	return filter == GL_NEAREST ? GL_NEAREST : GL_LINEAR;
+  }
+
+  struct KTXHeader {
 		uint8_t identifier[12];
 		uint32_t endianness;
 		uint32_t glType;
@@ -91,7 +116,7 @@ namespace Texture {
 
 	/** 空のテクスチャを作成する.
 	*/
-	TexturePtr CreateEmpty2D(int w, int h) {
+	TexturePtr CreateEmpty2D(int w, int h, GLint minFilter, GLint magFilter) {
 		TexturePtr p = std::make_shared<Texture>();
 		Texture& tex = static_cast<Texture&>(*p);
 		tex.internalFormat = GL_RGBA;
@@ -102,8 +127,8 @@ namespace Texture {
 		glGenTextures(1, &tex.texId);
 		glBindTexture(tex.Target(), tex.texId);
 		glTexImage2D(GL_TEXTURE_2D, 0, tex.InternalFormat(), tex.width, tex.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, CorrectFilter(1, minFilter));
+		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, CorrectFilter(1, magFilter));
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glBindTexture(tex.Target(), 0);
@@ -176,7 +201,7 @@ namespace Texture {
 
 	/** KTXファイルを読み込む.
 	*/
-	TexturePtr LoadKTX(const char* filename) {
+	TexturePtr LoadKTX(const char* filename, GLint minFilter, GLint magFilter) {
 		auto file = Mai::FileSystem::Open(filename);
 		if (!file) {
 			LOGW("cannot open:'%s'", filename);
@@ -253,8 +278,8 @@ namespace Texture {
 			curWidth = std::max(1, curWidth / 2);
 			curHeight = std::max(1, curHeight / 2);
 		}
-		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, mipCount > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, CorrectFilter(mipCount, minFilter));
+		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, CorrectFilter(mipCount, magFilter));
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glBindTexture(tex.Target(), 0);

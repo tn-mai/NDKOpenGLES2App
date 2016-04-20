@@ -21,10 +21,10 @@ namespace Texture {
 
 	typedef std::shared_ptr<ITexture> TexturePtr;
 
-	TexturePtr CreateEmpty2D(int, int);
+	TexturePtr CreateEmpty2D(int w, int h, GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
 	TexturePtr CreateDummy2D();
 	TexturePtr CreateDummyCubeMap();
-	TexturePtr LoadKTX(const char*);
+	TexturePtr LoadKTX(const char*, GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
 }
 
 #endif // ETC1_HEADER_INCLUDED
