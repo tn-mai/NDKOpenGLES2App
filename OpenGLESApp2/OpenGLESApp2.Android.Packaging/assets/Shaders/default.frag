@@ -151,18 +151,24 @@ void main(void)
 #endif
 	gl_FragColor.rgb = Idiff + Ispec;
 	gl_FragColor.a = max(materialColor.a, dot(Idiff * materialColor.a + Ispec, vec3(0.3, 0.6, 0.1)));
-#if 0
+
+#if 1
 	mediump vec4 shadowTexCoord = posForShadow;
 	shadowTexCoord.xy = 0.5 * (posForShadow.xy + posForShadow.w);
-	//	highp vec2 stc_div_w = shadowTexCoord.xy * (1.0 / shadowTexCoord.w);
-	//	if (stc_div_w.x >= 0.01 && stc_div_w.x < 0.99 && stc_div_w.y > 0.01 && stc_div_w.y < 0.99) {
+	highp vec2 stc_div_w = shadowTexCoord.xy * (1.0 / shadowTexCoord.w);
+	if (stc_div_w.x >= 0.01 && stc_div_w.x < 0.99 && stc_div_w.y > 0.01 && stc_div_w.y < 0.99) {
 	/** ChebyshevUpperBound
 	@ref http://http.developer.nvidia.com/GPUGems3/gpugems3_ch08.html
 	@ref http://codeflow.org/entries/2013/feb/15/soft-shadow-mapping/
 	*/
-	lowp vec4 tex = texture2DProj(texShadow, shadowTexCoord);
-	highp float Ex = tex.x + tex.y * (1.0 / 255.0);
-	if (posForShadow.z > Ex) {
+	const highp float coef = 1.0 / 256.0;
+	lowp vec4 tex = texture2D(texShadow, vec2(posForShadow.x * 0.5 + 0.5, posForShadow.y * -0.5 + 0.5));
+	highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
+#if 1 // Exponential Shadow Mapping
+	highp float receiver = 20.0 * posForShadow.z - 0.0001;
+	gl_FragColor.rgb *= clamp(exp(80.0 * (Ex * 20.0 - receiver)), 0.4, 1.0);
+#else // Variance Shadow Mapping
+	if (posForShadow.z > Ex - 0.1) {
 	  highp float E_x2 = (tex.z + tex.w * (1.0 / 255.0));
 	  highp float variance = max(E_x2 - (Ex * Ex), 0.002);
 	  highp float mD = (posForShadow.z - Ex) * 25.0;
@@ -170,7 +176,8 @@ void main(void)
 	  lowp float lit = min(max(p - 0.6, 0.0), 0.3) * 2.0 + 0.4;
 	  gl_FragColor.rgb *= lit;
 	}
-	//	}
+#endif
+	}
 #endif
 /*
 #ifdef DEBUG

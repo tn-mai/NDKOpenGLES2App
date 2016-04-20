@@ -10,8 +10,10 @@ void main()
   gl_FragColor += texture2D(texShadow, texCoord[1].zw);
   gl_FragColor *= (1.0 / 4.0);
 
-  const mediump float coef = 1.0 / 255.0;
-  gl_FragColor.xz += gl_FragColor.yw * coef;
-  gl_FragColor.yw = fract(gl_FragColor.xz * 255.0);
-  gl_FragColor.xz -= gl_FragColor.yw * coef;
+  const highp float coef = 1.0 / 256.0;
+  gl_FragColor.x = dot(gl_FragColor, vec4(1.0, coef, coef * coef, coef * coef * coef));
+  gl_FragColor.y = fract(gl_FragColor.x * 256.0);
+  gl_FragColor.z = fract(gl_FragColor.y * 256.0);
+  gl_FragColor.w = fract(gl_FragColor.z * 256.0);
+  gl_FragColor.xyz -= gl_FragColor.yzw * coef;
 }

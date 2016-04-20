@@ -903,11 +903,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	Local::glGenFencesNV(5, fences);
 
 	// shadow path.
-
 	static const float shadowNear = 10.0f;
 	static const float shadowFar = 2000.0f; // ê∏ìxÇämï€Ç∑ÇÈÇΩÇﬂíZÇﬂÇ…ÇµÇƒÇ®Ç≠.
-	const Matrix4x4 mViewL = LookAt(eye + Vector3F(200, 500, 200), eye, Vector3F(0, 1, 0));
-//	const Matrix4x4 mProjL = Perspective(fov, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
+	static Position3F shadowEyePos(80, 600, -400);
+	//const Matrix4x4 mViewL = LookAt(eye + Vector3F(200, 500, 200), eye, Vector3F(0, 1, 0));
+	const Matrix4x4 mViewL = LookAt(eye + Vector3F(0, 200, 0), eye + Vector3F(20, 0, -20), Vector3F(0, 0, -1));
 	const Matrix4x4 mProjL = Olthographic(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
 	Matrix4x4 mCropL;
 	{
@@ -926,10 +926,10 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  const Vector3F vEye = (at - eye).Normalize();
 	  const Position3F frustumCenter = eye + (vEye * distance);
 	  Vector4F transformedCenter = mProjL * mViewL * Vector3F(frustumCenter.x, frustumCenter.y, frustumCenter.z);
-	  static float ms = 0.5f;// 4.0f;// transformedCenter.w / frustumRadius;
-	  static float mss = 2.25f;
-	  const float mx = -transformedCenter.x / transformedCenter.w * mss;
-	  const float my = -transformedCenter.y / transformedCenter.w * mss;
+	  static float ms = 4.0f;// transformedCenter.w / frustumRadius;
+	  static float mss = 1.0f;
+	  static float mx = 0;// -transformedCenter.x / transformedCenter.w * mss;
+	  static float my = 0;// -transformedCenter.y / transformedCenter.w * mss;
 	  const Matrix4x4 m = { {
 	    ms,  0,  0,  0,
 	     0, ms,  0,  0,
@@ -956,19 +956,24 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glBlendFunc(GL_ONE, GL_ZERO);
-		glCullFace(GL_FRONT);
+		glCullFace(GL_BACK);
 
 		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_MAIN_WIDTH), static_cast<GLsizei>(SHADOWMAP_MAIN_HEIGHT));
-		glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
+		glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		const Shader& shader = shaderList["shadow"];
 		glUseProgram(shader.program);
 		glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
 
+		const GLuint cloudProgramId = shaderList["cloud"].program;
 		for (const ObjectPtr* itr = begin; itr != end; ++itr) {
 			const Object& obj = *itr->get();
 			if (!obj.IsValid()) {
+				continue;
+			}
+			const Shader* pShader = obj.Shader();
+			if (pShader && pShader->program == cloudProgramId) {
 				continue;
 			}
 
@@ -986,7 +991,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
 		}
 		// é©ï™ÇÃâe(Ç∆ÇËÇ†Ç¶Ç∏ãÖëÃÇ≈ë„óp).
-		if (1) {
+		if (0) {
 		  Matrix4x3 m = Matrix4x3::Unit();
 		  m.Set(0, 3, eye.x);
 		  m.Set(1, 3, eye.y);
@@ -995,6 +1000,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  const Mesh& mesh = meshList["Sphere"];
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
+#if 0
 		{
 		  Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
 		  // ínñ ÇÕó†ñ ÇéùÇΩÇ»Ç¢ÇΩÇﬂÅA-Yï˚å¸Ç…ÉIÉtÉZÉbÉgÇ∑ÇÈÇ±Ç∆Ç≈ó†ñ Ç∆Ç∑ÇÈ.
@@ -1006,6 +1012,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  const Mesh& mesh = meshList["ground"];
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
+#endif
 		if(0){
 		  glCullFace(GL_BACK);
 		  // sqrt(480*480+800*800)/480=1.94365063
@@ -1033,7 +1040,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_PATH], GL_ALL_COMPLETED_NV);
 	}
-
+#if 1
 	// fboMain ->(bilinear4x4)-> fboShadow0
 	{
 		glEnableVertexAttribArray(VertexAttribLocation_Position);
@@ -1041,18 +1048,20 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
 		glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow0);
-		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_SUB_WIDTH), static_cast<GLsizei>(SHADOWMAP_SUB_HEIGHT));
+		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow1);
+		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_MAIN_WIDTH), static_cast<GLsizei>(SHADOWMAP_MAIN_HEIGHT));
 		glDisable(GL_DEPTH_TEST);
 		glBlendFunc(GL_ONE, GL_ZERO);
-		glCullFace(GL_BACK);
+		glCullFace(GL_NONE);
 
 		const Shader& shader = shaderList["bilinear4x4"];
 		glUseProgram(shader.program);
 
+		static float scaleY = 1.0f;
 		Matrix4x4 mtx = Matrix4x4::Unit();
-		mtx.Scale(1.0f, -1.0f, 1.0f);
+		mtx.Scale(1.0f, scaleY, 1.0f);
 		glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
+		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, Matrix4x4::Unit().f);
 
 		glUniform1i(shader.texShadow, 0);
 		glActiveTexture(GL_TEXTURE0);
@@ -1061,7 +1070,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		const Mesh& mesh = meshList["board2D"];
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	}
-
+#endif
+#if 0
 	// fboShadow0 ->(gaussian3x3)-> fboShadow1
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow1);
@@ -1087,6 +1097,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
+#endif
 #endif
 
 	// color path.
@@ -2157,7 +2168,7 @@ void Renderer::InitTexture()
 	textureList.insert({ "fboMain", Texture::CreateEmpty2D(static_cast<int>(FBO_MAIN_WIDTH), static_cast<int>(FBO_MAIN_HEIGHT)) }); // âeèâä˙ï`âÊ & ÉJÉâÅ[ï`âÊ
 	textureList.insert({ "fboSub", Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / 4)) }); // ÉJÉâÅ[(1/4)
 	textureList.insert({ "fboShadow0", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // âeèkè¨
-	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // âeÇ⁄Ç©Çµ
+	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_MAIN_WIDTH), static_cast<int>(SHADOWMAP_MAIN_HEIGHT)) }); // âeÇ⁄Ç©Çµ
 	int scale = 4;
 	for (int i = FBO_HDR0; i <= FBO_HDR4; ++i) {
 	  textureList.insert({ GetFBOInfo(i).name, Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / scale), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / scale)) }); // HDR
