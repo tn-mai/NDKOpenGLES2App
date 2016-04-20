@@ -165,8 +165,10 @@ void main(void)
 	lowp vec4 tex = texture2D(texShadow, vec2(posForShadow.x * 0.5 + 0.5, posForShadow.y * -0.5 + 0.5));
 	highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
 #if 1 // Exponential Shadow Mapping
-	highp float receiver = 20.0 * posForShadow.z - 0.0001;
-	gl_FragColor.rgb *= clamp(exp(80.0 * (Ex * 20.0 - receiver)), 0.4, 1.0);
+	mediump float bias = 0.005 * tan(acos(clamp(dot(normal.xyz, vec3(0.0, 1.0, 0.0)), 0.0, 1.0)));
+//	if (posForShadow.z - bias > Ex) {
+	  gl_FragColor.rgb *= clamp(exp(-40.0 * clamp(posForShadow.z - Ex - bias, 0.0, 1.0)), 0.4, 1.0);
+//	}
 #else // Variance Shadow Mapping
 	if (posForShadow.z > Ex - 0.1) {
 	  highp float E_x2 = (tex.z + tex.w * (1.0 / 255.0));

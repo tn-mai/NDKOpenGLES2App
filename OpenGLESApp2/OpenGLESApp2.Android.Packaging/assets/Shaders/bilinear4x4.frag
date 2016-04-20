@@ -5,6 +5,7 @@ varying mediump vec4 texCoord[2];
 void main()
 {
   gl_FragColor = texture2D(texShadow, texCoord[0].xy);
+#if 0
   gl_FragColor += texture2D(texShadow, texCoord[0].zw);
   gl_FragColor += texture2D(texShadow, texCoord[1].xy);
   gl_FragColor += texture2D(texShadow, texCoord[1].zw);
@@ -16,4 +17,5 @@ void main()
   gl_FragColor.z = fract(gl_FragColor.y * 256.0);
   gl_FragColor.w = fract(gl_FragColor.z * 256.0);
   gl_FragColor.xyz -= gl_FragColor.yzw * coef;
+#endif
 }

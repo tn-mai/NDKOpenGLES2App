@@ -55,7 +55,7 @@ namespace SunnySideUp {
 	objList.reserve(8);
 	Renderer& r = engine.GetRenderer();
 	const Vector3F shadowDir = Normalize(Vector3F(0.2f, -1, 0.2f));
-	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 10, 500, 4);
+	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 100, 300, 4);
 
 	{
 	  auto obj = r.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), -0.1f, 0), "default");
@@ -70,7 +70,7 @@ namespace SunnySideUp {
 	  objList.push_back(obj);
 	}
 	{
-	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
 	  obj->SetRotation(degreeToRadian(-90.0f), 0, 0);
 	  objList.push_back(obj);
 	}
