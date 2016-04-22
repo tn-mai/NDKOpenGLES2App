@@ -943,7 +943,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	{
 		glEnableVertexAttribArray(VertexAttribLocation_Position);
 		glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
-		glDisableVertexAttribArray(VertexAttribLocation_Normal);
+		glEnableVertexAttribArray(VertexAttribLocation_Normal);
+		glVertexAttribPointer(VertexAttribLocation_Normal, 3, GL_FLOAT, GL_FALSE, stride, offNormal);
 		glDisableVertexAttribArray(VertexAttribLocation_Tangent);
 		glDisableVertexAttribArray(VertexAttribLocation_TexCoord01);
 		glEnableVertexAttribArray(VertexAttribLocation_Weight);

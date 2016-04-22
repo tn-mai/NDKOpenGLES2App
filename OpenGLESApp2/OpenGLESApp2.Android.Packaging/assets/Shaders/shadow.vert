@@ -1,6 +1,7 @@
 precision highp float;
 
 attribute highp   vec3 vPosition;
+attribute mediump vec3 vNormal;
 attribute lowp    vec4 vWeight;
 attribute mediump vec4 vBoneID;
 
@@ -26,8 +27,12 @@ void main()
 	m[2] = vec4(v2.xyz, 0);
 	m[3] = vec4(v0.w, v1.w, v2.w, 1);
 
+	mediump vec3 normalW = normalize(mat3(m) * vNormal);
+	const mediump vec3 shadowLightDir = normalize(vec3(-0.2, 1.0, -0.2));
+	mediump float bias = 0.015 * clamp(1.0 - dot(normalW, shadowLightDir), 0.25, 1.0);
+
 	gl_Position = matLightForShadow * m * vec4(vPosition, 1);
-	depth3.x = gl_Position.z * 0.5 + 0.5;
+	depth3.x = gl_Position.z * 0.5 + 0.5 + bias;
 	depth3.y = fract(depth3.x * 256.0);
 	depth3.z = fract(depth3.y * 256.0);
 	depth3.xy -= depth3.yz * (1.0 / 256.0);
