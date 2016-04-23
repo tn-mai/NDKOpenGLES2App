@@ -5,6 +5,7 @@ attribute mediump vec3 vNormal;
 attribute lowp    vec4 vWeight;
 attribute mediump vec4 vBoneID;
 
+uniform mediump vec3 lightDirForShadow;
 uniform highp mat4 matLightForShadow;
 uniform highp vec4 boneMatrices[32 * 3];
 
@@ -28,8 +29,7 @@ void main()
 	m[3] = vec4(v0.w, v1.w, v2.w, 1);
 
 	mediump vec3 normalW = normalize(mat3(m) * vNormal);
-	const mediump vec3 shadowLightDir = normalize(vec3(-0.2, 1.0, -0.2));
-	mediump float bias = 0.015 * clamp(1.0 - dot(normalW, shadowLightDir), 0.3, 1.0);
+	mediump float bias = 0.015 * clamp(1.0 - dot(normalW, -lightDirForShadow), 0.3, 1.0);
 
 	gl_Position = matLightForShadow * m * vec4(vPosition, 1);
 	depth = gl_Position.z * 0.5 + 0.5 + bias;

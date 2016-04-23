@@ -213,8 +213,10 @@ namespace Mai {
 
 	GLint matView;
 	GLint matProjection;
-	GLint matLightForShadow;
 	GLint bones;
+
+	GLint lightDirForShadow;
+	GLint matLightForShadow;
 
 	GLint debug;
 

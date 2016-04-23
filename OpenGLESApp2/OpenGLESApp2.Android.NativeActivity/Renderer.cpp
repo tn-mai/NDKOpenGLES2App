@@ -258,8 +258,9 @@ namespace {
 		s.unitTexCoord = glGetUniformLocation(program, "unitTexCoord");
 		s.matView = glGetUniformLocation(program, "matView");
 		s.matProjection = glGetUniformLocation(program, "matProjection");
-		s.matLightForShadow = glGetUniformLocation(program, "matLightForShadow");
 		s.bones = glGetUniformLocation(program, "boneMatrices");
+		s.lightDirForShadow = glGetUniformLocation(program, "lightDirForShadow");
+		s.matLightForShadow = glGetUniformLocation(program, "matLightForShadow");
 
 		s.debug = glGetUniformLocation(program, "debug");
 
@@ -964,6 +965,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 		const Shader& shader = shaderList["shadow"];
 		glUseProgram(shader.program);
+		glUniform3f(shader.lightDirForShadow, shadowLightDir.x, shadowLightDir.y, shadowLightDir.z);
 		glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
 
 		for (const ObjectPtr* itr = begin; itr != end; ++itr) {
