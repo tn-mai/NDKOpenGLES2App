@@ -166,7 +166,7 @@ void main(void)
 	highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
 #if 1 // Exponential Shadow Mapping
 	if (posForShadow.z > Ex) {
-	  gl_FragColor.rgb *= step(0.75, exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0))) * 0.6 + 0.4;
+	  gl_FragColor.rgb *= exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.5 + 0.4;
 	}
 #else // Variance Shadow Mapping
 	if (posForShadow.z > Ex - 0.1) {
