@@ -543,8 +543,9 @@ namespace SunnySideUp {
 	}
 
 	virtual int Update(Engine& engine, float deltaTime) {
-	  const Vector3F shadowDir = Normalize(Vector3F(0.1f, -1, -0.2f));
-	  engine.GetRenderer().SetShadowLight(rigidCamera->Position() + Vector3F(0, 600, 0), shadowDir, 100, 2500, 2);
+	  Renderer& r = engine.GetRenderer();
+	  const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
+	  r.SetShadowLight(rigidCamera->Position() - shadowDir * 600.0f, shadowDir, 100, 2500, 2);
 	  return (this->*updateFunc)(engine, deltaTime);
 	}
 

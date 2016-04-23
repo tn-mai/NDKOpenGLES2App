@@ -240,6 +240,7 @@ namespace Mai {
     TimeOfScene_Sunset, ///< —[•û.
     TimeOfScene_Night, ///< –é.
   };
+  Vector3F GetSunRayDirection(TimeOfScene);
 
   /// ‰e‚ð¶¬‚·‚é”\—Í‚Ì—L–³.
   enum class ShadowCapability : int8_t {

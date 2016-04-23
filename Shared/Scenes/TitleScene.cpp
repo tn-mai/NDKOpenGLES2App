@@ -21,8 +21,13 @@ namespace SunnySideUp {
 		objList.reserve(8);
 		Renderer& r = engine.GetRenderer();
 
+		static const TimeOfScene sceneIncidence[] = {
+		  TimeOfScene_Noon, TimeOfScene_Noon,
+		  TimeOfScene_Sunset, TimeOfScene_Sunset, TimeOfScene_Sunset,
+		  TimeOfScene_Night,
+		};
         boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
-		r.SetTimeOfScene(static_cast<TimeOfScene>(TimeOfScene_Noon + random() % 3));
+		r.SetTimeOfScene(sceneIncidence[random() % (sizeof(sceneIncidence)/sizeof(sceneIncidence[0]))]);
 
         {
 		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
@@ -62,7 +67,7 @@ namespace SunnySideUp {
 		  objList.push_back(obj);
 		}
 
-		const Vector3F shadowDir = Normalize(Vector3F(0.2f, -1, 0.2f));
+		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, 12);
 
 		animeNo = 0;

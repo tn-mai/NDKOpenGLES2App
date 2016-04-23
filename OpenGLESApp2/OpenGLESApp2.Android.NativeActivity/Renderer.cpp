@@ -444,6 +444,28 @@ void Object::Update(float t)
   }
 }
 
+/** シーンに対応する太陽光線の向きを取得する.
+
+  @param  timeOfScene  シーンの種類.
+
+  @return timeOfSceneに対応する太陽光線の向き.
+*/
+Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
+  static const Vector3F baseAxis(1.0f, 0, 0.5f);
+  static const Vector3F baseRay(0, -1, 0);
+  static const float baseAxisAngle = 20.0f;
+  static const Vector3F upAxis(0, 1, 0);
+  const Vector3F noonRay(Normalize(Quaternion(Normalize(baseAxis), degreeToRadian(baseAxisAngle)).Apply(baseRay)));
+  const Vector3F axis(Normalize(Cross(noonRay, upAxis)));
+
+  switch (timeOfScene) {
+  default:
+  case TimeOfScene_Noon: return Normalize(Quaternion(axis, degreeToRadian(10.0f)).Apply(noonRay));
+  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(-45.0f)).Apply(noonRay));
+  case TimeOfScene_Night: return Normalize(Quaternion(axis, degreeToRadian(-10.0f)).Apply(noonRay));
+  }
+}
+
 /** コンストラクタ.
 */
 Renderer::Renderer()
