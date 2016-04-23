@@ -1,9 +1,8 @@
-varying mediump vec3 depth3;
+varying highp float depth;
 
 void main()
 {
   const highp float coef = 1.0 / 256.0;
-  highp float depth = dot(depth3, vec3(1.0, coef, coef * coef));
 
 #if 1
   gl_FragColor.x = depth;
