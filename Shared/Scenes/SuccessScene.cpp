@@ -54,20 +54,30 @@ namespace SunnySideUp {
 
 	objList.reserve(8);
 	Renderer& r = engine.GetRenderer();
+	const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
+	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(3, 3 * 4));
+
 	{
 	  auto obj = r.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), -0.1f, 0), "default");
 	  obj->SetScale(Vector3F(7, 7, 7));
-	  obj->SetTranslation(Vector3F(0, 3, 0));
+	  obj->SetTranslation(Vector3F(0, 2.5f, 0));
 	  objList.push_back(obj);
 	}
 	{
 	  auto obj = r.CreateObject("FlyingPan", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 	  obj->SetScale(Vector3F(10, 10, 10));
-	  obj->SetTranslation(Vector3F(0, 1, 0));
+	  obj->SetTranslation(Vector3F(0, 1.25f, 0));
 	  objList.push_back(obj);
 	}
 	{
+	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
+	  obj->SetRotation(degreeToRadian(-90.0f), 0, 0);
+	  objList.push_back(obj);
+	}
+	{ // for shadow.
 	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  obj->SetTranslation(Vector3F(0, -1, 0));
+	  obj->SetScale(Vector3F(0.01f, 0.01f, 0.01f));
 	  obj->SetRotation(degreeToRadian(-90.0f), 0, 0);
 	  objList.push_back(obj);
 	}

@@ -35,8 +35,8 @@ namespace Mai {
 #define MAIN_RENDERING_PATH_HEIGHT 640.0
 #define FBO_SUB_WIDTH 128.0
 #define FBO_SUB_HEIGHT 128.0
-#define SHADOWMAP_MAIN_WIDTH 512.0
-#define SHADOWMAP_MAIN_HEIGHT 512.0
+#define SHADOWMAP_MAIN_WIDTH 256.0
+#define SHADOWMAP_MAIN_HEIGHT 1024.0
 #define SHADOWMAP_SUB_WIDTH (SHADOWMAP_MAIN_WIDTH * 0.25)
 #define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT * 0.25)
 
@@ -258,8 +258,9 @@ namespace {
 		s.unitTexCoord = glGetUniformLocation(program, "unitTexCoord");
 		s.matView = glGetUniformLocation(program, "matView");
 		s.matProjection = glGetUniformLocation(program, "matProjection");
-		s.matLightForShadow = glGetUniformLocation(program, "matLightForShadow");
 		s.bones = glGetUniformLocation(program, "boneMatrices");
+		s.lightDirForShadow = glGetUniformLocation(program, "lightDirForShadow");
+		s.matLightForShadow = glGetUniformLocation(program, "matLightForShadow");
 
 		s.debug = glGetUniformLocation(program, "debug");
 
@@ -443,6 +444,28 @@ void Object::Update(float t)
   }
 }
 
+/** シーンに対応する太陽光線の向きを取得する.
+
+  @param  timeOfScene  シーンの種類.
+
+  @return timeOfSceneに対応する太陽光線の向き.
+*/
+Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
+  static const Vector3F baseAxis(1.0f, 0, 0.5f);
+  static const Vector3F baseRay(0, -1, 0);
+  static const float baseAxisAngle = 20.0f;
+  static const Vector3F upAxis(0, 1, 0);
+  const Vector3F noonRay(Normalize(Quaternion(Normalize(baseAxis), degreeToRadian(baseAxisAngle)).Apply(baseRay)));
+  const Vector3F axis(Normalize(Cross(noonRay, upAxis)));
+
+  switch (timeOfScene) {
+  default:
+  case TimeOfScene_Noon: return Normalize(Quaternion(axis, degreeToRadian(10.0f)).Apply(noonRay));
+  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(-45.0f)).Apply(noonRay));
+  case TimeOfScene_Night: return Normalize(Quaternion(axis, degreeToRadian(-10.0f)).Apply(noonRay));
+  }
+}
+
 /** コンストラクタ.
 */
 Renderer::Renderer()
@@ -450,6 +473,11 @@ Renderer::Renderer()
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
   , timeOfScene(TimeOfScene_Noon)
+  , shadowLightPos(0, 2000, 0)
+  , shadowLightDir(0, -1, 0)
+  , shadowNear(10)
+  ,	shadowFar(2000)
+  , shadowScale(1, 1)
   , fboMain(0)
   , fboSub(0)
   , fboShadow0(0)
@@ -903,11 +931,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	Local::glGenFencesNV(5, fences);
 
 	// shadow path.
-
-	static const float shadowNear = 10.0f;
-	static const float shadowFar = 2000.0f; // 精度を確保するため短めにしておく.
-	const Matrix4x4 mViewL = LookAt(eye + Vector3F(200, 500, 200), eye, Vector3F(0, 1, 0));
-//	const Matrix4x4 mProjL = Perspective(fov, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
+	const Vector3F shadowUp = (Dot(shadowLightDir, Vector3F(0, 1, 0)) > 0.99f) ? Vector3F(0, 0, -1) : Vector3F(0, 1, 0);
+	const Matrix4x4 mViewL = LookAt(shadowLightPos, shadowLightPos + shadowLightDir, shadowUp);
 	const Matrix4x4 mProjL = Olthographic(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
 	Matrix4x4 mCropL;
 	{
@@ -926,15 +951,12 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  const Vector3F vEye = (at - eye).Normalize();
 	  const Position3F frustumCenter = eye + (vEye * distance);
 	  Vector4F transformedCenter = mProjL * mViewL * Vector3F(frustumCenter.x, frustumCenter.y, frustumCenter.z);
-	  static float ms = 0.5f;// 4.0f;// transformedCenter.w / frustumRadius;
-	  static float mss = 2.25f;
-	  const float mx = -transformedCenter.x / transformedCenter.w * mss;
-	  const float my = -transformedCenter.y / transformedCenter.w * mss;
+	  //static float ms = 4.0f;// transformedCenter.w / frustumRadius;
 	  const Matrix4x4 m = { {
-	    ms,  0,  0,  0,
-	     0, ms,  0,  0,
-	     0,  0,  1,  0,
-		mx, my,  0,  1,
+	    shadowScale.x, 0, 0, 0,
+	    0, shadowScale.y, 0, 0,
+	    0, 0, 1, 0,
+		0, 0, 0, 1,
 	  } };
 	  mCropL = m;
 	}
@@ -944,7 +966,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	{
 		glEnableVertexAttribArray(VertexAttribLocation_Position);
 		glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
-		glDisableVertexAttribArray(VertexAttribLocation_Normal);
+		glEnableVertexAttribArray(VertexAttribLocation_Normal);
+		glVertexAttribPointer(VertexAttribLocation_Normal, 3, GL_FLOAT, GL_FALSE, stride, offNormal);
 		glDisableVertexAttribArray(VertexAttribLocation_Tangent);
 		glDisableVertexAttribArray(VertexAttribLocation_TexCoord01);
 		glEnableVertexAttribArray(VertexAttribLocation_Weight);
@@ -956,22 +979,22 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glBlendFunc(GL_ONE, GL_ZERO);
-		glCullFace(GL_FRONT);
+		glCullFace(GL_BACK);
 
 		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_MAIN_WIDTH), static_cast<GLsizei>(SHADOWMAP_MAIN_HEIGHT));
-		glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
+		glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		const Shader& shader = shaderList["shadow"];
 		glUseProgram(shader.program);
+		glUniform3f(shader.lightDirForShadow, shadowLightDir.x, shadowLightDir.y, shadowLightDir.z);
 		glUniformMatrix4fv(shader.matLightForShadow, 1, GL_FALSE, mVPForShadow.f);
 
 		for (const ObjectPtr* itr = begin; itr != end; ++itr) {
 			const Object& obj = *itr->get();
-			if (!obj.IsValid()) {
+			if (!obj.IsValid() || obj.shadowCapability == ShadowCapability::Disable) {
 				continue;
 			}
-
 			const size_t boneCount = std::min(obj.GetBoneCount(), static_cast<size_t>(32));
 			if (boneCount) {
 				glUniform4fv(shader.bones, boneCount * 3, obj.GetBoneMatirxArray());
@@ -986,7 +1009,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
 		}
 		// 自分の影(とりあえず球体で代用).
-		if (1) {
+		if (0) {
 		  Matrix4x3 m = Matrix4x3::Unit();
 		  m.Set(0, 3, eye.x);
 		  m.Set(1, 3, eye.y);
@@ -995,6 +1018,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  const Mesh& mesh = meshList["Sphere"];
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
+#if 0
 		{
 		  Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
 		  // 地面は裏面を持たないため、-Y方向にオフセットすることで裏面とする.
@@ -1006,6 +1030,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  const Mesh& mesh = meshList["ground"];
 		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
+#endif
 		if(0){
 		  glCullFace(GL_BACK);
 		  // sqrt(480*480+800*800)/480=1.94365063
@@ -1033,7 +1058,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_PATH], GL_ALL_COMPLETED_NV);
 	}
-
+#if 1
 	// fboMain ->(bilinear4x4)-> fboShadow0
 	{
 		glEnableVertexAttribArray(VertexAttribLocation_Position);
@@ -1041,18 +1066,20 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
 		glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow0);
-		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_SUB_WIDTH), static_cast<GLsizei>(SHADOWMAP_SUB_HEIGHT));
+		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow1);
+		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_MAIN_WIDTH), static_cast<GLsizei>(SHADOWMAP_MAIN_HEIGHT));
 		glDisable(GL_DEPTH_TEST);
 		glBlendFunc(GL_ONE, GL_ZERO);
-		glCullFace(GL_BACK);
+		glCullFace(GL_NONE);
 
 		const Shader& shader = shaderList["bilinear4x4"];
 		glUseProgram(shader.program);
 
+		static float scaleY = 1.0f;
 		Matrix4x4 mtx = Matrix4x4::Unit();
-		mtx.Scale(1.0f, -1.0f, 1.0f);
+		mtx.Scale(1.0f, scaleY, 1.0f);
 		glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
+		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, Matrix4x4::Unit().f);
 
 		glUniform1i(shader.texShadow, 0);
 		glActiveTexture(GL_TEXTURE0);
@@ -1061,7 +1088,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		const Mesh& mesh = meshList["board2D"];
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	}
-
+#endif
+#if 0
 	// fboShadow0 ->(gaussian3x3)-> fboShadow1
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow1);
@@ -1087,6 +1115,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
+#endif
 #endif
 
 	// color path.
@@ -2157,7 +2186,7 @@ void Renderer::InitTexture()
 	textureList.insert({ "fboMain", Texture::CreateEmpty2D(static_cast<int>(FBO_MAIN_WIDTH), static_cast<int>(FBO_MAIN_HEIGHT)) }); // 影初期描画 & カラー描画
 	textureList.insert({ "fboSub", Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / 4)) }); // カラー(1/4)
 	textureList.insert({ "fboShadow0", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // 影縮小
-	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // 影ぼかし
+	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_MAIN_WIDTH), static_cast<int>(SHADOWMAP_MAIN_HEIGHT)) }); // 影ぼかし
 	int scale = 4;
 	for (int i = FBO_HDR0; i <= FBO_HDR4; ++i) {
 	  textureList.insert({ GetFBOInfo(i).name, Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / scale), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / scale)) }); // HDR
@@ -2208,7 +2237,7 @@ void Renderer::InitTexture()
 	textureList.insert({ "font", Texture::LoadKTX("Textures/Common/font.ktx") });
 }
 
-ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName)
+ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName, ShadowCapability sc)
 {
 	Mesh* pMesh = nullptr;
 	auto mesh = meshList.find(meshName);
@@ -2224,7 +2253,7 @@ ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const 
 	} else {
 	  LOGI("Shader '%s' not found.", shaderName);
 	}
-	return ObjectPtr(new Object(RotTrans::Unit(), pMesh, m, pShader));
+	return ObjectPtr(new Object(RotTrans::Unit(), pMesh, m, pShader, sc));
 }
 
 const Animation* Renderer::GetAnimation(const char* name)

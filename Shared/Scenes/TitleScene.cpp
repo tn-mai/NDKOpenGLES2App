@@ -21,11 +21,16 @@ namespace SunnySideUp {
 		objList.reserve(8);
 		Renderer& r = engine.GetRenderer();
 
+		static const TimeOfScene sceneIncidence[] = {
+		  TimeOfScene_Noon, TimeOfScene_Noon,
+		  TimeOfScene_Sunset, TimeOfScene_Sunset, TimeOfScene_Sunset,
+		  TimeOfScene_Night,
+		};
         boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
-		r.SetTimeOfScene(static_cast<TimeOfScene>(TimeOfScene_Noon + random() % 3));
+		r.SetTimeOfScene(sceneIncidence[random() % (sizeof(sceneIncidence)/sizeof(sceneIncidence[0]))]);
 
         {
-		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
 		  obj->SetTranslation(Vector3F(5.1f, 21.2f, 1.0f));
 		  obj->SetRotation(degreeToRadian<float>(13), degreeToRadian<float>(33), degreeToRadian<float>(2));
 		  //obj->SetScale(Vector3F(5, 5, 5));
@@ -56,11 +61,15 @@ namespace SunnySideUp {
 		  objList.push_back(obj);
 		}
 		{
-		  auto obj = r.CreateObject("cloud0", Material(Color4B(255, 240, 250, 128), 0, 0), "cloud");
+		  auto obj = r.CreateObject("cloud0", Material(Color4B(255, 240, 250, 128), 0, 0), "cloud", ShadowCapability::Disable);
 		  obj->SetTranslation(Vector3F(-30, 0, -75));
 		  //obj->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(0), degreeToRadian<float>(0));
 		  objList.push_back(obj);
 		}
+
+		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
+		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
+
 		animeNo = 0;
 		scaleTick = 0;
 		cloudRot = 0;

@@ -213,8 +213,10 @@ namespace Mai {
 
 	GLint matView;
 	GLint matProjection;
-	GLint matLightForShadow;
 	GLint bones;
+
+	GLint lightDirForShadow;
+	GLint matLightForShadow;
 
 	GLint debug;
 
@@ -238,6 +240,13 @@ namespace Mai {
     TimeOfScene_Sunset, ///< —[•û.
     TimeOfScene_Night, ///< –é.
   };
+  Vector3F GetSunRayDirection(TimeOfScene);
+
+  /// ‰e‚ð¶¬‚·‚é”\—Í‚Ì—L–³.
+  enum class ShadowCapability : int8_t {
+	Disable, ///< Shadow pass‚Å•`‰æ‚³‚ê‚È‚¢.
+	Enable, ///< Shadow pass‚Å•`‰æ‚³‚ê‚é..
+  };
 
   /**
   * •`‰æ—pƒIƒuƒWƒFƒNƒg.
@@ -246,7 +255,14 @@ namespace Mai {
   {
   public:
 	Object() : shader(0) {}
-	Object(const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s) : material(mat), mesh(m), shader(s), rotTrans(rt), scale(Vector3F(1, 1, 1)) {
+	Object(const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc=ShadowCapability::Enable)
+	  : material(mat)
+	  , mesh(m)
+	  , shader(s)
+	  , rotTrans(rt)
+	  , scale(Vector3F(1, 1, 1))
+	  , shadowCapability(sc)
+	{
 	  if (mesh) {
 		bones.resize(mesh->jointList.size(), Matrix4x3::Unit());
 	  }
@@ -275,6 +291,9 @@ namespace Mai {
 	void SetScale(const Vector3F& s) { scale = s; }
 	Position3F Position() const { return rotTrans.trans.ToPosition3F(); }
 	const Vector3F& Scale() const { return scale; }
+
+  public:
+	ShadowCapability shadowCapability;
 
   private:
 	Material material;
@@ -312,7 +331,7 @@ namespace Mai {
   public:
 	Renderer();
 	~Renderer();
-	ObjectPtr CreateObject(const char* meshName, const Material& m, const char* shaderName);
+	ObjectPtr CreateObject(const char* meshName, const Material& m, const char* shaderName, ShadowCapability = ShadowCapability::Enable);
 	const Animation* GetAnimation(const char* name);
 	void Initialize(const Window&);
 	void Render(const ObjectPtr*, const ObjectPtr*);
@@ -345,6 +364,19 @@ namespace Mai {
 	void FadeOut(const Color4B&, float);
 	void FadeIn(float);
 	FilterMode GetCurrentFilterMode() const;
+
+	void SetShadowLight(const Position3F& pos, const Vector3F& dir, float n, float f, Vector2F s) {
+	  shadowLightPos = pos;
+	  shadowLightDir = dir;
+	  shadowNear = n;
+	  shadowFar = f;
+	  shadowScale = s;
+	}
+	Position3F GetShadowLightPos() const { return shadowLightPos; }
+	Vector3F GetShadowLightDir() const { return shadowLightDir; }
+	float GetShadowNear() const { return shadowNear; }
+	float GetShadowFar() const { return shadowFar; }
+	Vector2F GetShadowMapScale() const { return shadowScale; }
 
   private:
 	enum FBOIndex {
@@ -390,6 +422,11 @@ namespace Mai {
 	boost::random::mt19937 random;
 
     TimeOfScene timeOfScene;
+	Position3F shadowLightPos;
+	Vector3F shadowLightDir;
+	float shadowNear;
+	float shadowFar;
+	Vector2F shadowScale;
 
 	Position3F cameraPos;
 	Vector3F cameraDir;
