@@ -68,7 +68,7 @@ namespace SunnySideUp {
 		}
 
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
-		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, 12);
+		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
 		animeNo = 0;
 		scaleTick = 0;

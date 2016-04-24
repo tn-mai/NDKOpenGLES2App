@@ -35,8 +35,8 @@ namespace Mai {
 #define MAIN_RENDERING_PATH_HEIGHT 640.0
 #define FBO_SUB_WIDTH 128.0
 #define FBO_SUB_HEIGHT 128.0
-#define SHADOWMAP_MAIN_WIDTH 512.0
-#define SHADOWMAP_MAIN_HEIGHT 512.0
+#define SHADOWMAP_MAIN_WIDTH 256.0
+#define SHADOWMAP_MAIN_HEIGHT 1024.0
 #define SHADOWMAP_SUB_WIDTH (SHADOWMAP_MAIN_WIDTH * 0.25)
 #define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT * 0.25)
 
@@ -477,7 +477,7 @@ Renderer::Renderer()
   , shadowLightDir(0, -1, 0)
   , shadowNear(10)
   ,	shadowFar(2000)
-  , shadowScale(4)
+  , shadowScale(1, 1)
   , fboMain(0)
   , fboSub(0)
   , fboShadow0(0)
@@ -931,7 +931,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	Local::glGenFencesNV(5, fences);
 
 	// shadow path.
-	const Vector3F shadowUp = Vector2F(shadowLightDir.x, shadowLightDir.z).Length() >= std::abs(shadowLightDir.y) ? Vector3F(0, 1, 0) : Vector3F(0, 0, -1);
+	const Vector3F shadowUp = (Dot(shadowLightDir, Vector3F(0, 1, 0)) > 0.99f) ? Vector3F(0, 0, -1) : Vector3F(0, 1, 0);
 	const Matrix4x4 mViewL = LookAt(shadowLightPos, shadowLightPos + shadowLightDir, shadowUp);
 	const Matrix4x4 mProjL = Olthographic(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
 	Matrix4x4 mCropL;
@@ -953,8 +953,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  Vector4F transformedCenter = mProjL * mViewL * Vector3F(frustumCenter.x, frustumCenter.y, frustumCenter.z);
 	  //static float ms = 4.0f;// transformedCenter.w / frustumRadius;
 	  const Matrix4x4 m = { {
-	    shadowScale, 0, 0, 0,
-	    0, shadowScale, 0, 0,
+	    shadowScale.x, 0, 0, 0,
+	    0, shadowScale.y, 0, 0,
 	    0, 0, 1, 0,
 		0, 0, 0, 1,
 	  } };

@@ -545,7 +545,13 @@ namespace SunnySideUp {
 	virtual int Update(Engine& engine, float deltaTime) {
 	  Renderer& r = engine.GetRenderer();
 	  const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
-	  r.SetShadowLight(rigidCamera->Position() - shadowDir * 600.0f, shadowDir, 100, 2500, 2);
+#if 0
+	  r.SetShadowLight(rigidCamera->Position() - shadowDir * 600.0f, shadowDir, 100, 2500, Vector2F(0.5f, 1.0f));
+#else
+	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
+	  const float radius = (static_cast<float>(GetLevelInfo(level).startHeight) + 10.0f) * 0.5f;
+	  r.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.75f, 1.0f / 3.0f));
+#endif
 	  return (this->*updateFunc)(engine, deltaTime);
 	}
 
