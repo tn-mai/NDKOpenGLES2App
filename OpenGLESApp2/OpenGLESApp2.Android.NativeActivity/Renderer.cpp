@@ -2217,8 +2217,8 @@ void Renderer::InitTexture()
 	textureList.insert({ "floor_nml", Texture::LoadKTX((texBaseDir + "landscapeNR.ktx").c_str()) });
 	textureList.insert({ "flyingrock", Texture::LoadKTX((texBaseDir + "flyingrock.ktx").c_str()) });
 	textureList.insert({ "flyingrock_nml", Texture::LoadKTX((texBaseDir + "flyingrockNR.ktx").c_str()) });
-	textureList.insert({ "block1", Texture::LoadKTX((texBaseDir + "block1.ktx").c_str()) });
-	textureList.insert({ "block1_nml", Texture::LoadKTX((texBaseDir + "block1NR.ktx").c_str()) });
+	textureList.insert({ "block1", Texture::LoadKTX("Textures/Common/block1.ktx") });
+	textureList.insert({ "block1_nml", Texture::LoadKTX("Textures/Common/block1NR.ktx") });
 	textureList.insert({ "chickenegg", Texture::LoadKTX((texBaseDir + "chickenegg.ktx").c_str()) });
 	textureList.insert({ "chickenegg_nml", Texture::LoadKTX((texBaseDir + "chickeneggNR.ktx").c_str()) });
 	textureList.insert({ "sunnysideup", Texture::LoadKTX((texBaseDir + "sunnysideup.ktx").c_str()) });
