@@ -135,6 +135,7 @@
     <Content Include="assets\Textures\Adreno\ibl_sunsetIrr.ktx" />
     <Content Include="assets\Textures\Adreno\ibl_sunsetLow.ktx" />
     <Content Include="assets\Textures\Adreno\irradiance.ktx" />
+    <Content Include="assets\Textures\Adreno\landscapeNR.ktx" />
     <Content Include="assets\Textures\Adreno\rock_s.ktx" />
     <Content Include="assets\Textures\Adreno\rock_s_NR.ktx" />
     <Content Include="assets\Textures\Adreno\sphere.ktx" />
