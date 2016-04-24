@@ -134,7 +134,7 @@ void main(void)
 	// We can restore the actual color by multiply (1.0 / alpha). And we want
 	// to compress the diffuse range 0-2 to 0-1, because keep the HDR
 	// luminance. So, we use (dynamicRangeFactor / alpha).
-	iblColor[0].rgb *= dynamicRangeFactor / iblColor[0].a;
+	iblColor[0].rgb *= dynamicRangeFactor / max(iblColor[0].a, 1.0 / 512.0);
 	iblColor[1].rgb *= dynamicRangeFactor / iblColor[1].a;
 	iblColor[2].rgb *= dynamicRangeFactor / iblColor[2].a;
 
