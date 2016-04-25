@@ -242,7 +242,7 @@ namespace SunnySideUp {
   static const int goalHeight = 50;
   static const int unitObstructsSize = 100;
   static const int minObstructHeight = goalHeight + 100;
-  static const int offsetTopObstructs = -200;
+  static const int offsetTopObstructs = -400;
 
   /** De Boor algorithm for B-Spline.
 
@@ -491,7 +491,7 @@ namespace SunnySideUp {
 	  for (float height = static_cast<float>(levelInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= static_cast<float>(unitObstructsSize) * 5) {
 		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
-		const float h = RandomFloat(unitObstructsSize * 4) + static_cast<float>(unitObstructsSize) * 0.5f;
+		const float h = RandomFloat(unitObstructsSize * 2) + static_cast<float>(unitObstructsSize) * 0.5f;
 		const float theta = degreeToRadian<float>(RandomFloat(360));
 		const float distance = RandomFloat(150);
 		const Vector3F trans(std::cos(theta) * distance, height + h, std::sin(theta) * distance);
