@@ -164,7 +164,7 @@ void main(void)
 	lowp vec4 tex = texture2D(texShadow, vec2(posForShadow.x * 0.5 + 0.5, posForShadow.y * -0.5 + 0.5));
 	highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
 #if 1 // Exponential Shadow Mapping
-	if (posForShadow.z < 1.0) {
+	if (Ex < 1.0) {
 	  if (posForShadow.z > Ex) {
 		gl_FragColor.rgb *= exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
 	  }

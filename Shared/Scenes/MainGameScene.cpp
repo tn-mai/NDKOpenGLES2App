@@ -691,7 +691,7 @@ namespace SunnySideUp {
 #else
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
 	  const float radius = (static_cast<float>(GetLevelInfo(level).startHeight) + 10.0f) * 0.5f;
-	  r.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.75f, 1.0f / 3.0f));
+	  r.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.5f, 1.0f / 3.0f));
 #endif
 	  return (this->*updateFunc)(engine, deltaTime);
 	}
