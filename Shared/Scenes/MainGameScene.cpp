@@ -827,7 +827,7 @@ namespace SunnySideUp {
 		renderer.FadeIn(1.0f);
 		const float scale = objFlyingPan->Scale().x;
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
-		const float distance = std::sqrt(v.x * v.x + v.z + v.z);
+		const float distance = std::sqrt(v.x * v.x + v.z * v.z);
 		if (distance <= 1.25f * scale) {
 		  engine.GetAudio().PlaySE("success", 1.0f);
 		  return SCENEID_SUCCESS;
