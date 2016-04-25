@@ -8,6 +8,8 @@
 #include <array>
 #include <tuple>
 
+//#define SSU_DEBUG_DISPLAY_COLLISION_BOX
+
 namespace SunnySideUp {
 
   using namespace Mai;
@@ -27,12 +29,37 @@ namespace SunnySideUp {
 	  , mouseX(-1)
 	  , mouseY(-1)
 	  , camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
-	{}
+	{
+	  collisionBoxList.reserve(64);
+	}
+
+	void Clear() {
+	  collisionBoxList.clear();
+	  for (auto& e : debugObj) {
+		e.reset();
+	  }
+	}
 
 	void SetDebugObj(size_t i, const ObjectPtr& obj) {
 	  if (i < debugObj.size()) {
 		debugObj[i] = obj;
 	  }
+	}
+
+#ifdef SSU_DEBUG_DISPLAY_COLLISION_BOX
+	void AddCollisionBoxShape(Renderer& r, const Vector3F& trans, float rx, float ry, float rz, const Vector3F& scale) {
+	  auto o = r.CreateObject("unitbox", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
+	  o->SetTranslation(trans);
+	  o->SetRotation(rx, ry, rz);
+	  o->SetScale(scale);
+	  collisionBoxList.push_back(o);
+	}
+#else
+	void AddCollisionBoxShape(Renderer&, const Vector3F&, float, float, float, const Vector3F&) {}
+#endif // SSU_DEBUG_DISPLAY_COLLISION_BOX
+
+	void AppendCollisionBox(std::vector<ObjectPtr>& objList) {
+	  objList.insert(objList.end(), collisionBoxList.begin(), collisionBoxList.end());
 	}
 
 	void PressMouseButton(int mx, int my) {
@@ -117,11 +144,15 @@ namespace SunnySideUp {
 	int mouseY;
 	Camera camera;
 	std::array<ObjectPtr, 3> debugObj;
+	std::vector<ObjectPtr>  collisionBoxList;
 #ifdef SHOW_DEBUG_SENSOR_OBJECT
 	ObjectPtr debugSensorObj;
 #endif // SHOW_DEBUG_SENSOR_OBJECT
 #else
+	void Clear() {}
 	void SetDebugObj(size_t, const ObjectPtr&) {}
+	void AddCollisionBoxShape(Renderer&, const Vector3F&, float, float, float, const Vector3F&) {}
+	void AppendCollisionBox(std::vector<ObjectPtr>&) {}
 	void PressMouseButton(int, int) {}
 	void ReleaseMouseButton() {}
 	void MoveMouse(int, int) {}
@@ -353,10 +384,13 @@ namespace SunnySideUp {
 			  const float rx = degreeToRadian<float>(RandomFloat(30));
 			  const float ry = degreeToRadian<float>(RandomFloat(360));
 			  const float rz = degreeToRadian<float>(RandomFloat(30));
+			  o.SetRotation(rx, ry + degreeToRadian(45.0f), rz);
+			  const Vector3F collisionScale(Vector3F(0.625f, 1.25f, 0.625f) * scale);
+			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, collisionScale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
 			  o.SetRotation(rx, ry, rz);
-			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(1, 1.5f, 1) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
 			  p->thrust = Vector3F(0, 9.8f, 0);
 			  pPartitioner->Insert(obj, p);
+			  debugData.AddCollisionBoxShape(renderer, trans, rx, ry + degreeToRadian(45.0f), rz, collisionScale * 2.0f);
 			} else {
 			  auto obj = renderer.CreateObject("FlyingRock", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 			  Object& o = *obj;
@@ -368,9 +402,11 @@ namespace SunnySideUp {
 			  const float ry = degreeToRadian<float>(RandomFloat(360));
 			  const float rz = degreeToRadian<float>(RandomFloat(30));
 			  o.SetRotation(rx, ry, rz);
-			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(2.615f, 2.615f, 2.615f) * scale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
+			  const Vector3F collisionScale(Vector3F(2.0f, 2.5f, 2.0f) * scale);
+			  Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, collisionScale, scale * scale * scale * (5 * 6 * 5 / 3.0f)));
 			  p->thrust = Vector3F(0, 9.8f, 0);
 			  pPartitioner->Insert(obj, p);
+			  debugData.AddCollisionBoxShape(renderer, trans, rx, ry, rz, collisionScale * 2.0f);
 			}
 		  }
 		}
@@ -388,9 +424,11 @@ namespace SunnySideUp {
 		const float rx = degreeToRadian<float>(RandomFloat(90) - 45.0f);
 		const float ry = degreeToRadian<float>(RandomFloat(360));
 		o.SetRotation(rx, ry, 0);
-		Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, Vector3F(5, 1, 4) * scale, 10 * 1 * 8));
+		const Vector3F collisionScale(Vector3F(4.8f, 0.375f, 3.8f) * scale);
+		Collision::RigidBodyPtr p(new Collision::BoxShape(trans.ToPosition3F(), o.RotTrans().rot, collisionScale, 10 * 1 * 8));
 		p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p);
+		debugData.AddCollisionBoxShape(renderer, trans, rx, ry, 0, collisionScale * 2.0f);
 	  }
 #if 0
 	  {
@@ -451,6 +489,10 @@ namespace SunnySideUp {
 	}
 
 	virtual bool Unload(Engine& engine) {
+	  debugData.Clear();
+	  rigidCamera.reset();
+	  objPlayer.reset();
+	  objFlyingPan.reset();
 	  pPartitioner->Clear();
 	  status = STATUSCODE_STOPPED;
 	  return true;
@@ -759,6 +801,8 @@ namespace SunnySideUp {
 		}
 	  }
 #endif
+	  debugData.AppendCollisionBox(objList);
+
 #ifdef SHOW_DEBUG_SENSOR_OBJECT
 	  {
 		Position3F pos = debugCamera.Position();
