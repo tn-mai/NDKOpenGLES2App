@@ -543,7 +543,15 @@ namespace SunnySideUp {
 			const float a0 = static_cast<float>(boost::random::uniform_int_distribution<>(0, 359)(random));
 			const float a1 = static_cast<float>(boost::random::uniform_int_distribution<>(30, 60)(random));
 			const float scale = boost::random::uniform_int_distribution<>(10, 30)(random) *  0.1f;
-			auto obj = renderer.CreateObject(idList[index], Material(Color4B(255, 255, 255, 64), 0, 0), "cloud", ShadowCapability::Disable);
+
+			static const GLubyte alphaList[] = { 64, 64, 96, 96, 96, 96, 96, 128, 128, 192 };
+			const int alphaIndex = boost::random::uniform_int_distribution<>(0, sizeof(alphaList)/sizeof(alphaList[0]) - 1)(random);
+
+			static const GLubyte colorList[] = { 255, 224, 192 };
+			const int colorIndex = boost::random::uniform_int_distribution<>(0, sizeof(colorList) / sizeof(colorList[0]) - 1)(random);
+			const GLubyte color = colorList[colorIndex];
+
+			auto obj = renderer.CreateObject(idList[index], Material(Color4B(color, color, color, alphaList[alphaIndex]), 0, 0), "cloud", ShadowCapability::Disable);
 			Object& o = *obj;
 			const Quaternion rot0(Vector3F(0, 1, 0), degreeToRadian<float>(a0));
 			const Quaternion rot1(Vector3F(0, 1, 0), degreeToRadian<float>(a0));

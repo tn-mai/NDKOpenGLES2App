@@ -27,15 +27,16 @@ void main(void)
 
   mediump vec3 eyeVectorW = normalize(eyePos - posW.xyz);
   mediump vec3 refVector2 = reflect(eyeVectorW, normalW);
-  lowp vec4 iblColor = textureCube(texIBL[1], refVector2);
-  lowp vec4 iblBackColor = textureCube(texIBL[1], -refVector2);
+  lowp vec4 iblColor = textureCube(texIBL[2], -refVector2);
+  lowp vec4 iblBackColor = textureCube(texIBL[2], refVector2);
   // Alpha component has the strength of color. it has (255 / strength).
   // We can restore the actual color by multiply (1.0 / alpha). And we want
   // to compress the diffuse range 0-2 to 0-1, because keep the HDR
   // luminance. So, we use (0.5 / alpha).
   iblColor.rgb *= dynamicRangeFactor / iblColor.a;
-  
-  gl_FragColor = vec4(mix(iblBackColor.rgb, iblColor.rgb, col.r * col.r), col.r * materialColor.a);
+  iblBackColor.rgb *= dynamicRangeFactor / iblBackColor.a;
+
+  gl_FragColor = vec4(mix(iblBackColor.rgb * materialColor.rgb, iblColor.rgb, col.r * col.r), col.r * materialColor.a);
 
 #if 0
   mediump vec4 shadowTexCoord = posForShadow;
