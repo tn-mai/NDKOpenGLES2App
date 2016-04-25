@@ -66,23 +66,23 @@ struct Quaternion {
   // @ref http://nic-gamedev.blogspot.jp/2011/11/quaternion-math-getting-local-axis.html
   constexpr Vector3F ForwardVector() const {
     return Vector3F(
-      2 * (x * z - w * y),
-      2 * (y * x + w * x),
+      2 * (x * z + w * y),
+      2 * (y * x - w * x),
       1 - 2 * (x * x + y * y)
     );
   }
   constexpr Vector3F UpVector() const {
     return Vector3F(
-      2 * (x * y + w * z),
+      2 * (x * y - w * z),
       1 - 2 * (x * x + z * z),
-      2 * (y * z - w * x)
+      2 * (y * z + w * x)
     );
   }
   constexpr Vector3F RightVector() const {
     return Vector3F(
       1 - 2 * (y * y + z * z),
-      2 * (x * y - w * z),
-      2 * (x * z + w * y)
+      2 * (x * y + w * z),
+      2 * (x * z - w * y)
     );
   }
   struct AxisAngle {
