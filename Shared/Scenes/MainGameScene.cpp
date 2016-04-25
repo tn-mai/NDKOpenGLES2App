@@ -8,6 +8,7 @@
 #include <array>
 #include <tuple>
 
+// if activate this macro, the collision box of obstacles is displayed.
 //#define SSU_DEBUG_DISPLAY_COLLISION_BOX
 
 namespace SunnySideUp {
@@ -21,6 +22,11 @@ namespace SunnySideUp {
 	DIRECTIONKEY_RIGHT,
   };
 
+  /** The additional function controller for debugging.
+
+    This class uses only on debugging.
+	It will disabled if NDEBUG macro is defined.
+  */
   struct DebugData {
 #ifndef NDEBUG
 	DebugData()
@@ -30,22 +36,48 @@ namespace SunnySideUp {
 	  , mouseY(-1)
 	  , camera(Position3F(0, 0, 0), Vector3F(0, 0, -1), Vector3F(0, 1, 0))
 	{
+#ifdef SSU_DEBUG_DISPLAY_COLLISION_BOX
 	  collisionBoxList.reserve(64);
+#endif // SSU_DEBUG_DISPLAY_COLLISION_BOX
 	}
 
+	/// Clear all holding objects.
 	void Clear() {
+#ifdef SSU_DEBUG_DISPLAY_COLLISION_BOX
 	  collisionBoxList.clear();
+#endif // SSU_DEBUG_DISPLAY_COLLISION_BOX
 	  for (auto& e : debugObj) {
 		e.reset();
 	  }
 	}
 
+	/** Set the object to the debugging target.
+
+	  @param i    The target index(0-2). Do nothing if it is invalid value.
+	  @param obj  The object setting to (i)th debugging target.
+
+	  If (i)th already set, it will be overwritten.
+	*/
 	void SetDebugObj(size_t i, const ObjectPtr& obj) {
 	  if (i < debugObj.size()) {
 		debugObj[i] = obj;
 	  }
 	}
 
+	/** Add collision box.
+
+	  @param r           The renderer object.
+	  @param trans       The translation of collision.
+	  @param rx, ry, rz  The rotation of collision.
+	  @param scale       The scaling of collision.
+	                     Box shape has 1x1x1 size(it means that each axis have 0.5 length).
+						 So, (1, 1, 1) is given to scale, one vertex have (0.5, 0.5, 0.5) position.
+
+	  Add the collision box to the collision box list.
+	  The list is append by AppendCollsionBox() to the display object list.
+
+	  @sa AppendCollisionBox().
+	*/
 #ifdef SSU_DEBUG_DISPLAY_COLLISION_BOX
 	void AddCollisionBoxShape(Renderer& r, const Vector3F& trans, float rx, float ry, float rz, const Vector3F& scale) {
 	  auto o = r.CreateObject("unitbox", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
@@ -58,10 +90,26 @@ namespace SunnySideUp {
 	void AddCollisionBoxShape(Renderer&, const Vector3F&, float, float, float, const Vector3F&) {}
 #endif // SSU_DEBUG_DISPLAY_COLLISION_BOX
 
+	/** Append collsion box list to the display object list.
+
+	  @param objList  The display object list.
+	                  It will send to the Renderer.
+
+	  @sa AddCollisionBoxShape()
+	*/
+#ifdef SSU_DEBUG_DISPLAY_COLLISION_BOX
 	void AppendCollisionBox(std::vector<ObjectPtr>& objList) {
 	  objList.insert(objList.end(), collisionBoxList.begin(), collisionBoxList.end());
 	}
+#else
+	void AppendCollisionBox(std::vector<ObjectPtr>&) {}
+#endif // SSU_DEBUG_DISPLAY_COLLISION_BOX
 
+	/** Set the mouse button press information.
+
+	  @param mx  The mouse cursor position on the X axis.
+	  @param my  The mouse cursor position on the Y axis.
+	*/
 	void PressMouseButton(int mx, int my) {
 	  if (debug) {
 		mouseX = mx;
@@ -70,12 +118,19 @@ namespace SunnySideUp {
 	  }
 	}
 
+	/** Set the mouse buttion release information.
+	*/
 	void ReleaseMouseButton() {
 	  if (debug) {
 		dragging = false;
 	  }
 	}
 
+	/** Set the mouse buttion move information.
+
+	  @param mx  The mouse cursor position on the X axis.
+	  @param my  The mouse cursor position on the Y axis.
+	*/
 	void MoveMouse(int mx, int my) {
 	  if (debug) {
 		if (dragging) {
@@ -90,6 +145,13 @@ namespace SunnySideUp {
 	  }
 	}
 
+	/** Move the debug camera position.
+
+	  @param inputList  The key information list for moving.
+	                    It should have 4 elements.
+
+	  @sa DirectionKey					 
+	*/
 	void MoveCamera(const bool* inputList) {
 	  if (debug) {
 		if (inputList[DIRECTIONKEY_UP]) {
@@ -107,6 +169,11 @@ namespace SunnySideUp {
 	  }
 	}
 
+	/** Update the state of all debug objects.
+
+	  @param r          The renderer object.
+	  @param deltaTime  The time from previous frame(unit:sec).
+	*/
 	bool Updata(Renderer& r, float deltaTime) {
 	  if (debug) {
 		r.Update(deltaTime, camera.position, camera.eyeVector, camera.upVector);
@@ -144,10 +211,15 @@ namespace SunnySideUp {
 	int mouseY;
 	Camera camera;
 	std::array<ObjectPtr, 3> debugObj;
+
+#ifdef SSU_DEBUG_DISPLAY_COLLISION_BOX
 	std::vector<ObjectPtr>  collisionBoxList;
+#endif // SSU_DEBUG_DISPLAY_COLLISION_BOX
+
 #ifdef SHOW_DEBUG_SENSOR_OBJECT
 	ObjectPtr debugSensorObj;
 #endif // SHOW_DEBUG_SENSOR_OBJECT
+
 #else
 	void Clear() {}
 	void SetDebugObj(size_t, const ObjectPtr&) {}
@@ -298,6 +370,11 @@ namespace SunnySideUp {
 	  directionKeyDownList.fill(false);
 	}
 	virtual ~MainGameScene() {}
+
+	/** Load the game objects.
+
+	  @param engine  The engine object.
+	*/
 	virtual bool Load(Engine& engine) {
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
@@ -488,6 +565,10 @@ namespace SunnySideUp {
 	  return true;
 	}
 
+	/** Unload all game object.
+
+	  @param engine  The engine object.
+	*/
 	virtual bool Unload(Engine& engine) {
 	  debugData.Clear();
 	  rigidCamera.reset();
@@ -498,6 +579,11 @@ namespace SunnySideUp {
 	  return true;
 	}
 
+	/** Process the window events.
+
+	  @param engine  The engine object.
+	  @param e       The window event.
+	*/
 	virtual void ProcessWindowEvent(Engine&, const Event& e) {
 	  switch (e.Type) {
 	  case Event::EVENT_MOUSE_BUTTON_PRESSED:
@@ -584,6 +670,11 @@ namespace SunnySideUp {
 	  }
 	}
 
+	/** Update the state of all game objects.
+
+	  @param engine     The engine object.
+	  @param deltaTime  The time from previous frame(unit:sec).
+	*/
 	virtual int Update(Engine& engine, float deltaTime) {
 	  Renderer& r = engine.GetRenderer();
 	  const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
@@ -599,8 +690,11 @@ namespace SunnySideUp {
 
 	/** update game play.
 
-	Transition to DoFadeOut() when the player character reached the target height.
-	This is the update function called from Update().
+	  @param engine  The engine object.
+	  @param e       The window event.
+
+	  Transition to DoFadeOut() when the player character reached the target height.
+	  This is the update function called from Update().
 	*/
 	int DoUpdate(Engine& engine, float deltaTime) {
 #if 1
@@ -717,8 +811,11 @@ namespace SunnySideUp {
 
 	/** Do fade out.
 
-	Transition to the scene of the success/failure event when the fadeout finished.
-	This is the update function called from Update().
+	  @param engine     The engine object.
+	  @param deltaTime  The time from previous frame(unit:sec).
+
+	  Transition to the scene of the success/failure event when the fadeout finished.
+	  This is the update function called from Update().
 	*/
 	int DoFadeOut(Engine& engine, float deltaTime) {
 	  Renderer& renderer = engine.GetRenderer();
@@ -741,6 +838,10 @@ namespace SunnySideUp {
 	  return SCENEID_CONTINUE;
 	}
 
+	/** Draw all game objects.
+
+	  @param engine  The engine object.
+	*/
 	virtual void Draw(Engine& engine) {
 	  std::vector<ObjectPtr> objList;
 	  objList.reserve(10 * 10);
@@ -901,6 +1002,12 @@ namespace SunnySideUp {
 	DebugData debugData;
   };
 
+  /** Create MainGameScene object.
+
+	@param engine  The engine object.
+
+	@return MainGameScene object.
+  */
   ScenePtr CreateMainGameScene(Engine&) {
 	return ScenePtr(new MainGameScene);
   }
