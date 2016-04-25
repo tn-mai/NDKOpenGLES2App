@@ -802,8 +802,9 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   @param scale  rendering scale. 1.0 is actual font size.
   @param color  rendering color.
   @param str    pointer to rendering string.
+  @param uw     width par character. if it is zero, each character width will be calculated automatically.
 */
-void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str) {
+void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str, float uw) {
   const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / sizeof(FontVertex);
   if (strlen(str) > freeCount) {
 	return;
@@ -812,7 +813,7 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
   Position2F curPos = Position2F(x, y) * Vector2F(2, -2) + Vector2F(-1, 1);
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
-	const float w = info.GetWidth() * (2.0f / viewport[2]) * scale;
+	const float w = (uw == 0.0f ? (info.GetWidth() * (2.0f / viewport[2])) : uw) * scale;
 	const float h = info.GetHeight() * (-2.0f / viewport[3]) * scale;
 	vertecies.push_back({ curPos, info.leftTop, color });
 	vertecies.push_back({ Position2F(curPos.x, curPos.y + h), Position2S(info.leftTop.x, info.rightBottom.y), color });

@@ -7,6 +7,7 @@
 #include <boost/math/constants/constants.hpp>
 #include <array>
 #include <tuple>
+#include <algorithm>
 
 // if activate this macro, the collision box of obstacles is displayed.
 //#define SSU_DEBUG_DISPLAY_COLLISION_BOX
@@ -347,6 +348,47 @@ namespace SunnySideUp {
 	const int length = std::abs(static_cast<int>(goal.y - start.y));
 	const std::vector<Vector3F> controlPoints = CreateControlPoints(start, goal, (length + 999) / 1000 + 2, random);
 	return CreateBSpline(controlPoints, (length + 99) / 100);
+  }
+
+  /** Get the number of digits.
+
+    @param n  The number. Ignore after the decimal point.
+
+	@return The number of digiets of the integral part.
+  */
+  int GetNumberOfDigits(float n) {
+	int64_t i = static_cast<int64_t>(n);
+	int num = 1;
+	while (i >= 10) {
+	  ++num;
+	  i /= 10;
+	}
+	return num;
+  }
+
+  /** Convert the digits to string.
+
+    @param n        The digits.
+	@param num      The maximum number of digits.
+	@param padding  If true, do padding with zero. Otherwize not padding.
+
+	@return The string converted from 'n'.
+  */
+  std::string DigitsToString(float n, size_t num, bool padding) {
+	std::string  s;
+	const int nod = GetNumberOfDigits(n);
+	s.reserve(nod);
+	int32_t nn = static_cast<int32_t>(n);
+	for (int i = 0; i < nod; ++i) {
+	  s.push_back(static_cast<char>(nn % 10) + '0');
+	  nn /= 10;
+	};
+	if (padding && nod < num) {
+	  const char pad = padding ? '0' : ' ';
+	  s.append(num - nod, pad);
+	}
+	std::reverse(s.begin(), s.end());
+	return s;
   }
 
   /** Control the main game play.
@@ -938,22 +980,44 @@ namespace SunnySideUp {
 
 	  Renderer& renderer = engine.GetRenderer();
 	  if (rigidCamera) {
-		char buf[32];
-		sprintf(buf, "%03.0fKm/h", std::abs(rigidCamera->accel.y) * 3.6f);
-		const float width0 = renderer.GetStringWidth(buf) * 0.8f;
-		renderer.AddString(0.95f - width0, 0.05f, 0.8f, Color4B(255, 255, 255, 255), buf);
+		static float numberFontScale = 0.8f;
+		static float fontScale = 2.0f / 3.0f;
+		static float uw = 1.0f / 12.0f / fontScale;
+		static float cw = 1.0f / 20.0f;
+		static float cw0 = 1.0f / 20.0f;
+		static float baseX = 0.75f;
 
-		float y = objPlayer->Position().y;
-		if (auto radius = rigidCamera->GetRadius()) {
-		  y -= *radius;
+		{
+		  const float n = std::abs(rigidCamera->accel.y) * 3.6f;
+		  const float nod = static_cast<float>(GetNumberOfDigits(n));
+		  const std::string s = DigitsToString(n, 3, false);
+		  renderer.AddString(baseX - cw * nod, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
+		  renderer.AddString(baseX, 0.055f, fontScale, Color4B(255, 255, 255, 255), "Km/h");
 		}
-		sprintf(buf, "%04.0fm", y);
-		const float width1 = renderer.GetStringWidth(buf) * 0.8f;
-		renderer.AddString(0.95f - width1, 0.1f, 0.8f, Color4B(255, 255, 255, 255), buf);
 
-		sprintf(buf, "%03.3fs", stopWatch);
-		const float width2 = renderer.GetStringWidth(buf) * 0.8f;
-		renderer.AddString(0.95f - width2, 0.15f, 0.8f, Color4B(255, 255, 255, 255), buf);
+		{
+		  float y = objPlayer->Position().y;
+		  if (auto radius = rigidCamera->GetRadius()) {
+			y -= *radius;
+		  }
+		  const float nod = static_cast<float>(GetNumberOfDigits(y));
+		  const std::string s = DigitsToString(y, 4, false);
+		  renderer.AddString(baseX - cw * (nod - 1.0f), 0.1f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
+		  renderer.AddString(baseX + cw0, 0.105f, fontScale, Color4B(255, 255, 255, 255), "M");
+		}
+
+		{
+		  const float nod = static_cast<float>(GetNumberOfDigits(stopWatch));
+		  const std::string s = DigitsToString(stopWatch, 3, false);
+		  renderer.AddString(baseX - cw * (nod + 2.5f), 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
+		  renderer.AddString(baseX - cw * 2.5f, 0.15f, fontScale, Color4B(255, 255, 255, 255), ".");
+		}
+		{
+		  const float pointDecimal = (stopWatch - std::floor(stopWatch)) * 1000.0f;
+		  const std::string s = DigitsToString(pointDecimal, 3, true);
+		  renderer.AddString(baseX - cw * 2.0f, 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
+		  renderer.AddString(baseX + cw0, 0.155f, fontScale, Color4B(255, 255, 255, 255), "Sec");
+		}
 
 		if (countDownTimer > 0.0f) {
 		  static const char strReady[] = "READY!";
