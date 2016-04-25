@@ -342,7 +342,7 @@ namespace Mai {
 
 	void ClearDebugString() { debugStringList.clear(); }
 	void AddDebugString(int x, int y, const char* s) { debugStringList.push_back(DebugStringObject(x, y, s)); }
-	void AddString(float x, float y, float scale, const Color4B& color, const char*);
+	void AddString(float x, float y, float scale, const Color4B& color, const char*, float uw=0.0f);
 	float GetStringWidth(const char*) const;
 	float GetStringHeight(const char*) const;
 
