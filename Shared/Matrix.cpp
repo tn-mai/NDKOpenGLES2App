@@ -179,15 +179,19 @@ Matrix4x4& Matrix4x4::operator*=(const Matrix4x4& rhs) {
 }
 
 Matrix4x3& Matrix4x3::operator*=(const Matrix4x3& rhs) {
-	Matrix4x4 m;
-	m.SetVector(0, Vector4F(f[0], f[4], f[8], 0));
-	m.SetVector(1, Vector4F(f[1], f[5], f[9], 0));
-	m.SetVector(2, Vector4F(f[2], f[6], f[10], 0));
-	m.SetVector(3, Vector4F(f[3], f[7], f[11], 1));
+	const Vector4F v0(f[0], f[4], f[8], f[3]);
+	const Vector4F v1(f[1], f[5], f[9], f[7]);
+	const Vector4F v2(f[2], f[6], f[10], f[11]);
+	static const Vector4F v3(0, 0, 0, 1);
 	for (int i = 0; i < 3; ++i) {
-		const Vector4F v = rhs.GetVector(i);
-		SetVector(i, Vector4F(m.GetVector(0).Dot(v), m.GetVector(1).Dot(v), m.GetVector(2).Dot(v), m.GetVector(3).Dot(v)));
+		Vector4F v = rhs.GetVector(i);
+		v.w = 0;
+		SetVector(i, Vector4F(v0.Dot(v), v1.Dot(v), v2.Dot(v), v3.Dot(v)));
 	}
+	const Vector4F trans(rhs.f[3], rhs.f[7], rhs.f[11], 1);
+	f[3] = v0.Dot(trans);
+	f[7] = v1.Dot(trans);
+	f[11] = v2.Dot(trans);
 	return *this;
 }
 

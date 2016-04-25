@@ -1003,7 +1003,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			  mScale.Set(0, 0, obj.Scale().x);
 			  mScale.Set(1, 1, obj.Scale().y);
 			  mScale.Set(2, 2, obj.Scale().z);
-			  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
+			  const Matrix4x3 m =  ToMatrix(obj.RotTrans()) * mScale;
 			  glUniform4fv(shader.bones, 3, m.f);
 			}
 			glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
@@ -1280,7 +1280,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mScale.Set(0, 0, obj.Scale().x);
 		  mScale.Set(1, 1, obj.Scale().y);
 		  mScale.Set(2, 2, obj.Scale().z);
-		  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
+		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
 		glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
@@ -1323,7 +1323,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mScale.Set(0, 0, obj.Scale().x);
 		  mScale.Set(1, 1, obj.Scale().y);
 		  mScale.Set(2, 2, obj.Scale().z);
-		  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
+		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
 		glDrawArrays(GL_LINES, obj.Mesh()->vboTBNOffset, obj.Mesh()->vboTBNCount);
@@ -1762,6 +1762,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/rock_collection.msh", "rock_s", "rock_s_nml");
 
 	CreateSkyboxMesh();
+	CreateUnitBoxMesh();
 	CreateOctahedronMesh();
 	CreateFloorMesh("ground", Vector3F(2000.0f, 2000.0f, 1.0f), 10);
 	CreateBoardMesh("board2D", Vector3F(1.0f, 1.0f, 1.0f));
@@ -1818,6 +1819,62 @@ void Renderer::CreateSkyboxMesh()
 	vboEnd += vertecies.size() * sizeof(Vertex);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
 	iboEnd += indices.size() * sizeof(GLushort);
+}
+
+void Renderer::CreateUnitBoxMesh()
+{
+  std::vector<Vertex> vertecies;
+  std::vector<GLushort> indices;
+  vertecies.reserve(3 * 2 * 6);
+  indices.reserve(3 * 2 * 6);
+  static const Position3F cubeVertices[] = {
+	{ -1.0,  1.0,  1.0 },
+	{ -1.0, -1.0,  1.0 },
+	{ 1.0, -1.0,  1.0 },
+	{ 1.0,  1.0,  1.0 },
+	{ -1.0,  1.0, -1.0 },
+	{ -1.0, -1.0, -1.0 },
+	{ 1.0, -1.0, -1.0 },
+	{ 1.0,  1.0, -1.0 },
+  };
+  static const GLushort cubeIndices[][3] = {
+	{ 2, 1, 0 }, { 0, 3, 2 },
+	{ 6, 2, 3 }, { 3, 7 ,6 },
+	{ 5, 6, 7 }, { 7, 4, 5 },
+	{ 1, 5, 4 }, { 4, 0, 1 },
+	{ 7, 3, 0 }, { 0, 4, 7 },
+	{ 1, 2, 6 }, { 6, 5, 1 },
+  };
+  static const Position2F texCoords[][3] = {
+	{ { 0, 0 }, { 0, 1 }, { 1, 0 } },
+	{ { 1, 0 }, { 1, 1 }, { 0, 1 } },
+  };
+  const GLushort offset = static_cast<GLushort>(vboEnd / sizeof(Vertex));
+  for (int i = 0; i < 2 * 6; ++i) {
+	const Position3F& v0 = cubeVertices[cubeIndices[i][0]];
+	const Position3F& v1 = cubeVertices[cubeIndices[i][1]];
+	const Position3F& v2 = cubeVertices[cubeIndices[i][2]];
+	const Vector3F normal = Normalize(Cross(v0 - v1, v2 - v1));
+	const int index = i % 2;
+	vertecies.push_back(CreateVertex(v0 * 0.5f, normal, texCoords[index][0]));
+	vertecies.push_back(CreateVertex(v2 * 0.5f, normal, texCoords[index][1]));
+	vertecies.push_back(CreateVertex(v1 * 0.5f, normal, texCoords[index][2]));
+	indices.push_back(offset + i * 3 + 0);
+	indices.push_back(offset + i * 3 + 1);
+	indices.push_back(offset + i * 3 + 2);
+  }
+
+  Mesh mesh = Mesh("unitbox", iboEnd, indices.size());
+  const auto itr = textureList.find("dummy");
+  if (itr != textureList.end()) {
+	mesh.texDiffuse = itr->second;
+  }
+  meshList.insert({ "unitbox", mesh });
+
+  glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
+  vboEnd += vertecies.size() * sizeof(Vertex);
+  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, indices.size() * sizeof(GLushort), &indices[0]);
+  iboEnd += indices.size() * sizeof(GLushort);
 }
 
 void Renderer::CreateOctahedronMesh()

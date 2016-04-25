@@ -399,6 +399,7 @@ namespace Mai {
 	FBOInfo GetFBOInfo(int) const;
 	void LoadFBX(const char* filename, const char* diffuse, const char* normal);
 	void CreateSkyboxMesh();
+	void CreateUnitBoxMesh();
 	void CreateOctahedronMesh();
 	void CreateBoardMesh(const char*, const Vector3F&);
 	void CreateFloorMesh(const char*, const Vector3F&, int);
