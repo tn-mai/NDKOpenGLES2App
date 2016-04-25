@@ -1003,7 +1003,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			  mScale.Set(0, 0, obj.Scale().x);
 			  mScale.Set(1, 1, obj.Scale().y);
 			  mScale.Set(2, 2, obj.Scale().z);
-			  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
+			  const Matrix4x3 m =  ToMatrix(obj.RotTrans()) * mScale;
 			  glUniform4fv(shader.bones, 3, m.f);
 			}
 			glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
@@ -1280,7 +1280,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mScale.Set(0, 0, obj.Scale().x);
 		  mScale.Set(1, 1, obj.Scale().y);
 		  mScale.Set(2, 2, obj.Scale().z);
-		  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
+		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
 		glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
@@ -1323,7 +1323,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mScale.Set(0, 0, obj.Scale().x);
 		  mScale.Set(1, 1, obj.Scale().y);
 		  mScale.Set(2, 2, obj.Scale().z);
-		  const Matrix4x3 m = mScale * ToMatrix(obj.RotTrans());
+		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
 		glDrawArrays(GL_LINES, obj.Mesh()->vboTBNOffset, obj.Mesh()->vboTBNCount);
