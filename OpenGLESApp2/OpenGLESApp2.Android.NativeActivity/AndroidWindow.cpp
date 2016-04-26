@@ -188,6 +188,15 @@ namespace Mai {
 	  event.Tilt.Z = fusedOrientation.z;
 	  PushEvent(event);
 	  prevOrientation = fusedOrientation;
+	  {
+		Event e;
+		e.Type = Event::EVENT_GYRO;
+		e.Time = uptimeMillis();
+		e.Gyro.X = gyro.x;
+		e.Gyro.Y = gyro.y;
+		e.Gyro.Z = gyro.z;
+		PushEvent(e);
+	  }
 	}
   }
 

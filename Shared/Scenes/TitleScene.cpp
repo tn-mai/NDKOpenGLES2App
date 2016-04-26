@@ -1,6 +1,10 @@
 #include "Scene.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 
+#ifndef NDEBUG
+//#define SSU_DEBUG_DISPLAY_GYRO
+#endif // NDEBUG
+
 namespace SunnySideUp {
 
   using namespace Mai;
@@ -26,10 +30,10 @@ namespace SunnySideUp {
 		  TimeOfScene_Sunset, TimeOfScene_Sunset, TimeOfScene_Sunset,
 		  TimeOfScene_Night,
 		};
-        boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
+		boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
 		r.SetTimeOfScene(sceneIncidence[random() % (sizeof(sceneIncidence)/sizeof(sceneIncidence[0]))]);
 
-        {
+		{
 		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
 		  obj->SetTranslation(Vector3F(5.1f, 21.2f, 1.0f));
 		  obj->SetRotation(degreeToRadian<float>(13), degreeToRadian<float>(33), degreeToRadian<float>(2));
@@ -67,6 +71,13 @@ namespace SunnySideUp {
 		  objList.push_back(obj);
 		}
 
+#ifdef SSU_DEBUG_DISPLAY_GYRO
+		vecGyro = Vector3F::Unit();
+		objGyro = r.CreateObject("unitbox", Material(Color4B(255, 255, 255, 224), 0, 0), "default");
+		objGyro->SetScale(Vector3F(1, 0.25f, 0.5f));
+		objList.push_back(objGyro);
+#endif // SSU_DEBUG_DISPLAY_GYRO
+
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
@@ -81,6 +92,9 @@ namespace SunnySideUp {
 
 	virtual bool Unload(Engine&) {
 	  if (loaded) {
+#ifdef SSU_DEBUG_DISPLAY_GYRO
+		objGyro.reset();
+#endif // SSU_DEBUG_DISPLAY_GYRO
 		objList.clear();
 		loaded = false;
 	  }
@@ -130,6 +144,18 @@ namespace SunnySideUp {
 		cloudRot -= 360.0f;
 	  }
 	  objList[5]->SetRotation(degreeToRadian<float>(90), degreeToRadian<float>(cloudRot), degreeToRadian<float>(0));
+
+#ifdef SSU_DEBUG_DISPLAY_GYRO
+	  if (objGyro) {
+		objGyro->SetRotation(vecGyro.x, vecGyro.y, vecGyro.z);
+		const Vector3F pos(eyePos.x, eyePos.y, eyePos.z);
+		const Vector3F front(eyeDir * 5.0f);
+		const Vector3F right(eyeDir.Cross(Vector3F(0, -1, 0)).Normalize() * 1.0f);
+		const Vector3F up(front.Cross(right).Normalize() * -1.0f);
+		objGyro->SetTranslation(pos + front + right + up);
+	  }
+#endif // SSU_DEBUG_DISPLAY_GYRO
+
 	  return SCENEID_CONTINUE;
 	}
 
@@ -195,6 +221,11 @@ namespace SunnySideUp {
 		  }
 		  }
 		  break;
+#ifdef SSU_DEBUG_DISPLAY_GYRO
+		case Event::EVENT_GYRO:
+		  vecGyro = Vector3F(e.Gyro.X, e.Gyro.Y, e.Gyro.Z).Normalize();
+		  break;
+#endif // SSU_DEBUG_DISPLAY_GYRO
 #endif // NDEBUG
 		default:
 		  break;
@@ -227,6 +258,11 @@ namespace SunnySideUp {
 	float scaleTick;
 	float cloudRot;
 	int (TitleScene::*updateFunc)(Engine&, float);
+
+#ifdef SSU_DEBUG_DISPLAY_GYRO
+	Vector3F vecGyro;
+	ObjectPtr  objGyro;
+#endif // SSU_DEBUG_DISPLAY_GYRO
   };
 
   ScenePtr CreateTitleScene(Engine&) {

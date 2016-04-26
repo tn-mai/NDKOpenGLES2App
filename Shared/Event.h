@@ -60,6 +60,10 @@ namespace Mai {
 	  float X, Y, Z;
 	};
 
+	struct GyroEvent {
+	  float X, Y, Z;
+	};
+
 	enum EventType
 	{
 	  EVENT_CLOSED,                // The window requested to be closed
@@ -80,6 +84,7 @@ namespace Mai {
 	  EVENT_INIT_WINDOW,
 	  EVENT_TERM_WINDOW,
 	  EVENT_TILT,
+	  EVENT_GYRO,
 	};
 
 	EventType Type;
@@ -93,7 +98,8 @@ namespace Mai {
 	  MouseMoveEvent          MouseMove;          // Mouse move event parameters
 	  MouseButtonEvent        MouseButton;        // Mouse button event parameters
 	  MouseWheelEvent         MouseWheel;         // Mouse wheel event parameters
-	  TiltEvent				Tilt;
+	  TiltEvent               Tilt;
+	  GyroEvent               Gyro;
 	};
   };
 
