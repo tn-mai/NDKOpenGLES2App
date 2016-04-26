@@ -129,12 +129,13 @@ namespace Mai {
 		source->process(app, source);
 	  }
 
+	  const int sensorIndex = ident - LOOPER_ID_USER;
 	  switch (ident) {
 	  case LooperId_Accel:
-		if (sensor[ident - LOOPER_ID_USER]) {
+		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
 		  float timestamp = 0.0f;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
 			if (timestamp == 0.0f) {
 			  timestamp = event.timestamp;
 			}
@@ -147,9 +148,9 @@ namespace Mai {
 		}
 		break;
 	  case LooperId_Magnet:
-		if (sensor[ident - LOOPER_ID_USER]) {
+		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
 			magnet.x = event.magnetic.x;
 			magnet.y = event.magnetic.y;
 			magnet.z = event.magnetic.z;
@@ -158,9 +159,9 @@ namespace Mai {
 		}
 		break;
 	  case LooperId_Gyro:
-		if (sensor[ident - LOOPER_ID_USER]) {
+		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[ident - LOOPER_ID_USER], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
 			GyroFunction(Vector3F(event.vector.x, event.vector.y, event.vector.z), event.timestamp);
 			break;
 		  }
