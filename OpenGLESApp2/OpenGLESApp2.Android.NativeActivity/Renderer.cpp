@@ -21,6 +21,8 @@
 
 namespace Mai {
 
+static const Vector2F referenceViewportSize(480, 800);
+
 #ifdef __ANDROID__
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
@@ -813,8 +815,10 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
   Position2F curPos = Position2F(x, y) * Vector2F(2, -2) + Vector2F(-1, 1);
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
-	const float w = (uw == 0.0f ? (info.GetWidth() * (2.0f / viewport[2])) : uw) * scale;
-	const float h = info.GetHeight() * (-2.0f / viewport[3]) * scale;
+	const float fw = info.GetWidth() * viewport[2] / referenceViewportSize.x;
+	const float fh = info.GetHeight() * viewport[3] / referenceViewportSize.y;
+	const float w = (uw == 0.0f ? (fw * (2.0f / viewport[2])) : uw) * scale;
+	const float h = fh * (-2.0f / viewport[3]) * scale;
 	vertecies.push_back({ curPos, info.leftTop, color });
 	vertecies.push_back({ Position2F(curPos.x, curPos.y + h), Position2S(info.leftTop.x, info.rightBottom.y), color });
 	vertecies.push_back({ Position2F(curPos.x + w, curPos.y), Position2S(info.rightBottom.x, info.leftTop.y), color });
@@ -832,7 +836,7 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
 */
 float Renderer::GetStringWidth(const char* str) const {
   float w = 0.0f;
-  const float d = 1.0f / static_cast<float>(viewport[2]);
+  const float d = 1.0f / referenceViewportSize.x;
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
 	w += info.GetWidth() * d;
@@ -844,7 +848,7 @@ float Renderer::GetStringWidth(const char* str) const {
 */
 float Renderer::GetStringHeight(const char* str) const {
   float h = 0.0f;
-  const float d = 1.0f / static_cast<float>(viewport[3]);
+  const float d = 1.0f / referenceViewportSize.y;
   while (const char c = *(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
 	h = std::max(h, info.GetHeight() * d);
