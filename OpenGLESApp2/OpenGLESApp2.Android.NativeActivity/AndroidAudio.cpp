@@ -48,7 +48,9 @@ struct AudioPlayer {
 };
 
 struct BufferQueueAudioPlayer {
-  BufferQueueAudioPlayer() : player(nullptr), pSource(nullptr) {}
+  BufferQueueAudioPlayer() : refCount(0), player(nullptr), pSource(nullptr) {}
+
+  int refCount;
 
   SLObjectItf   player;
   SLmillisecond dur;
@@ -65,14 +67,23 @@ struct BufferQueueAudioPlayer {
 void BufferQueueCallback(SLAndroidSimpleBufferQueueItf caller, void* pContext) {
   BufferQueueAudioPlayer* p = static_cast<BufferQueueAudioPlayer*>(pContext);
   (*p->playInterface)->SetPlayState(p->playInterface, SL_PLAYSTATE_STOPPED);
+  if (p->pSource) {
+	LOGI("BufferQueueCallback: %s", p->pSource->id.c_str());
+  } else {
+	LOGI("BufferQueueCallback: (empty)");
+  }
 }
 
 class AudioCueImpl : public AudioCue {
 public:
-  AudioCueImpl(BufferQueueAudioPlayer* p) : pPlayer(p) {}
+  AudioCueImpl(BufferQueueAudioPlayer* p) : pPlayer(p) {
+	if (pPlayer) {
+	  ++pPlayer->refCount;
+	}
+  }
   virtual ~AudioCueImpl() {
 	if (pPlayer) {
-	  pPlayer->pSource = nullptr;
+	  --pPlayer->refCount;
 	}
   }
   virtual bool IsPrepared() const { return true; }
@@ -529,7 +540,7 @@ void AudioImpl::Update(float tick) {
 	}
   }
   for (auto& e : sePlayerList) {
-	if (!e.player || e.pSource) {
+	if (!e.player || e.refCount > 0) {
 	  continue;
 	}
 	SLuint32 state;
