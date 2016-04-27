@@ -32,6 +32,9 @@ struct WaveSource {
   std::string id;
   SLDataFormat_PCM pcm;
   std::vector<uint8_t> data;
+
+  int64_t lastPlayingTimeMs;
+
   bool operator<(const WaveSource& n) const { return id < n.id; }
 };
   
@@ -48,7 +51,9 @@ struct AudioPlayer {
 };
 
 struct BufferQueueAudioPlayer {
-  BufferQueueAudioPlayer() : player(nullptr), pSource(nullptr) {}
+  BufferQueueAudioPlayer() : refCount(0), player(nullptr), pSource(nullptr) {}
+
+  int refCount;
 
   SLObjectItf   player;
   SLmillisecond dur;
@@ -65,14 +70,23 @@ struct BufferQueueAudioPlayer {
 void BufferQueueCallback(SLAndroidSimpleBufferQueueItf caller, void* pContext) {
   BufferQueueAudioPlayer* p = static_cast<BufferQueueAudioPlayer*>(pContext);
   (*p->playInterface)->SetPlayState(p->playInterface, SL_PLAYSTATE_STOPPED);
+  if (p->pSource) {
+	LOGI("BufferQueueCallback: %s", p->pSource->id.c_str());
+  } else {
+	LOGI("BufferQueueCallback: (empty)");
+  }
 }
 
 class AudioCueImpl : public AudioCue {
 public:
-  AudioCueImpl(BufferQueueAudioPlayer* p) : pPlayer(p) {}
+  AudioCueImpl(BufferQueueAudioPlayer* p) : pPlayer(p) {
+	if (pPlayer) {
+	  ++pPlayer->refCount;
+	}
+  }
   virtual ~AudioCueImpl() {
 	if (pPlayer) {
-	  pPlayer->pSource = nullptr;
+	  --pPlayer->refCount;
 	}
   }
   virtual bool IsPrepared() const { return true; }
@@ -109,6 +123,9 @@ public:
   void UpdateBGMVolume();
 
 private:
+  static const int playingIntervalMs = 100; ///< The interval of each playing for the sound effect(unit:microsecond).
+
+private:
   SLObjectItf  engineObject;
   SLEngineItf  engineInterface;
   SLObjectItf  mixObject;
@@ -118,6 +135,9 @@ private:
   float  bgmVolume;
   float  bgmFadeTime;
   float  bgmFadeTimer;
+
+  int64_t  timerMs;
+  float  tickAccumulator;
 
   AudioPlayer  bgmPlayer;
   std::array<BufferQueueAudioPlayer, 8>  sePlayerList;
@@ -153,6 +173,8 @@ AudioImpl::AudioImpl()
   , bgmFilename()
   , bgmIsPlay(true)
   , bgmFadeTimer(0)
+  , timerMs(0)
+  , tickAccumulator(0)
 {
 }
 
@@ -292,10 +314,13 @@ void DestroyAudioPlayer(AudioPlayer& mp) {
 */
 void DestroyAudioPlayer(BufferQueueAudioPlayer& mp) {
   if (mp.player) {
+	if (mp.pSource) {
+	  LOGI("Destroy BufferQueueAudioPlayer: %s", mp.pSource->id.c_str());
+	}
+
 	(*mp.player)->Destroy(mp.player);
 	mp.player = nullptr;
 	mp.pSource = nullptr;
-	LOGI("Destroy BufferQueueAudioPlayer");
   }
 }
 
@@ -423,6 +448,7 @@ bool AudioImpl::LoadSE(const char* id, const char* filename) {
   ws.pcm.endianness = SL_BYTEORDER_LITTLEENDIAN;
 
   ws.id = id;
+  ws.lastPlayingTimeMs = 0;
 
   seList.emplace(id, std::move(ws));
 
@@ -443,15 +469,20 @@ AudioCuePtr AudioImpl::PrepareSE(const char* id)  {
   if (se == seList.end()) {
 	return nullptr;
   }
+  if (timerMs - se->second.lastPlayingTimeMs < playingIntervalMs) {
+	return nullptr;
+  }
   if (!CreateAudioPlayer(*pPlayer, engineInterface, mixObject, se->second)) {
 	return nullptr;
   }
+  se->second.lastPlayingTimeMs = timerMs;
   return AudioCuePtr(new AudioCueImpl(pPlayer));
 }
 
 void AudioImpl::PlaySE(const char* id, float volume) {
   if (auto cue = PrepareSE(id)) {
 	cue->Play(volume);
+	LOGI("PlaySE: %s", id);
   }
 }
 
@@ -462,6 +493,7 @@ void AudioImpl::PlayBGM(const char* filename, float volume) {
 	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_STOPPED);
 	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_PLAYING);
 	  SetBGMVolume(volume);
+	  LOGI("PlayBGM: %s", bgmFilename.c_str());
 	  return;
 	} else {
 	  DestroyAudioPlayer(bgmPlayer);
@@ -471,6 +503,7 @@ void AudioImpl::PlayBGM(const char* filename, float volume) {
 	bgmFilename = filename;
 	bgmIsPlay = true;
 	SetBGMVolume(volume);
+	LOGI("PlayBGM: %s", bgmFilename.c_str());
   }
 }
 
@@ -505,6 +538,13 @@ void AudioImpl::Clear() {
 }
 
 void AudioImpl::Update(float tick) {
+
+  tickAccumulator += tick * 1000.0f;
+  if (tickAccumulator >= 1.0f) {
+	timerMs += static_cast<int64_t>(tickAccumulator);
+	tickAccumulator = std::floor(tickAccumulator);
+  }
+
   if (bgmPlayer.player) {
 	SLuint32 state;
 	(*bgmPlayer.playInterface)->GetPlayState(bgmPlayer.playInterface, &state);
@@ -529,7 +569,7 @@ void AudioImpl::Update(float tick) {
 	}
   }
   for (auto& e : sePlayerList) {
-	if (!e.player || e.pSource) {
+	if (!e.player || e.refCount > 0) {
 	  continue;
 	}
 	SLuint32 state;

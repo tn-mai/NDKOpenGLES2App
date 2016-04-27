@@ -795,7 +795,7 @@ namespace SunnySideUp {
 #endif // __ANDROID__
 	  }
 	  pPartitioner->Update(deltaTime);
-	  if (rigidCamera && rigidCamera->hasLatestCollision) {
+	  if (rigidCamera && rigidCamera->hasLatestCollision && rigidCamera->accel.LengthSq() > (0.9f * 0.9f)) {
 		engine.GetAudio().PlaySE("bound", 1.0f);
 	  }
 #else
