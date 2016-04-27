@@ -196,32 +196,32 @@ bool CreateAudioPlayer(AudioPlayer& mp, SLEngineItf& eng, SLObjectItf& mix, cons
   SLresult result;
   result = (*eng)->CreateAudioPlayer(eng, &mp.player, &fileSrc, &audOutSnk, 3, iidArray, required);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to create CreateAudioPlayer:0x%lx", result);
+	LOGW("Failed to create CreateAudioPlayer:0x%x", result);
     return false;
   }
   result = (*mp.player)->Realize(mp.player, SL_BOOLEAN_FALSE);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to realize AudioPlayer:0x%lx", result);
+	LOGW("Failed to realize AudioPlayer:0x%x", result);
 	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_PLAY, &mp.playInterface);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get SL_IID_PLAY interface:0x%lx", result);
+	LOGW("Failed to get SL_IID_PLAY interface:0x%x", result);
 	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_SEEK, &mp.seekInterface);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get SL_IID_SEEK interface:0x%lx", result);
+	LOGW("Failed to get SL_IID_SEEK interface:0x%x", result);
 	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_VOLUME, &mp.volumeInterface);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get SL_IID_VOLUME interface:0x%lx", result);
+	LOGW("Failed to get SL_IID_VOLUME interface:0x%x", result);
 	return false;
   }
   result = (*mp.playInterface)->GetDuration(mp.playInterface, &mp.dur);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get duration:0x%lx", result);
+	LOGW("Failed to get duration:0x%x", result);
 	return false;
   }
 
@@ -248,37 +248,37 @@ bool CreateAudioPlayer(BufferQueueAudioPlayer& mp, SLEngineItf& eng, SLObjectItf
   SLresult result;
   result = (*eng)->CreateAudioPlayer(eng, &mp.player, &fileSrc, &audOutSnk, 3, iidArray, required);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to create CreateAudioPlayer:0x%lx", result);
+	LOGW("Failed to create CreateAudioPlayer:0x%x", result);
 	return false;
   }
   result = (*mp.player)->Realize(mp.player, SL_BOOLEAN_FALSE);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to realize AudioPlayer:0x%lx", result);
+	LOGW("Failed to realize AudioPlayer:0x%x", result);
 	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_PLAY, &mp.playInterface);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get SL_IID_PLAY interface:0x%lx", result);
+	LOGW("Failed to get SL_IID_PLAY interface:0x%x", result);
 	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_VOLUME, &mp.volumeInterface);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get SL_IID_VOLUME interface:0x%lx", result);
+	LOGW("Failed to get SL_IID_VOLUME interface:0x%x", result);
 	return false;
   }
   result = (*mp.player)->GetInterface(mp.player, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &mp.bufferQueueInterface);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get SL_IID_ANDROIDSIMPLEBUFFERQUEUE interface:0x%lx", result);
+	LOGW("Failed to get SL_IID_ANDROIDSIMPLEBUFFERQUEUE interface:0x%x", result);
 	return false;
   }
   result = (*mp.playInterface)->GetDuration(mp.playInterface, &mp.dur);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get duration:0x%lx", result);
+	LOGW("Failed to get duration:0x%x", result);
 	return false;
   }
   result = (*mp.bufferQueueInterface)->RegisterCallback(mp.bufferQueueInterface, BufferQueueCallback, &mp);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to register callback:0x%lx", result);
+	LOGW("Failed to register callback:0x%x", result);
 	return false;
   }
 
@@ -332,17 +332,17 @@ bool AudioImpl::Initialize() {
 
   SLresult result = slCreateEngine(&engineObject, 0, nullptr, 1, engineMixIIDs, engineMixReqs);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed slCreateEngine:0x%lx", result);
+	LOGW("Failed slCreateEngine:0x%x", result);
 	return false;
   }
   result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to realize AudioEngine:0x%lx", result);
+	LOGW("Failed to realize AudioEngine:0x%x", result);
 	return false;
   }
   result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineInterface);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to get SL_IID_ENGINE interface:0x%lx", result);
+	LOGW("Failed to get SL_IID_ENGINE interface:0x%x", result);
 	return false;
   }
 
@@ -350,12 +350,12 @@ bool AudioImpl::Initialize() {
   const SLboolean req[] = {};
   result = (*engineInterface)->CreateOutputMix(engineInterface, &mixObject, 0, ids, req);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed CreateOutputMix:0x%lx", result);
+	LOGW("Failed CreateOutputMix:0x%x", result);
 	return false;
   }
   result = (*mixObject)->Realize(mixObject, SL_BOOLEAN_FALSE);
   if (result != SL_RESULT_SUCCESS) {
-	LOGW("Failed to realize OutputMix:0x%lx", result);
+	LOGW("Failed to realize OutputMix:0x%x", result);
 	return false;
   }
 

@@ -255,13 +255,13 @@ namespace Mai {
   {
   public:
 	Object() : shader(0) {}
-	Object(const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc=ShadowCapability::Enable)
-	  : material(mat)
+	Object(const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc = ShadowCapability::Enable)
+	  : shadowCapability(sc)
+	  , material(mat)
 	  , mesh(m)
 	  , shader(s)
 	  , rotTrans(rt)
 	  , scale(Vector3F(1, 1, 1))
-	  , shadowCapability(sc)
 	{
 	  if (mesh) {
 		bones.resize(mesh->jointList.size(), Matrix4x3::Unit());
