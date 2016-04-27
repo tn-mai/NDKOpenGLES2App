@@ -32,6 +32,9 @@ struct WaveSource {
   std::string id;
   SLDataFormat_PCM pcm;
   std::vector<uint8_t> data;
+
+  int64_t lastPlayingTimeMs;
+
   bool operator<(const WaveSource& n) const { return id < n.id; }
 };
   
@@ -120,6 +123,9 @@ public:
   void UpdateBGMVolume();
 
 private:
+  static const int playingIntervalMs = 100; ///< The interval of each playing for the sound effect(unit:microsecond).
+
+private:
   SLObjectItf  engineObject;
   SLEngineItf  engineInterface;
   SLObjectItf  mixObject;
@@ -129,6 +135,9 @@ private:
   float  bgmVolume;
   float  bgmFadeTime;
   float  bgmFadeTimer;
+
+  int64_t  timerMs;
+  float  tickAccumulator;
 
   AudioPlayer  bgmPlayer;
   std::array<BufferQueueAudioPlayer, 8>  sePlayerList;
@@ -164,6 +173,8 @@ AudioImpl::AudioImpl()
   , bgmFilename()
   , bgmIsPlay(true)
   , bgmFadeTimer(0)
+  , timerMs(0)
+  , tickAccumulator(0)
 {
 }
 
@@ -434,6 +445,7 @@ bool AudioImpl::LoadSE(const char* id, const char* filename) {
   ws.pcm.endianness = SL_BYTEORDER_LITTLEENDIAN;
 
   ws.id = id;
+  ws.lastPlayingTimeMs = 0;
 
   seList.emplace(id, std::move(ws));
 
@@ -454,9 +466,13 @@ AudioCuePtr AudioImpl::PrepareSE(const char* id)  {
   if (se == seList.end()) {
 	return nullptr;
   }
+  if (timerMs - se->second.lastPlayingTimeMs < playingIntervalMs) {
+	return nullptr;
+  }
   if (!CreateAudioPlayer(*pPlayer, engineInterface, mixObject, se->second)) {
 	return nullptr;
   }
+  se->second.lastPlayingTimeMs = timerMs;
   return AudioCuePtr(new AudioCueImpl(pPlayer));
 }
 
@@ -516,6 +532,13 @@ void AudioImpl::Clear() {
 }
 
 void AudioImpl::Update(float tick) {
+
+  tickAccumulator += tick * 1000.0f;
+  if (tickAccumulator >= 1.0f) {
+	timerMs += static_cast<int64_t>(tickAccumulator);
+	tickAccumulator = std::floor(tickAccumulator);
+  }
+
   if (bgmPlayer.player) {
 	SLuint32 state;
 	(*bgmPlayer.playInterface)->GetPlayState(bgmPlayer.playInterface, &state);
