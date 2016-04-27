@@ -441,9 +441,9 @@ namespace Mai {
 	}
   }
 
-  void AndroidWindow::GyroFunction(const Vector3F& vector, float timestamp) {
+  void AndroidWindow::GyroFunction(const Vector3F& vector, int64_t timestamp) {
 	static bool initState = true;
-	static float timeStamp = 0.0f;
+	static int64_t timeStamp = 0;
 	if (initState) {
 	  Matrix4x4 m;
 	  GetRotationMatrixFromOrientation(&m, accMagOrientation);
@@ -453,7 +453,7 @@ namespace Mai {
 	Quaternion delta = Quaternion::Unit();
 	if (timeStamp != 0.0f) {
 	  const float NS2S = 1.0f / 1000000000.0f;
-	  const float dt = (timestamp - timeStamp) * NS2S;
+	  const float dt = static_cast<float>(timestamp - timeStamp) * NS2S;
 	  gyro = Vector3F(vector.x, vector.y, vector.z);
 	  GetQuaternionFromGyro(&delta, gyro, dt);
 	}

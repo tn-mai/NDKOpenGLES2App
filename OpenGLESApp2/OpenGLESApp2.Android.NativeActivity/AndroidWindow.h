@@ -29,7 +29,7 @@ namespace Mai {
 	bool TouchSwipeHandler(AInputEvent*);
 	void SaveState();
 	void LoadState();
-	void GyroFunction(const Vector3F& vector, float timestamp);
+	void GyroFunction(const Vector3F& vector, int64_t timestamp);
 
   private:
 	android_app* app;
