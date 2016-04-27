@@ -314,10 +314,13 @@ void DestroyAudioPlayer(AudioPlayer& mp) {
 */
 void DestroyAudioPlayer(BufferQueueAudioPlayer& mp) {
   if (mp.player) {
+	if (mp.pSource) {
+	  LOGI("Destroy BufferQueueAudioPlayer: %s", mp.pSource->id.c_str());
+	}
+
 	(*mp.player)->Destroy(mp.player);
 	mp.player = nullptr;
 	mp.pSource = nullptr;
-	LOGI("Destroy BufferQueueAudioPlayer");
   }
 }
 
@@ -479,6 +482,7 @@ AudioCuePtr AudioImpl::PrepareSE(const char* id)  {
 void AudioImpl::PlaySE(const char* id, float volume) {
   if (auto cue = PrepareSE(id)) {
 	cue->Play(volume);
+	LOGI("PlaySE: %s", id);
   }
 }
 
@@ -489,6 +493,7 @@ void AudioImpl::PlayBGM(const char* filename, float volume) {
 	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_STOPPED);
 	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_PLAYING);
 	  SetBGMVolume(volume);
+	  LOGI("PlayBGM: %s", bgmFilename.c_str());
 	  return;
 	} else {
 	  DestroyAudioPlayer(bgmPlayer);
@@ -498,6 +503,7 @@ void AudioImpl::PlayBGM(const char* filename, float volume) {
 	bgmFilename = filename;
 	bgmIsPlay = true;
 	SetBGMVolume(volume);
+	LOGI("PlayBGM: %s", bgmFilename.c_str());
   }
 }
 
