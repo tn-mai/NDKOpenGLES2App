@@ -60,16 +60,15 @@ namespace Mai {
 	}
 
 	void GetRotationMatrixFromOrientation(Matrix4x4* m, const Vector3F& o) {
-	  *m = Matrix4x4::RotationX(o.x) * Matrix4x4::RotationY(o.y) * Matrix4x4::RotationZ(o.z);
+	  *m = Matrix4x4::RotationZ(o.x) * Matrix4x4::RotationY(o.y) * Matrix4x4::RotationX(o.z);
 	}
 
 	void GetRotationMatrixFromQuaternion(Matrix4x4* m, const Quaternion& r) {
-	  const Quaternion q(r.x, r.y, r.z, std::sqrt(1.0f - r.Length()));
-	  const Matrix4x3 mm = ToMatrix(q);
+	  const Matrix4x3 mm = ToMatrix(r);
 	  m->SetVector(0, mm.GetVector(0));
 	  m->SetVector(1, mm.GetVector(1));
 	  m->SetVector(2, mm.GetVector(2));
-	  m->SetVector(0, Vector4F::Unit());
+	  m->SetVector(3, Vector4F::Unit());
 	}
 
 	void GetQuaternionFromGyro(Quaternion* deltaRotationVector, Vector3F gyro, float timeFactor) {
@@ -259,7 +258,7 @@ namespace Mai {
 	return true;
   }
   void AndroidWindow::CalcFusedOrientation() {
-	const float coeff = 0.98f;
+	const float coeff = 0.02f;
 	const float oneMinusCoeff = 1.0f - coeff;
 	if (sensor[SensorType_Gyro]) {
 	  fusedOrientation = gyroOrientation * coeff + accMagOrientation * oneMinusCoeff;
