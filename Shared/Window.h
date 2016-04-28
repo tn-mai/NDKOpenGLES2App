@@ -32,9 +32,9 @@ public:
 	eventQueue.push_back(e);
   }
 
-  virtual bool SaveUserFile(const char* filename, const void* data, size_t size) = 0;
-  virtual size_t GetUserFileSize(const char* filename) = 0;
-  virtual bool LoadUserFile(const char* filename, void* data, size_t size) = 0;
+  virtual bool SaveUserFile(const char* filename, const void* data, size_t size) const = 0;
+  virtual size_t GetUserFileSize(const char* filename) const = 0;
+  virtual bool LoadUserFile(const char* filename, void* data, size_t size) const = 0;
 
 public:
   boost::optional<Event> PopEvent() {

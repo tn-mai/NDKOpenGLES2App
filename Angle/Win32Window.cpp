@@ -645,13 +645,13 @@ namespace Mai {
   }
 
 
-  bool Win32Window::SaveUserFile(const char* filename, const void* data, size_t size) {
+  bool Win32Window::SaveUserFile(const char* filename, const void* data, size_t size) const {
 	return true;
   }
-  size_t Win32Window::GetUserFileSize(const char* filename) {
+  size_t Win32Window::GetUserFileSize(const char* filename) const {
 	return 0;
   }
-  bool Win32Window::LoadUserFile(const char* filename, void* data, size_t size) {
+  bool Win32Window::LoadUserFile(const char* filename, void* data, size_t size) const {
 	return true;
   }
 

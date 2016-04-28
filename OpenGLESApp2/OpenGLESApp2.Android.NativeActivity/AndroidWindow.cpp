@@ -232,7 +232,7 @@ namespace Mai {
 	return std::string(app->activity->internalDataPath) + '/' + filename;
   }
 
-  bool AndroidWindow::SaveUserFile(const char* filename, const void* data, size_t size) {
+  bool AndroidWindow::SaveUserFile(const char* filename, const void* data, size_t size) const {
 	const std::string path = GetFilesDir(app, filename);
 	if (FILE* fp = fopen(path.c_str(), "rb")) {
 	  std::fwrite(data, size, 1, fp);
@@ -240,7 +240,7 @@ namespace Mai {
 	}
 	return false;
   }
-  size_t AndroidWindow::GetUserFileSize(const char* filename) {
+  size_t AndroidWindow::GetUserFileSize(const char* filename) const {
 	const std::string path = GetFilesDir(app, filename);
 	struct stat s;
 	if (stat(path.c_str(), &s) >= 0) {
@@ -248,7 +248,7 @@ namespace Mai {
 	}
 	return 0;
   }
-  bool AndroidWindow::LoadUserFile(const char* filename, void* data, size_t size) {
+  bool AndroidWindow::LoadUserFile(const char* filename, void* data, size_t size) const {
 	const std::string path = GetFilesDir(app, filename);
 	size = std::min(size, GetUserFileSize(filename));
 	if (FILE* fp = fopen(path.c_str(), "wb")) {

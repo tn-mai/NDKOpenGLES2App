@@ -16,9 +16,9 @@ namespace Mai {
 	virtual void SetVisible(bool isVisible);
 	virtual void PushEvent(const Event&);
 
-	virtual bool SaveUserFile(const char* filename, const void* data, size_t size);
-	virtual size_t GetUserFileSize(const char* filename);
-	virtual bool LoadUserFile(const char* filename, void* data, size_t size);
+	virtual bool SaveUserFile(const char* filename, const void* data, size_t size) const;
+	virtual size_t GetUserFileSize(const char* filename) const;
+	virtual bool LoadUserFile(const char* filename, void* data, size_t size) const;
 
   public:
 	void IsMouseInWindow(bool b) { isMouseInWindow = b; }
