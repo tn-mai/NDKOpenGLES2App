@@ -2,6 +2,7 @@
  @file SuccessScene.cpp
 */
 #include "LevelInfo.h"
+#include "SaveData.h"
 #include "Scene.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <vector>
@@ -33,6 +34,7 @@ namespace SunnySideUp {
 	std::vector<ObjectPtr> objList;
 	bool loaded;
 	bool hasFinishRequest;
+	bool hasNewRecord;
 	float timer;
 	float cameraRotation;
   };
@@ -42,6 +44,7 @@ namespace SunnySideUp {
 	, objList()
 	, loaded(false)
 	, hasFinishRequest(false)
+	, hasNewRecord(false)
 	, timer(static_cast<float>(eventTime))
 	, cameraRotation(0)
   {}
@@ -51,6 +54,9 @@ namespace SunnySideUp {
 	  status = STATUSCODE_RUNNABLE;
 	  return true;
 	}
+
+	const CommonData* pCommonData = engine.GetCommonData<CommonData>();
+	hasNewRecord = SaveData::SetNewRecord(engine.GetWindow(), pCommonData->level, pCommonData->currentTime);
 
 	objList.reserve(8);
 	Renderer& r = engine.GetRenderer();
@@ -169,16 +175,22 @@ namespace SunnySideUp {
 	  r.AddString(0.51f - w * 0.5f, 0.26f, scale, Color4B(20, 10, 10, 128), str);
 	  r.AddString(0.5f - w * 0.5f, 0.25f, scale, Color4B(250, 250, 250, 255), str);
 	}
+	if (hasNewRecord) {
+	  const char str[] = "NEW RECORD!";
+	  const float w = r.GetStringWidth(str) * scale;
+	  r.AddString(0.51f - w * 0.5f, 0.6f, scale, Color4B(20, 10, 10, 128), str);
+	  r.AddString(0.5f - w * 0.5f, 0.6f, scale, Color4B(250, 100, 50, 255), str);
+	}
 	{
 	  const char str[] = "YOUR TIME IS:";
 	  const float w = r.GetStringWidth(str) * scale;
-	  r.AddString(0.51f - w * 0.5f, 0.7f, scale, Color4B(20, 10, 10, 128), str);
-	  r.AddString(0.5f - w * 0.5f, 0.7f, scale, Color4B(250, 250, 250, 255), str);
+	  r.AddString(0.51f - w * 0.5f, 0.675f, scale, Color4B(20, 10, 10, 128), str);
+	  r.AddString(0.5f - w * 0.5f, 0.675f, scale, Color4B(250, 250, 250, 255), str);
 	}
 	{
 	  const float time = static_cast<float>(engine.GetCommonData<CommonData>()->currentTime) / 1000.0f;
 	  char buf[32];
-	  sprintf(buf, "%03.3fs", time);
+	  sprintf(buf, "%03.3fSec", time);
 	  const float w = r.GetStringWidth(buf);
 	  r.AddString(0.51f - w * 0.5f, 0.75f, scale, Color4B(20, 10, 10, 128), buf);
 	  r.AddString(0.5f - w * 0.5f, 0.75f, scale, Color4B(250, 250, 250, 255), buf);

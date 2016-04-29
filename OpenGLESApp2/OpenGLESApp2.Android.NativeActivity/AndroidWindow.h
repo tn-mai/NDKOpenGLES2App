@@ -23,6 +23,8 @@ namespace Mai {
 	virtual size_t GetUserFileSize(const char* filename) const;
 	virtual bool LoadUserFile(const char* filename, void* data, size_t size) const;
 
+	std::string GetAbsoluteSaveDataPath(const char* filename) const;
+
 	void CalcFusedOrientation();
 	void CommandHandler(int32_t);
 	bool InputHandler(AInputEvent*);
@@ -58,6 +60,9 @@ namespace Mai {
 	Vector3F accMagOrientation;
 	Vector3F fusedOrientation;
 	Vector3F prevOrientation;
+
+	std::string internalDataPath;
+	mutable bool existInternalDataPath;
 
 	struct TapInfo {
 	  int32_t id;

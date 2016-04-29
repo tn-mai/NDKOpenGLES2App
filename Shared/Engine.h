@@ -55,6 +55,9 @@ namespace Mai {
 	AudioInterface& GetAudio() { return *audio; }
 	const AudioInterface& GetAudio() const { return *audio; }
 
+	Window& GetWindow() { return *pWindow; }
+	const Window& GetWindow() const { return *pWindow; }
+
 	template<typename T, typename ... Args>
 	T* CreateCommonData(Args... args) {
 	  if (commonDataDeleter) {
