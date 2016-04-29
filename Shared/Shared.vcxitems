@@ -22,6 +22,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\GameOverScene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\LevelInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\MainGameScene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\SaveData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\StartEventScene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\SuccessScene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\TitleScene.cpp" />
@@ -37,6 +38,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Mouse.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Quaternion.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\LevelInfo.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\SaveData.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\Scene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vector.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Window.h" />

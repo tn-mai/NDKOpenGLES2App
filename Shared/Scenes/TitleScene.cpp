@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "SaveData.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 
 #ifndef NDEBUG
@@ -20,6 +21,8 @@ namespace SunnySideUp {
 
 	virtual bool Load(Engine& engine) {
 	  if (!loaded) {
+		SaveData::PrepareSaveData(engine.GetWindow());
+
 		eyePos = Position3F(8, 19.5f, 5);
 		eyeDir = Vector3F(-0.6f, 0.06f, -0.84f).Normalize();
 		objList.reserve(8);

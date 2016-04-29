@@ -2,10 +2,35 @@
 #include "../../Shared/Quaternion.h"
 #include <android/window.h>
 #include <android/sensor.h>
+#include "android_native_app_glue.h"
+#include <android/log.h>
 #include <boost/math/constants/constants.hpp>
 #include <boost/optional.hpp>
 #include <cstdio>
 #include <sys/stat.h>
+
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "SunnySideUp.AndroidWindow", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "SunnySideUp.AndroidWindow", __VA_ARGS__))
+
+/** Get an internal storage directory.
+
+  @param app  The android native app object.
+
+  @return An internal storage directory path name.
+*/
+std::string GetFilesDir(struct android_app* app) {
+  JNIEnv* pJNIEnv;
+  app->activity->vm->AttachCurrentThread(&pJNIEnv, nullptr);
+  jclass cNativeActivity = pJNIEnv->FindClass("android/app/NativeActivity");
+  jmethodID getFilesDir = pJNIEnv->GetMethodID(cNativeActivity, "getFilesDir", "()Ljava/io/File;");
+  jobject file = pJNIEnv->CallObjectMethod(app->activity->clazz, getFilesDir);
+  jclass cFile = pJNIEnv->FindClass("java/io/File");
+  jmethodID getPath = pJNIEnv->GetMethodID(cFile, "getPath", "()Ljava/lang/String;");
+  jstring path = (jstring)pJNIEnv->CallObjectMethod(file, getPath);
+  const char* p = pJNIEnv->GetStringUTFChars(path, nullptr);
+  app->activity->vm->DetachCurrentThread();
+  return std::string(p);
+}
 
 namespace Mai {
   namespace {
@@ -109,6 +134,17 @@ namespace Mai {
 
 	touchSwipeState.dpFactor = 160.0f / AConfiguration_getDensity(app->config);
 	touchSwipeState.dragging = false;
+
+	internalDataPath = GetFilesDir(app);
+	existInternalDataPath = true;
+	struct stat st;
+	const int ret = stat(internalDataPath.c_str(), &st);
+	if (ret < 0) {
+	  if (errno == ENOENT) {
+		existInternalDataPath = false;
+	  }
+	}
+	LOGI("internalDataPath(%s): %s", existInternalDataPath ? "exist" : "not exist", internalDataPath.c_str());
   }
 
   EGLNativeWindowType AndroidWindow::GetWindowType() const {
@@ -228,35 +264,118 @@ namespace Mai {
   void AndroidWindow::Destroy() {
   }
 
-  std::string GetFilesDir(const android_app* app, const char* filename) {
-	return std::string(app->activity->internalDataPath) + '/' + filename;
+  /** Get the absolute path for the save data.
+
+    @param filename  The save data filename.
+
+	@return The absolute path to 'filename'.
+  */
+  std::string AndroidWindow::GetAbsoluteSaveDataPath(const char* filename) const {
+	return internalDataPath + '/' + filename;
   }
 
-  bool AndroidWindow::SaveUserFile(const char* filename, const void* data, size_t size) const {
-	const std::string path = GetFilesDir(app, filename);
-	if (FILE* fp = fopen(path.c_str(), "rb")) {
-	  std::fwrite(data, size, 1, fp);
-	  return true;
+  /** Make the directory recursively.
+
+    @param path  The target directory path.
+	@param mode  The permission(i.e. 0777).
+
+	@retval true  Success to make 'path' directory.
+	@retval false Failure to make 'path' directory.
+  */
+  bool MakeDirectory(const std::string& path, mode_t mode) {
+	if (path.size() >= PATH_MAX - 1) {
+	  LOGE("ERROR in MakeDirectory(path is too long): %s", errno, path.c_str());
+	  return false;
 	}
-	return false;
-  }
-  size_t AndroidWindow::GetUserFileSize(const char* filename) const {
-	const std::string path = GetFilesDir(app, filename);
-	struct stat s;
-	if (stat(path.c_str(), &s) >= 0) {
-	  return s.st_size;
+	char tmp[PATH_MAX];
+	std::copy(path.begin(), path.end(), tmp);
+	tmp[path.size()] = '\0';
+	if (path.back() == '/') {
+	  tmp[path.size() - 1] = '\0';
 	}
-	return 0;
-  }
-  bool AndroidWindow::LoadUserFile(const char* filename, void* data, size_t size) const {
-	const std::string path = GetFilesDir(app, filename);
-	size = std::min(size, GetUserFileSize(filename));
-	if (FILE* fp = fopen(path.c_str(), "wb")) {
-	  std::fread(data, size, 1, fp);
-	  return true;
+	for (char* p = tmp + 1; *p; ++p) {
+	  if (*p == '/') {
+		*p = '\0';
+		mkdir(tmp, mode);
+		*p = '/';
+	  }
+	}
+	if (mkdir(tmp, mode) < 0) {
+	  LOGE("ERROR in MakeDirectory(%d): %s", errno, path.c_str());
+	  return false;
 	}
 	return true;
   }
+
+  /** Save the user file.
+
+	@param filename  The name of the user file.
+	@param data      A pointer to the buffer where the user data is stored.
+	@param size      The size of 'data' buffer.
+
+	@retval true  Success to write the user data.
+	@retval false Failure to write the user data.
+  */
+  bool AndroidWindow::SaveUserFile(const char* filename, const void* data, size_t size) const {
+	const std::string path = GetAbsoluteSaveDataPath(filename);
+	if (!existInternalDataPath) {
+	  if (!MakeDirectory(internalDataPath.c_str(), 0777)) {
+		LOGE("ERROR in SaveUserFile(mkdir): %s", path.c_str());
+		return false;
+	  }
+	  LOGI("MakeDirectory: %s", internalDataPath.c_str());
+	  existInternalDataPath = true;
+	}
+	if (FILE* fp = fopen(path.c_str(), "wb")) {
+	  std::fwrite(data, size, 1, fp);
+	  LOGI("Write user file(size:%d): %s", size, path.c_str());
+	  fclose(fp);
+	  return true;
+	}
+	LOGE("ERROR in SaveUserFile(size:%d): %s", size, path.c_str());
+	return false;
+  }
+
+  /** Get a size of the user file.
+
+	@param filename  The name of the user file.
+
+	@return Byte size of the user file.
+  */
+  size_t AndroidWindow::GetUserFileSize(const char* filename) const {
+	const std::string path = GetAbsoluteSaveDataPath(filename);
+	struct stat s;
+	if (stat(path.c_str(), &s) >= 0) {
+	  LOGI("GetUserFileSize(%lld): %s", s.st_size, path.c_str());
+	  return s.st_size;
+	}
+	LOGE("ERROR in GetUserFileSize: can't open %s", path.c_str());
+	return 0;
+  }
+
+  /** Load the user file.
+
+	@param filename  The name of the user file.
+	@param data      A pointer to the buffer where the user data will be stored.
+	@param size      The size of 'data' buffer.
+
+	@retval true  Success to write the user data.
+	@retval false Failure to write the user data.
+  */
+  bool AndroidWindow::LoadUserFile(const char* filename, void* data, size_t size) const {
+	const std::string path = GetAbsoluteSaveDataPath(filename);
+	LOGI("Read user file(size:%d): %s", size, path.c_str());
+	size = std::min(size, GetUserFileSize(filename));
+	if (FILE* fp = fopen(path.c_str(), "rb")) {
+	  std::fread(data, size, 1, fp);
+	  LOGI("Read user file(size:%d): %s", size, path.c_str());
+	  fclose(fp);
+	  return true;
+	}
+	LOGE("ERROR in LoadUserFile(size:%d): %s", size, path.c_str());
+	return true;
+  }
+
   void AndroidWindow::CalcFusedOrientation() {
 	const float coeff = 0.02f;
 	const float oneMinusCoeff = 1.0f - coeff;
