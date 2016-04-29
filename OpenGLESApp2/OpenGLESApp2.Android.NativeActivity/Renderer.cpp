@@ -807,7 +807,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   @param uw     width par character. if it is zero, each character width will be calculated automatically.
 */
 void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str, float uw) {
-  const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / sizeof(FontVertex);
+  const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / (sizeof(FontVertex) * 4);
   if (strlen(str) > freeCount) {
 	return;
   }
