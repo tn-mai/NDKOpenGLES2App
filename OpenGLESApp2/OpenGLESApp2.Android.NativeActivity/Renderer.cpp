@@ -1117,11 +1117,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		const Mesh& mesh = meshList["board2D"];
 		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 
-		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 #endif
 #endif
+	Local::glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
 
 	// color path.
 
