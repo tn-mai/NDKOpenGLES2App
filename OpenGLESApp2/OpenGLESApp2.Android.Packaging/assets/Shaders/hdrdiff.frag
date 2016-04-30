@@ -1,4 +1,5 @@
 uniform sampler2D texDiffuse;
+uniform lowp float dynamicRangeFactor;
 
 varying mediump vec2 texCoord;
 
@@ -12,5 +13,5 @@ void main()
   // to make the beautiful bloom. so we need to multiply before to apply the
   // blur filter. The tone is noticeable if multiply after the filter.
   // Note that the base color multiplication is applying in 'applyhdr.frag'.
-  gl_FragColor.rgb *= lum2 / gl_FragColor.a * 2.0;
+  gl_FragColor.rgb *= lum2 / gl_FragColor.a * dynamicRangeFactor;
 }

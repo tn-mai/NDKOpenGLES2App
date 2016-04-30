@@ -1386,6 +1386,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  Matrix4x4 mtx = Matrix4x4::Unit();
 	  mtx.Scale(1.0f, -1.0f, 1.0f);
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
+	  glUniform1f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].inverse);
 
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
