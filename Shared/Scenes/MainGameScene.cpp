@@ -560,7 +560,7 @@ namespace SunnySideUp {
 	  }
 #endif
 	  {
-		auto obj = renderer.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
+		auto obj = renderer.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
 		Object& o = *obj;
 		o.SetRotation(degreeToRadian(-90.0f), 0, 0);
 		Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0), Vector3F(0, 1, 0), 1000 * 1000 * 1000));

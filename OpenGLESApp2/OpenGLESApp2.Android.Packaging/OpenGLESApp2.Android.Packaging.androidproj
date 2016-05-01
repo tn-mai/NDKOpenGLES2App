@@ -109,6 +109,8 @@
     <Content Include="assets\Shaders\bilinear4x4.vert" />
     <Content Include="assets\Shaders\skybox.frag" />
     <Content Include="assets\Shaders\skybox.vert" />
+    <Content Include="assets\Shaders\solidmodel.frag" />
+    <Content Include="assets\Shaders\solidmodel.vert" />
     <Content Include="assets\Shaders\tbn.frag" />
     <Content Include="assets\Shaders\tbn.vert" />
     <Content Include="assets\Textures\Adreno\accelerator.ktx" />

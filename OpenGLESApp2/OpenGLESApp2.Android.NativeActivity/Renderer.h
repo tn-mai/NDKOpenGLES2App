@@ -185,12 +185,20 @@ namespace Mai {
 #endif // SHOW_TANGENT_SPACE
   };
 
+  /** シェーダの種類.
+  */
+  enum class ShaderType : int {
+	Simple3D,
+	Complex3D,
+  };
+
+
   /**
   * シェーダ制御情報.
   */
   struct Shader
   {
-	Shader() : program(0) {}
+	Shader() : program(0), type(ShaderType::Complex3D) {}
 	~Shader();
 
 	GLuint program;
@@ -219,6 +227,8 @@ namespace Mai {
 	GLint matLightForShadow;
 
 	GLint debug;
+
+	ShaderType type;
 
 	std::string id;
   };

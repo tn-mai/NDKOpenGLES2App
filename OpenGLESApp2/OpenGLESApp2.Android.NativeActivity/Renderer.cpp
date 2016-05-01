@@ -646,26 +646,31 @@ void Renderer::Initialize(const Window& window)
 	glDepthFunc(GL_LESS);
 	glEnable(GL_BLEND);
 
-	static const char* const shaderNameList[] = {
-	  "default",
-	  "defaultWithAlpha",
-	  "default2D",
-	  "cloud",
-	  "skybox",
-	  "shadow",
-	  "bilinear4x4",
-	  "gaussian3x3",
-	  "sample4",
-	  "reduceLum",
-	  "hdrdiff",
-	  "applyhdr",
-	  "tbn",
-	  "font",
+	static const struct {
+	  ShaderType type;
+	  const char* name;
+	} shaderInfoList[] = {
+	  { ShaderType::Complex3D, "default" },
+	  { ShaderType::Complex3D, "defaultWithAlpha" },
+	  { ShaderType::Complex3D, "default2D" },
+	  { ShaderType::Complex3D, "cloud" },
+	  { ShaderType::Simple3D, "solidmodel" },
+	  { ShaderType::Complex3D, "skybox" },
+	  { ShaderType::Complex3D, "shadow" },
+	  { ShaderType::Complex3D, "bilinear4x4" },
+	  { ShaderType::Complex3D, "gaussian3x3" },
+	  { ShaderType::Complex3D, "sample4" },
+	  { ShaderType::Complex3D, "reduceLum" },
+	  { ShaderType::Complex3D, "hdrdiff" },
+	  { ShaderType::Complex3D, "applyhdr" },
+	  { ShaderType::Complex3D, "tbn" },
+	  { ShaderType::Complex3D, "font" },
 	};
-	for (const auto e : shaderNameList) {
-		const std::string vert = std::string("Shaders/") + std::string(e) + std::string(".vert");
-		const std::string frag = std::string("Shaders/") + std::string(e) + std::string(".frag");
-		if (boost::optional<Shader> s = CreateShaderProgram(e, vert.c_str(), frag.c_str())) {
+	for (const auto e : shaderInfoList) {
+		const std::string vert = std::string("Shaders/") + std::string(e.name) + std::string(".vert");
+		const std::string frag = std::string("Shaders/") + std::string(e.name) + std::string(".frag");
+		if (boost::optional<Shader> s = CreateShaderProgram(e.name, vert.c_str(), frag.c_str())) {
+			s->type = e.type;
 			shaderList.insert({ s->id, *s });
 		}
 	}
