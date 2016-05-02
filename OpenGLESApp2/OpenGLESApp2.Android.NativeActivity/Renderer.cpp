@@ -1213,7 +1213,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	GLuint currentProgramId = 0;
 	for (const ObjectPtr* itr = begin; itr != end; ++itr) {
 		const Object& obj = *itr->get();
-		if (!obj.IsValid()) {
+		if (!obj.IsValid() || obj.shadowCapability == ShadowCapability::ShadowOnly) {
 			continue;
 		}
 
@@ -1292,6 +1292,16 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mScale.Set(2, 2, obj.Scale().z);
 		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
 		  glUniform4fv(shader.bones, 3, m.f);
+		  if (shader.type == ShaderType::Simple3D) {
+			Matrix4x4 mm;
+			mm.SetVector(0, Vector4F(m.f[0], m.f[1], m.f[2], 0.0f));
+			mm.SetVector(1, Vector4F(m.f[4], m.f[5], m.f[6], 0.0f));
+			mm.SetVector(2, Vector4F(m.f[8], m.f[9], m.f[10], 0.0f));
+			mm.SetVector(3, Vector4F(m.f[3], m.f[7], m.f[11], 1.0f));
+			mm.Inverse();
+			const Vector4F invEye = mm * Vector4F(eye.x, eye.y, eye.z, 1.0f);
+			glUniform3f(shader.eyePos, invEye.x, invEye.y, invEye.z);
+		  }
 		}
 		glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
 	}
@@ -1771,6 +1781,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/chickenegg.msh", "chickenegg", "chickenegg_nml");
 	LoadFBX("Meshes/titlelogo.msh", "titlelogo", "titlelogo_nml");
 	LoadFBX("Meshes/rock_collection.msh", "rock_s", "rock_s_nml");
+	LoadFBX("Meshes/landscape.msh", "floor", "floor_nml");
 
 	CreateSkyboxMesh();
 	CreateUnitBoxMesh();

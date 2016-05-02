@@ -10,7 +10,6 @@ uniform samplerCube texIBL[3];
 uniform sampler2D texShadow;
 
 varying mediump vec3 eyeVectorW;
-//varying mediump mat3 matTBN;
 varying mediump vec4 texCoord;
 varying mediump vec3 posForShadow;
 
@@ -43,45 +42,37 @@ void main(void)
 {
   lowp vec4 col = texture2D(texDiffuse, texCoord.xy);
   col.rgb *= materialColor.rgb;
+//  if (col.a == 0.0) {
+//	gl_FragColor = vec4(0, 0, 0, 0);
+//  } else {
+	mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
 
-  mediump vec4 normal = texture2D(texNormal, texCoord.xy);
-  normal.xyz = normal.xzy * vec3(2.0, -2.0, -2.0) + vec3(-1.0, 1.0, 1.0);
-  col.a = step(0.8, normal.w + metallicAndRoughness.x) * 0.1 + 0.9;
-  normal.w = clamp((normal.w + metallicAndRoughness.y) * 2.0, 0.0, 2.0);
+	mediump vec3 refVector = reflect(eyeVectorW, normal.xyz);
+	mediump vec4 iblColor = textureCube(texIBL[2], refVector);
+	iblColor.rgb *= dynamicRangeFactor / iblColor.a;
 
-  mediump vec3 F0;
-  mediump float metal = 1.0 - col.a;
-  CalcF0(F0, col.rgb, metal);
+	// Diffuse
+	gl_FragColor.rgb = iblColor.rgb * col.rgb * metallicAndRoughness.x;
 
-  mediump vec3 refVector2 = reflect(eyeVectorW, normal.xyz);
-  lowp vec4 iblColor[3];
-//  iblColor[0] = textureCube(texIBL[0], refVector2);
-//  iblColor[1] = textureCube(texIBL[1], refVector2);
-  iblColor[2] = textureCube(texIBL[2], refVector2);
-  // Alpha component has the strength of color. it has (255 / strength).
-  // We can restore the actual color by multiply (1.0 / alpha). And we want
-  // to compress the diffuse range to 0-1, because keep the HDR
-  // luminance. So, we use (dynamicRangeFactor / alpha).
-//  iblColor[0].rgb *= dynamicRangeFactor / max(iblColor[0].a, 1.0 / 512.0);
-//  iblColor[1].rgb *= dynamicRangeFactor / iblColor[1].a;
-  iblColor[2].rgb *= dynamicRangeFactor / iblColor[2].a;
-  
-//  mediump vec3 colIBL = mix(iblColor[0].rgb , iblColor[1].rgb, min(normal.w, 1.0));
-//  colIBL = mix(colIBL, iblColor[2].rgb, max(normal.w - 1.0, 0.0));
-  mediump float dotNV2 = dot(eyeVectorW, normal.xyz);
-  mediump vec3 Ispec = iblColor[2].rgb * FresnelSchlick(F0, dotNV2);
-  lowp vec3 Idiff = iblColor[2].rgb * col.rgb * col.a;
-  
-  gl_FragColor = vec4(Idiff + Ispec, 1.0);
-//  gl_FragColor = vec4(normal.xyz * 0.125 + 0.125, 1.0);
-//  gl_FragColor.a = max(materialColor.a, dot(Idiff * materialColor.a + Ispec, vec3(0.3, 0.6, 0.1)));
-  
-  const mediump float coef = 1.0 / 256.0;
-  mediump vec4 tex = texture2D(texShadow, posForShadow.xy);
-  highp float Ex = dot(tex.xyz, vec3(1.0, coef, coef * coef));
-  if (Ex < 1.0) {
-    if (posForShadow.z > Ex) {
-  	gl_FragColor.rgb *= exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
-    }
-  }
+	// Specular
+	mediump vec3 F0;
+	mediump float metal = 1.0 - metallicAndRoughness.x;
+	CalcF0(F0, col.rgb, metal);
+	mediump float dotNV2 = dot(eyeVectorW, normal.xyz);
+	gl_FragColor.rgb += iblColor.rgb * FresnelSchlick(F0, dotNV2);
+
+	gl_FragColor.a = materialColor.a;
+//	lowp float alpha = col.a * materialColor.a;
+//	gl_FragColor.a = max(alpha, dot(Idiff * alpha + Ispec, vec3(0.3, 0.6, 0.1)));
+
+	// Shadow
+	const mediump float coef = 1.0 / 256.0;
+	mediump vec4 tex = texture2D(texShadow, posForShadow.xy);
+	highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
+	if (Ex < 1.0) {
+	  if (posForShadow.z > Ex) {
+		gl_FragColor.rgb *= exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
+	  }
+	}
+//  }
 }

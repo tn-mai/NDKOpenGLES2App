@@ -255,7 +255,8 @@ namespace Mai {
   /// ‰e‚ğ¶¬‚·‚é”\—Í‚Ì—L–³.
   enum class ShadowCapability : int8_t {
 	Disable, ///< Shadow pass‚Å•`‰æ‚³‚ê‚È‚¢.
-	Enable, ///< Shadow pass‚Å•`‰æ‚³‚ê‚é..
+	Enable, ///< Shadow pass‚Å•`‰æ‚³‚ê‚é.
+	ShadowOnly, ///< Shadow pass‚Å‚Ì‚İ•`‰æ‚³‚ê‚é.
   };
 
   /**

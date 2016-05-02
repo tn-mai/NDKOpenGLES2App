@@ -461,7 +461,7 @@ namespace SunnySideUp {
 		const float distance = RandomFloat(50);
 		const float tx = std::cos(theta) * distance;
 		const float tz = std::sin(theta) * distance;
-		o.SetTranslation(Vector3F(tx, 1, tz));
+		o.SetTranslation(Vector3F(tx, 30, tz));
 		pPartitioner->Insert(obj);
 		objFlyingPan = obj;
 	  }
@@ -560,9 +560,9 @@ namespace SunnySideUp {
 	  }
 #endif
 	  {
-		auto obj = renderer.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
-		Object& o = *obj;
-		o.SetRotation(degreeToRadian(-90.0f), 0, 0);
+		auto obj = renderer.CreateObject("landscape", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
+		obj->SetScale(Vector3F(12, 6, 12));
+		obj->SetTranslation(Vector3F(0, -25 * 5, 0));
 		Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0), Vector3F(0, 1, 0), 1000 * 1000 * 1000));
 		p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p);
