@@ -9,6 +9,7 @@ uniform sampler2D texNormal;
 uniform samplerCube texIBL[3];
 uniform sampler2D texShadow;
 
+varying mediump mat3 matTBN;
 varying mediump vec3 eyeVectorW;
 varying mediump vec4 texCoord;
 varying mediump vec3 posForShadow;
@@ -47,7 +48,7 @@ void main(void)
 //  } else {
 	mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
 
-	mediump vec3 refVector = reflect(eyeVectorW, normal.xyz);
+	mediump vec3 refVector = matTBN * reflect(eyeVectorW, normal.xyz);
 	mediump vec4 iblColor = textureCube(texIBL[2], refVector);
 	iblColor.rgb *= dynamicRangeFactor / iblColor.a;
 
