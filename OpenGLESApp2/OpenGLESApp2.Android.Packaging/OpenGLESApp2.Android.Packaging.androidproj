@@ -75,6 +75,7 @@
     <Content Include="assets\Meshes\chickenegg.msh" />
     <Content Include="assets\Meshes\flyingpan.msh" />
     <Content Include="assets\Meshes\flyingrock.msh" />
+    <Content Include="assets\Meshes\landscape.msh" />
     <Content Include="assets\Meshes\rock_collection.msh" />
     <Content Include="assets\Meshes\sphere.msh" />
     <Content Include="assets\Meshes\sunnysideup.msh" />

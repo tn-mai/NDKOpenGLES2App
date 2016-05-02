@@ -18,6 +18,7 @@ uniform vec4 boneMatrices[3];
 
 uniform mediump vec3 eyePos; // in object space.
 
+varying mediump mat3 matTBN;
 varying mediump vec3 eyeVectorW;
 varying mediump vec4 texCoord;
 varying mediump vec3 posForShadow;
@@ -29,6 +30,8 @@ void main()
   m[1] = vec4(boneMatrices[1].xyz, 0);
   m[2] = vec4(boneMatrices[2].xyz, 0);
   m[3] = vec4(boneMatrices[0].w, boneMatrices[1].w, boneMatrices[2].w, 1);
+
+  matTBN = mat3(m);
 
   posForShadow = (matLightForShadow * m * vec4(vPosition, 1)).xyz;
   posForShadow = posForShadow * vec3(0.5, -0.5, 0.5) + vec3(0.5, 0.5, 0.5);

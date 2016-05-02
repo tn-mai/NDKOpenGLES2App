@@ -55,13 +55,14 @@ namespace SunnySideUp {
 	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(3, 3 * 4));
 
 	{
-	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
-	  obj->SetRotation(degreeToRadian(-90.0f), 0, 0);
+	  auto obj = r.CreateObject("landscape", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
+	  obj->SetScale(Vector3F(12, 1, 12));
+	  obj->SetTranslation(Vector3F(0, -3, 0));
 	  objList.push_back(obj);
 	}
 	{ // for shadow.
-	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
-	  obj->SetTranslation(Vector3F(0, -1, 0));
+	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::ShadowOnly);
+	  obj->SetTranslation(Vector3F(0, -3, 0));
 	  obj->SetScale(Vector3F(0.01f, 0.01f, 0.01f));
 	  obj->SetRotation(degreeToRadian(-90.0f), 0, 0);
 	  objList.push_back(obj);
