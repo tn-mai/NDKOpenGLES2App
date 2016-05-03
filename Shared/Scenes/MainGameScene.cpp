@@ -400,7 +400,7 @@ namespace SunnySideUp {
   class MainGameScene : public Scene {
   public:
 	MainGameScene()
-	  : pPartitioner(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject))
+	  : pPartitioner()
 	  , random(static_cast<uint32_t>(time(nullptr)))
 	  , playerMovement(0, 0, 0)
 	  , playerRotation(0, 0, 0)
@@ -420,6 +420,7 @@ namespace SunnySideUp {
 	virtual bool Load(Engine& engine) {
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
+	  pPartitioner.reset(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject));
 
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
 	  const LevelInfo& levelInfo = GetLevelInfo(level);
