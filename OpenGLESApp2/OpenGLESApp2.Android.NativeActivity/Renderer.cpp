@@ -1018,29 +1018,6 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			}
 			glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
 		}
-		// 自分の影(とりあえず球体で代用).
-		if (0) {
-		  Matrix4x3 m = Matrix4x3::Unit();
-		  m.Set(0, 3, eye.x);
-		  m.Set(1, 3, eye.y);
-		  m.Set(2, 3, eye.z);
-		  glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
-		  const Mesh& mesh = meshList["Sphere"];
-		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-		}
-#if 0
-		{
-		  Matrix4x4 m = Matrix4x4::RotationX(degreeToRadian(90.0f));
-		  // 地面は裏面を持たないため、-Y方向にオフセットすることで裏面とする.
-		  {
-			glCullFace(GL_BACK);
-			m.Set(1, 3, -0.01f);
-		  }
-		  glUniform4fv(shader.bones, 3, m.f); // 平行移動を含まないMatrix4x4はMatrix4x3の代用になりうるけどお行儀悪い.
-		  const Mesh& mesh = meshList["ground"];
-		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
-		}
-#endif
 		if(0){
 		  glCullFace(GL_BACK);
 		  // sqrt(480*480+800*800)/480=1.94365063
