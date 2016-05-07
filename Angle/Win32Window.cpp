@@ -318,7 +318,16 @@ namespace Mai {
 		  event.Key.System = HIWORD(GetAsyncKeyState(VK_LWIN)) || HIWORD(GetAsyncKeyState(VK_RWIN));
 		  event.Key.Code = VirtualKeyCodeToKey(wParam, lParam);
 		  window->PushEvent(event);
-
+#ifndef NDEBUG
+		  if (event.Key.Code == KEY_P) {
+			Event e0;
+			e0.Type = Event::EVENT_TERM_WINDOW;
+			window->PushEvent(e0);
+			Event e1;
+			e1.Type = Event::EVENT_INIT_WINDOW;
+			window->PushEvent(e1);
+		  }
+#endif // NDEBUG
 		  break;
 		}
 
