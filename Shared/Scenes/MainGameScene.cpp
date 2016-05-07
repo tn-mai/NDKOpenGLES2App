@@ -400,7 +400,8 @@ namespace SunnySideUp {
   class MainGameScene : public Scene {
   public:
 	MainGameScene()
-	  : pPartitioner()
+	  : initialized(false)
+	  , pPartitioner()
 	  , random(static_cast<uint32_t>(time(nullptr)))
 	  , playerMovement(0, 0, 0)
 	  , playerRotation(0, 0, 0)
@@ -418,6 +419,10 @@ namespace SunnySideUp {
 	  @param engine  The engine object.
 	*/
 	virtual bool Load(Engine& engine) {
+	  if (initialized) {
+		status = STATUSCODE_RUNNABLE;
+		return true;
+	  }
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
 	  pPartitioner.reset(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject));
@@ -613,6 +618,7 @@ namespace SunnySideUp {
 	  audio.LoadSE("failure", "Audio/miss.wav");
 	  audio.PlayBGM("Audio/dive.mp3", 1.0f);
 	  status = STATUSCODE_RUNNABLE;
+	  initialized = true;
 	  return true;
 	}
 
@@ -627,6 +633,7 @@ namespace SunnySideUp {
 	  objFlyingPan.reset();
 	  pPartitioner->Clear();
 	  status = STATUSCODE_STOPPED;
+	  initialized = false;
 	  return true;
 	}
 
@@ -1059,6 +1066,7 @@ namespace SunnySideUp {
 	float RandomFloat(T n) { return static_cast<float>(random() % n); }
 
   private:
+	bool initialized;
 	std::unique_ptr<SpacePartitioner> pPartitioner;
 	boost::random::mt19937 random;
 	Collision::RigidBodyPtr rigidCamera;
