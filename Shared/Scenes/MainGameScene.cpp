@@ -450,7 +450,7 @@ namespace SunnySideUp {
 		o.SetTranslation(trans);
 		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
 		//o.SetScale(Vector3F(5, 5, 5));
-		Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 5.0f, 0.1f));
+		Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 3.0f, 0.1f));
 		//p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p, Vector3F(0, 0, 0));
 		rigidCamera = p;
