@@ -38,20 +38,45 @@ namespace Mai {
   /** original mesh file format.
 
 	char[3]           "MSH"
+	uint8_t           version number(now is 1).
 	uint8_t           mesh count.
+	uint8_t           material count.
+	reserved          (2 byte)
 	uint32_t          vbo offset by the top of file(32bit alignment).
 	uint32_t          vbo byte size(32bit alignment).
 	uint32_t          ibo byte size(32bit alignment).
+
 	[
-	  uint32_t        ibo offset.
-	  uint32_t        ibo size.
 	  uint8_t         mesh name length.
-	  char[length]    mesh name.
-	  padding         (4 - (length + 1) % 4) % 4 byte.
+	  char[mesh name length] mesh name(without zero ternmination).
+	  uint8_t         ibo count.
+	  padding         (4 - (length + 2) % 4) % 4 byte.
+	  [
+		uint32_t        ibo offset.
+		uint16_t        ibo size(this is the polygon counts, so actual ibo size is 3 times).
+		uint8_t         material index.
+		reserved        (1 byte)
+	  ] x (ibo count)
 	] x (mesh count)
+
+	[
+	  uint8_t         red
+	  uint8_t         green
+	  uint8_t         blue
+	  uint8_t         alpha
+	  uint8_t         metallic
+	  uint8_t         roughness
+	] x (material count)
+	padding           (4 - (material block size) % 4) % 4 byte.
+
+	uint8_t                          albedo texture name length.
+	char[albedo texture name length] albedo texture name(without zero ternmination).
+	uint8_t                          normal texture name length.
+	char[normal texture name length] normal texture name(without zero ternmination).
+	padding                          (4 - (texture name block size % 4) % 4 byte.
+
 	vbo               vbo data.
 	ibo               ibo data.
-
 	padding           (4 - (ibo byte size % 4) % 4 byte.
 
 	uint16_t          bone count.
