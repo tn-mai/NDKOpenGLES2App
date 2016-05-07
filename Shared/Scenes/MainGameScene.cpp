@@ -356,9 +356,9 @@ namespace SunnySideUp {
 
 	@return The number of digiets of the integral part.
   */
-  int GetNumberOfDigits(float n) {
+  size_t GetNumberOfDigits(float n) {
 	int64_t i = static_cast<int64_t>(n);
-	int num = 1;
+	size_t num = 1;
 	while (i >= 10) {
 	  ++num;
 	  i /= 10;
@@ -376,10 +376,10 @@ namespace SunnySideUp {
   */
   std::string DigitsToString(float n, size_t num, bool padding) {
 	std::string  s;
-	const int nod = GetNumberOfDigits(n);
+	const size_t nod = GetNumberOfDigits(n);
 	s.reserve(nod);
 	int32_t nn = static_cast<int32_t>(n);
-	for (int i = 0; i < nod; ++i) {
+	for (size_t i = 0; i < nod; ++i) {
 	  s.push_back(static_cast<char>(nn % 10) + '0');
 	  nn /= 10;
 	};
