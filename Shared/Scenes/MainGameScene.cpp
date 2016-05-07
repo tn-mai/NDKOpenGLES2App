@@ -467,7 +467,7 @@ namespace SunnySideUp {
 		const float distance = RandomFloat(50);
 		const float tx = std::cos(theta) * distance;
 		const float tz = std::sin(theta) * distance;
-		o.SetTranslation(Vector3F(tx, 30, tz));
+		o.SetTranslation(Vector3F(tx, 40, tz));
 		pPartitioner->Insert(obj);
 		objFlyingPan = obj;
 	  }
