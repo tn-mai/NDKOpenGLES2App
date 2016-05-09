@@ -464,9 +464,9 @@ namespace SunnySideUp {
 		o.SetScale(Vector3F(10, 10, 10));
 
 		const float theta = degreeToRadian<float>(RandomFloat(360));
-		const float distance = RandomFloat(50);
-		const float tx = std::cos(theta) * distance;
-		const float tz = std::sin(theta) * distance;
+		const float distance = RandomFloat(100);
+		const float tx = std::cos(theta) * (distance * 2.0f + 10.0f);
+		const float tz = std::sin(theta) * (distance + 20.0f);
 		o.SetTranslation(Vector3F(tx, 40, tz));
 		pPartitioner->Insert(obj);
 		objFlyingPan = obj;
