@@ -1163,9 +1163,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	);
 
 	static const char* const iblNameArray[][3] = {
-	  { "iblNoonHigh", "iblNoonLow", "iblNoonIrr" },
-	  { "iblSunsetHigh", "iblSunsetLow", "iblSunsetIrr" },
-	  { "iblNightHigh", "iblNightLow", "iblNightIrr" },
+	  { "iblNoon1", "iblNoon3", "iblNoonIrr" },
+	  { "iblSunset1", "iblSunset3", "iblSunsetIrr" },
+	  { "iblNight1", "iblNight3", "iblNightIrr" },
 	};
 	static struct {
 	  float range;
@@ -2277,6 +2277,23 @@ void Renderer::InitTexture()
 	textureList.insert({ "dummy", Texture::CreateDummy2D() });
 	textureList.insert({ "ascii", Texture::LoadKTX("Textures/Common/ascii.ktx") });
 
+#if 1
+	const std::string iblSourcePath = texBaseDir + "/IBL/ibl_";
+	char iblNoonName[] = "iblNoon?";
+	char iblSunsetName[] = "iblSunset?";
+	char iblNightName[] = "iblNight?";
+	for (char i = '1'; i <= '7'; ++i) {
+	  iblNoonName[sizeof(iblNoonName) - 2] = i;
+	  iblSunsetName[sizeof(iblSunsetName) - 2] = i;
+	  iblNightName[sizeof(iblNightName) - 2] = i;
+	  textureList.insert({ iblNoonName, Texture::LoadKTX((iblSourcePath + "noon_" + i + ".ktx").c_str()) });
+	  textureList.insert({ iblSunsetName, Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str()) });
+	  textureList.insert({ iblNightName, Texture::LoadKTX((iblSourcePath + "night_" + i + ".ktx").c_str()) });
+	}
+	textureList.insert({ "iblNoonIrr", Texture::LoadKTX((texBaseDir + "ibl_noonIrr.ktx").c_str()) });
+	textureList.insert({ "iblSunsetIrr", Texture::LoadKTX((texBaseDir + "ibl_sunsetIrr.ktx").c_str()) });
+	textureList.insert({ "iblNightIrr", Texture::LoadKTX((texBaseDir + "ibl_nightIrr.ktx").c_str()) });
+#else
 	textureList.insert({ "iblNoonHigh", Texture::LoadKTX((texBaseDir + "ibl_noonHigh.ktx").c_str()) });
 	textureList.insert({ "iblNoonLow", Texture::LoadKTX((texBaseDir + "ibl_noonLow.ktx").c_str()) });
 	textureList.insert({ "iblNoonIrr", Texture::LoadKTX((texBaseDir + "ibl_noonIrr.ktx").c_str()) });
@@ -2286,6 +2303,7 @@ void Renderer::InitTexture()
 	textureList.insert({ "iblNightHigh", Texture::LoadKTX((texBaseDir + "ibl_nightHigh.ktx").c_str()) });
 	textureList.insert({ "iblNightLow", Texture::LoadKTX((texBaseDir + "ibl_nightLow.ktx").c_str()) });
 	textureList.insert({ "iblNightIrr", Texture::LoadKTX((texBaseDir + "ibl_nightIrr.ktx").c_str()) });
+#endif
 
 	textureList.insert({ "wood", Texture::LoadKTX((texBaseDir + "wood.ktx").c_str()) });
 	textureList.insert({ "wood_nml", Texture::LoadKTX((texBaseDir + "woodNR.ktx").c_str()) });
