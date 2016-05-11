@@ -8,6 +8,7 @@
 #include <array>
 #include <tuple>
 #include <algorithm>
+#include <random>
 
 // if activate this macro, the collision box of obstacles is displayed.
 //#define SSU_DEBUG_DISPLAY_COLLISION_BOX
@@ -318,14 +319,21 @@ namespace SunnySideUp {
 	v.emplace_back(start.x, start.y, start.z);
 	const Vector3F distance = goal - start;
 	Position3F center(0, 0, 0);
+	std::uniform_real_distribution<float> tgen(0.0f, 360.0f);
+	float range = 25.0f;
 	for (int i = 1; i < count - 1; ++i) {
 	  const Position3F p = start + distance * static_cast<float>(i) / static_cast<float>(count - 1);
-	  const float theta = degreeToRadian(static_cast<float>(random() % 360));
-	  const float r = static_cast<float>(random() % 190) + 10.0f;
+	  const float theta = degreeToRadian(tgen(random));
+	  float r = std::uniform_real_distribution<float>(0.0f, range)(random);
 	  const float tx = center.x + std::cos(theta) * r;
 	  const float tz = center.z + std::sin(theta) * r;
 	  v.emplace_back(p.x + tx, p.y, p.z + tz);
-	  center = Position3F(tx, 0, tz) * (r - 200.0f) / r;
+	  center = Position3F(tx, 0, tz) * (r - range) / r;
+	  if (i < count / 2) {
+		range = 100.0f;
+	  } else {
+		range = 50.0f;
+	  }
 	}
 	v.emplace_back(goal.x, goal.y, goal.z);
 	return v;
@@ -346,7 +354,7 @@ namespace SunnySideUp {
   template<typename R>
   std::vector<Position3F> CreateModelRoute(const Position3F& start, const Position3F& goal, R& random) {
 	const int length = std::abs(static_cast<int>(goal.y - start.y));
-	const std::vector<Vector3F> controlPoints = CreateControlPoints(start, goal, (length + 999) / 1000 + 2, random);
+	const std::vector<Vector3F> controlPoints = CreateControlPoints(start, goal, (length + 499) / 500 + 2, random);
 	return CreateBSpline(controlPoints, (length + 99) / 100);
   }
 
@@ -356,9 +364,9 @@ namespace SunnySideUp {
 
 	@return The number of digiets of the integral part.
   */
-  int GetNumberOfDigits(float n) {
+  size_t GetNumberOfDigits(float n) {
 	int64_t i = static_cast<int64_t>(n);
-	int num = 1;
+	size_t num = 1;
 	while (i >= 10) {
 	  ++num;
 	  i /= 10;
@@ -376,10 +384,10 @@ namespace SunnySideUp {
   */
   std::string DigitsToString(float n, size_t num, bool padding) {
 	std::string  s;
-	const int nod = GetNumberOfDigits(n);
+	const size_t nod = GetNumberOfDigits(n);
 	s.reserve(nod);
 	int32_t nn = static_cast<int32_t>(n);
-	for (int i = 0; i < nod; ++i) {
+	for (size_t i = 0; i < nod; ++i) {
 	  s.push_back(static_cast<char>(nn % 10) + '0');
 	  nn /= 10;
 	};
@@ -400,7 +408,8 @@ namespace SunnySideUp {
   class MainGameScene : public Scene {
   public:
 	MainGameScene()
-	  : pPartitioner()
+	  : initialized(false)
+	  , pPartitioner()
 	  , random(static_cast<uint32_t>(time(nullptr)))
 	  , playerMovement(0, 0, 0)
 	  , playerRotation(0, 0, 0)
@@ -418,6 +427,10 @@ namespace SunnySideUp {
 	  @param engine  The engine object.
 	*/
 	virtual bool Load(Engine& engine) {
+	  if (initialized) {
+		status = STATUSCODE_RUNNABLE;
+		return true;
+	  }
 	  directionKeyDownList.fill(false);
 	  Renderer& renderer = engine.GetRenderer();
 	  pPartitioner.reset(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject));
@@ -445,7 +458,7 @@ namespace SunnySideUp {
 		o.SetTranslation(trans);
 		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
 		//o.SetScale(Vector3F(5, 5, 5));
-		Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 5.0f, 0.1f));
+		Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 3.0f, 0.1f));
 		//p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p, Vector3F(0, 0, 0));
 		rigidCamera = p;
@@ -459,19 +472,20 @@ namespace SunnySideUp {
 		o.SetScale(Vector3F(10, 10, 10));
 
 		const float theta = degreeToRadian<float>(RandomFloat(360));
-		const float distance = RandomFloat(50);
-		const float tx = std::cos(theta) * distance;
-		const float tz = std::sin(theta) * distance;
-		o.SetTranslation(Vector3F(tx, 30, tz));
+		const float distance = RandomFloat(100);
+		const float tx = std::cos(theta) * (distance * 2.0f + 10.0f);
+		const float tz = std::sin(theta) * (distance + 20.0f);
+		o.SetTranslation(Vector3F(tx, 40, tz));
 		pPartitioner->Insert(obj);
 		objFlyingPan = obj;
 	  }
 
 	  {
+		static const size_t posListSize = 5;
 		const std::vector<Position3F> modelRoute = CreateModelRoute(Position3F(5, static_cast<float>(levelInfo.startHeight), 4.5f), objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
 		const auto end = modelRoute.end() - 2;
 		const float step = static_cast<float>(unitObstructsSize) * std::max(1.0f, (4.0f - static_cast<float>(levelInfo.difficulty) * 0.5f));
-		const int density = std::min<int>(4, levelInfo.density);
+		const int density = std::min<int>(posListSize, levelInfo.density);
 		for (float height = static_cast<float>(levelInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= step) {
 		  auto itr = std::upper_bound(modelRoute.begin(), modelRoute.end(), height,
 			[](float h, const Position3F& p) { return h > p.y; }
@@ -482,12 +496,13 @@ namespace SunnySideUp {
 		  const Position3F& e = *itr;
 		  Vector3F axis(*(itr + 1) - e);
 		  axis.y = 0;
-		  if (axis.LengthSq() < 1.0f) {
-			continue;
+		  if (axis.LengthSq() < 0.0001f) {
+			axis.x = axis.z = 1.0f;
 		  }
 		  axis.Normalize();
 		  axis *= RandomFloat(10) + 70.0f;
-		  const Vector3F posList[] = {
+		  const Vector3F posList[posListSize] = {
+			Vector3F(e.x, e.y, e.z),
 			Vector3F(e.x - axis.x, e.y, e.z - axis.z),
 			Vector3F(e.x + axis.z, e.y, e.z - axis.x),
 			Vector3F(e.x - axis.z, e.y, e.z + axis.x),
@@ -613,6 +628,7 @@ namespace SunnySideUp {
 	  audio.LoadSE("failure", "Audio/miss.wav");
 	  audio.PlayBGM("Audio/dive.mp3", 1.0f);
 	  status = STATUSCODE_RUNNABLE;
+	  initialized = true;
 	  return true;
 	}
 
@@ -627,6 +643,7 @@ namespace SunnySideUp {
 	  objFlyingPan.reset();
 	  pPartitioner->Clear();
 	  status = STATUSCODE_STOPPED;
+	  initialized = false;
 	  return true;
 	}
 
@@ -1059,6 +1076,7 @@ namespace SunnySideUp {
 	float RandomFloat(T n) { return static_cast<float>(random() % n); }
 
   private:
+	bool initialized;
 	std::unique_ptr<SpacePartitioner> pPartitioner;
 	boost::random::mt19937 random;
 	Collision::RigidBodyPtr rigidCamera;

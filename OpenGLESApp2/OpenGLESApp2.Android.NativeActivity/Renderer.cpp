@@ -439,11 +439,34 @@ void Object::Update(float t)
   if (!IsValid()) {
 	return;
   }
-  if (!mesh->jointList.empty()) {
-	std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
-	UpdateJointRotTrans(rtList, &mesh->jointList[0], &mesh->jointList[0], Mai::RotTrans::Unit());
-	std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) { return ToMatrix(this->rotTrans * rt); });
+  if (const ::Mai::Mesh* mesh = GetMesh()) {
+	if (!mesh->jointList.empty()) {
+	  if (const Animation* pAnime = pRenderer->GetAnimation(animationPlayer.id.c_str())) {
+		animationPlayer.pAnime = pAnime;
+		std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
+		UpdateJointRotTrans(rtList, &mesh->jointList[0], &mesh->jointList[0], Mai::RotTrans::Unit());
+		std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) { return ToMatrix(this->rotTrans * rt); });
+	  }
+	}
   }
+}
+
+/** Get a mesh object.
+
+  @return A pointer to the mesh object if it is exists in the renderer,
+          otherwise nullptr.
+*/
+const ::Mai::Mesh* Object::GetMesh() const {
+  return pRenderer->GetMesh(meshId);
+}
+
+/** Get a shader object.
+
+  @return A pointer to the shader object if it is exists in the renderer,
+          otherwise nullptr.
+*/
+const ::Mai::Shader* Object::GetShader() const {
+  return pRenderer->GetShader(shaderId);
 }
 
 /** ƒV[ƒ“‚É‘Î‰ž‚·‚é‘¾—zŒõü‚ÌŒü‚«‚ðŽæ“¾‚·‚é.
@@ -1016,7 +1039,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			  const Matrix4x3 m =  ToMatrix(obj.RotTrans()) * mScale;
 			  glUniform4fv(shader.bones, 3, m.f);
 			}
-			glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
+			const Mesh& mesh = *obj.GetMesh();
+			glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 		}
 		if(0){
 		  glCullFace(GL_BACK);
@@ -1194,7 +1218,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			continue;
 		}
 
-		const Shader& shader = *obj.Shader();
+		const Shader& shader = *obj.GetShader();
 		if (shader.program && shader.program != currentProgramId) {
 			glUseProgram(shader.program);
 			currentProgramId = shader.program;
@@ -1242,18 +1266,17 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		const float roughness = obj.Roughness();
 		glUniform2f(shader.materialMetallicAndRoughness, metallic, roughness);
 
+		const Mesh& mesh = *obj.GetMesh();
 		{
-			const auto& texDiffuse = obj.Mesh()->texDiffuse;
 			glActiveTexture(GL_TEXTURE0);
-			if (texDiffuse) {
-				glBindTexture(GL_TEXTURE_2D, texDiffuse->TextureId());
+			if (mesh.texDiffuse) {
+				glBindTexture(GL_TEXTURE_2D, mesh.texDiffuse->TextureId());
 			} else {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
-			const auto& texNormal = obj.Mesh()->texNormal;
 			glActiveTexture(GL_TEXTURE1);
-			if (texNormal) {
-				glBindTexture(GL_TEXTURE_2D, texNormal->TextureId());
+			if (mesh.texNormal) {
+				glBindTexture(GL_TEXTURE_2D, mesh.texNormal->TextureId());
 			} else {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
@@ -1280,7 +1303,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUniform3f(shader.eyePos, invEye.x, invEye.y, invEye.z);
 		  }
 		}
-		glDrawElements(GL_TRIANGLES, obj.Mesh()->iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(obj.Mesh()->iboOffset));
+		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
 	}
 	glDepthMask(GL_TRUE);
 	glEnable(GL_CULL_FACE);
@@ -1323,7 +1346,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
-		glDrawArrays(GL_LINES, obj.Mesh()->vboTBNOffset, obj.Mesh()->vboTBNCount);
+		const Mesh& mesh = *obj.GetMesh();
+		glDrawArrays(GL_LINES, mesh.vboTBNOffset, mesh.vboTBNCount);
 	  }
 	}
 	glDisableVertexAttribArray(VertexAttribLocation_Color);
@@ -2309,7 +2333,7 @@ ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const 
 	} else {
 	  LOGI("Shader '%s' not found.", shaderName);
 	}
-	return ObjectPtr(new Object(RotTrans::Unit(), pMesh, m, pShader, sc));
+	return ObjectPtr(new Object(this, RotTrans::Unit(), pMesh, m, pShader, sc));
 }
 
 const Animation* Renderer::GetAnimation(const char* name)
@@ -2379,6 +2403,36 @@ void Renderer::FadeIn(float time) {
 */
 Renderer::FilterMode Renderer::GetCurrentFilterMode() const {
   return filterMode;
+}
+
+/** Get the mesh object.
+
+  @param id  An identifier string of the mesh object.
+
+  @return A pointer to the mesh object if it exist in the renderer,
+          otherwise nullptr.
+*/
+const Mesh* Renderer::GetMesh(const std::string& id) const {
+  auto itr = meshList.find(id);
+  if (itr != meshList.end()) {
+	return &itr->second;
+  }
+  return nullptr;
+}
+
+/** Get the shader object.
+
+  @param id  An identifier string of the shader object.
+
+  @return A pointer to the shader object if it exist in the renderer,
+          otherwise nullptr.
+*/
+const Shader* Renderer::GetShader(const std::string& id) const {
+  auto itr = shaderList.find(id);
+  if (itr != shaderList.end()) {
+	return &itr->second;
+  }
+  return nullptr;
 }
 
 } // namespace Mai;

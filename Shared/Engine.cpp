@@ -266,18 +266,13 @@ namespace Mai {
   void Engine::InitDisplay() {
 	// GL ‚Ìó‘Ô‚ð‰Šú‰»‚µ‚Ü‚·B
 	renderer.Initialize(*pWindow);
-	if (pNextScene) {
-	  pNextScene->SetState(Scene::STATUSCODE_LOADING);
-	}
-	if (pCurrentScene) {
-	  pCurrentScene->SetState(Scene::STATUSCODE_LOADING);
-	}
+
 #ifdef SHOW_DEBUG_SENSOR_OBJECT
 	debugSensorObj = renderer.CreateObject("octahedron", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 #endif // SHOW_DEBUG_SENSOR_OBJECT
 
-	LOGI("engine_init_display");
 	initialized = true;
+	LOGI("engine_init_display");
   }
 
   void Engine::DrawFrame() {
@@ -291,12 +286,11 @@ namespace Mai {
   */
   void Engine::TermDisplay() {
 	initialized = false;
-	if (pNextScene) {
-	  pNextScene->Unload(*this);
-	}
-	if (pCurrentScene) {
-	  pCurrentScene->Unload(*this);
-	}
+
+#ifdef SHOW_DEBUG_SENSOR_OBJECT
+	debugSensorObj.reset();
+#endif // SHOW_DEBUG_SENSOR_OBJECT
+
 	renderer.Unload();
 	LOGI("engine_term_display");
   }

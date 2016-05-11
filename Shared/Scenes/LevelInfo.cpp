@@ -18,7 +18,7 @@ static const LevelInfo infoArray[] = {
   { 5, 4000, noon,   2, 2, 7, "Dive In Deep Sky" },
   { 6, 4000, sunset, 3, 3, 5, "What Is Your Number?" },
   { 7, 4000, night,  3, 3, 4, "Tasty Egg" },
-  { 8, 4000, noon,   3, 4, 5, "Truth Of The Cooking" },
+  { 8, 4000, noon,   4, 4, 5, "Truth Of The Cooking" },
 };
 
 const LevelInfo& GetLevelInfo(uint32_t level) {

@@ -17,6 +17,7 @@
 namespace Mai {
 
   class Window;
+  class Renderer;
 
 #ifndef NDEBUG
 #define SUNNYSIDEUP_DEBUG
@@ -150,14 +151,14 @@ namespace Mai {
   };
 
   struct AnimationPlayer {
-	AnimationPlayer() : currentTime(0), pAnime(nullptr), targetList() {}
+	AnimationPlayer() : currentTime(0), pAnime(nullptr) {}
 	void SetAnimation(const Animation* p) { pAnime = p; currentTime = 0.0f; }
 	void SetCurrentTime(float t) { currentTime = t; }
 	float GetCurrentTime() const { return currentTime; }
 	std::vector<RotTrans> Update(const JointList& jointList, float t);
 	float currentTime;
 	const Animation* pAnime;
-	std::vector<const Animation::Element*> targetList;
+	std::string id;
   };
 
   /**
@@ -265,17 +266,19 @@ namespace Mai {
   class Object
   {
   public:
-	Object() : shader(0) {}
-	Object(const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc = ShadowCapability::Enable)
+	Object() : isValid(false) {}
+	Object(Renderer* r, const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc = ShadowCapability::Enable)
 	  : shadowCapability(sc)
+	  , isValid(m && s)
+	  , pRenderer(r)
 	  , material(mat)
-	  , mesh(m)
-	  , shader(s)
+	  , meshId(m ? m->id : "")
+	  , shaderId(s ? s->id : "")
 	  , rotTrans(rt)
 	  , scale(Vector3F(1, 1, 1))
 	{
-	  if (mesh) {
-		bones.resize(mesh->jointList.size(), Matrix4x3::Unit());
+	  if (m) {
+		bones.resize(m->jointList.size(), Matrix4x3::Unit());
 	  }
 	}
 	void Color(Color4B c) { material.color = c; }
@@ -285,13 +288,16 @@ namespace Mai {
 	void SetRoughness(float r) { material.roughness.Set(r); }
 	void SetMetallic(float r) { material.metallic.Set(r); }
 	const ::Mai::RotTrans& RotTrans() const { return rotTrans; }
-	const ::Mai::Mesh* Mesh() const { return mesh; }
-	const ::Mai::Shader* Shader() const { return shader; }
+	const ::Mai::Mesh* GetMesh() const;
+	const ::Mai::Shader* GetShader() const;
 	const GLfloat* GetBoneMatirxArray() const { return bones[0].f; }
 	size_t GetBoneCount() const { return bones.size(); }
-	bool IsValid() const { return mesh && shader; }
+	bool IsValid() const { return isValid; }
 	void Update(float t);
-	void SetAnimation(const Animation* p) { animationPlayer.SetAnimation(p); }
+	void SetAnimation(const Animation* p) {
+	  animationPlayer.SetAnimation(p);
+	  animationPlayer.id = p ? p->id : "";
+	}
 	void SetCurrentTime(float t) { animationPlayer.SetCurrentTime(t); }
 	float GetCurrentTime() const { return animationPlayer.GetCurrentTime(); }
 	void SetRotation(const Quaternion& r) { rotTrans.rot = r; }
@@ -307,9 +313,11 @@ namespace Mai {
 	ShadowCapability shadowCapability;
 
   private:
+	bool isValid;
+	Renderer* pRenderer;
 	Material material;
-	const ::Mai::Mesh* mesh;
-	const ::Mai::Shader* shader;
+	std::string meshId;
+	std::string shaderId;
 
 	::Mai::RotTrans rotTrans;
 	Vector3F scale;
@@ -350,6 +358,9 @@ namespace Mai {
 	void Unload();
 	void InitMesh();
 	void InitTexture();
+
+	const Mesh* GetMesh(const std::string& id) const;
+	const Shader* GetShader(const std::string& id) const;
 
 	void ClearDebugString() { debugStringList.clear(); }
 	void AddDebugString(int x, int y, const char* s) { debugStringList.push_back(DebugStringObject(x, y, s)); }
