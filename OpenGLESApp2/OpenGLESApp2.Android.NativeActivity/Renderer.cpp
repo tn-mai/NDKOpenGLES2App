@@ -1162,11 +1162,6 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  5000.0f
 	);
 
-	static const char* const iblNameArray[][3] = {
-	  { "iblNoon1", "iblNoon3", "iblNoonIrr" },
-	  { "iblSunset1", "iblSunset3", "iblSunsetIrr" },
-	  { "iblNight1", "iblNight3", "iblNightIrr" },
-	};
 	static struct {
 	  float range;
 	  float inverse;
@@ -1195,7 +1190,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_CUBE_MAP, textureList[iblNameArray[timeOfScene][0]]->TextureId());
+	  glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][0]->TextureId());
 	  glActiveTexture(GL_TEXTURE1);
 	  glBindTexture(GL_TEXTURE_2D, 0);
 	  glActiveTexture(GL_TEXTURE2);
@@ -1240,10 +1235,13 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUniform1i(shader.texShadow, 5);
 
 			// IBL用テクスチャを設定.
-			for (int i = 0; i < 3; ++i) {
-			  glActiveTexture(GL_TEXTURE2 + i);
-			  glBindTexture(GL_TEXTURE_CUBE_MAP, textureList[iblNameArray[timeOfScene][i]]->TextureId());
-			}
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][0]->TextureId());
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][3]->TextureId());
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblDiffuseSourceList[timeOfScene]->TextureId());
+
 			glActiveTexture(GL_TEXTURE5);
 			glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 
@@ -2279,20 +2277,14 @@ void Renderer::InitTexture()
 
 #if 1
 	const std::string iblSourcePath = texBaseDir + "/IBL/ibl_";
-	char iblNoonName[] = "iblNoon?";
-	char iblSunsetName[] = "iblSunset?";
-	char iblNightName[] = "iblNight?";
 	for (char i = '1'; i <= '7'; ++i) {
-	  iblNoonName[sizeof(iblNoonName) - 2] = i;
-	  iblSunsetName[sizeof(iblSunsetName) - 2] = i;
-	  iblNightName[sizeof(iblNightName) - 2] = i;
-	  textureList.insert({ iblNoonName, Texture::LoadKTX((iblSourcePath + "noon_" + i + ".ktx").c_str()) });
-	  textureList.insert({ iblSunsetName, Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str()) });
-	  textureList.insert({ iblNightName, Texture::LoadKTX((iblSourcePath + "night_" + i + ".ktx").c_str()) });
+	  iblSpecularSourceList[TimeOfScene_Noon][i - '1'] = Texture::LoadKTX((iblSourcePath + "noon_" + i + ".ktx").c_str());
+	  iblSpecularSourceList[TimeOfScene_Sunset][i - '1'] = Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str());
+	  iblSpecularSourceList[TimeOfScene_Night][i - '1'] = Texture::LoadKTX((iblSourcePath + "night_" + i + ".ktx").c_str());
 	}
-	textureList.insert({ "iblNoonIrr", Texture::LoadKTX((texBaseDir + "ibl_noonIrr.ktx").c_str()) });
-	textureList.insert({ "iblSunsetIrr", Texture::LoadKTX((texBaseDir + "ibl_sunsetIrr.ktx").c_str()) });
-	textureList.insert({ "iblNightIrr", Texture::LoadKTX((texBaseDir + "ibl_nightIrr.ktx").c_str()) });
+	iblDiffuseSourceList[TimeOfScene_Noon] = Texture::LoadKTX((texBaseDir + "ibl_noonIrr.ktx").c_str());
+	iblDiffuseSourceList[TimeOfScene_Sunset] = Texture::LoadKTX((texBaseDir + "ibl_sunsetIrr.ktx").c_str());
+	iblDiffuseSourceList[TimeOfScene_Night] = Texture::LoadKTX((texBaseDir + "ibl_nightIrr.ktx").c_str());
 #else
 	textureList.insert({ "iblNoonHigh", Texture::LoadKTX((texBaseDir + "ibl_noonHigh.ktx").c_str()) });
 	textureList.insert({ "iblNoonLow", Texture::LoadKTX((texBaseDir + "ibl_noonLow.ktx").c_str()) });

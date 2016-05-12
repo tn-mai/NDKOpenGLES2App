@@ -9,6 +9,7 @@
 #include <GLES2/gl2.h>
 #include <boost/random/mersenne_twister.hpp>
 #include <vector>
+#include <array>
 #include <map>
 #include <string>
 #include <math.h>
@@ -251,6 +252,7 @@ namespace Mai {
     TimeOfScene_Sunset, ///< —[•û.
     TimeOfScene_Night, ///< –é.
   };
+  static const size_t TimeOfScene_Count = 3;
   Vector3F GetSunRayDirection(TimeOfScene);
 
   /// ‰e‚ð¶¬‚·‚é”\—Í‚Ì—L–³.
@@ -486,6 +488,10 @@ namespace Mai {
 	std::map<std::string, Mesh> meshList;
 	std::map<std::string, Animation> animationList;
 	std::map<std::string, Texture::TexturePtr> textureList;
+
+	static const size_t iblSourceRoughnessCount = 7;
+	std::array<std::array<Texture::TexturePtr, iblSourceRoughnessCount>, TimeOfScene_Count> iblSpecularSourceList;
+	std::array<Texture::TexturePtr, TimeOfScene_Count> iblDiffuseSourceList;
 
 	std::vector<DebugStringObject> debugStringList;
   };
