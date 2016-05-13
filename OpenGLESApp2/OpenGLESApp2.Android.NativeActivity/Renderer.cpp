@@ -2290,9 +2290,9 @@ void Renderer::InitTexture()
 	  iblSpecularSourceList[TimeOfScene_Sunset][i - '1'] = Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str());
 	  iblSpecularSourceList[TimeOfScene_Night][i - '1'] = Texture::LoadKTX((iblSourcePath + "night_" + i + ".ktx").c_str());
 	}
-	iblDiffuseSourceList[TimeOfScene_Noon] = Texture::LoadKTX((texBaseDir + "ibl_noonIrr.ktx").c_str());
-	iblDiffuseSourceList[TimeOfScene_Sunset] = Texture::LoadKTX((texBaseDir + "ibl_sunsetIrr.ktx").c_str());
-	iblDiffuseSourceList[TimeOfScene_Night] = Texture::LoadKTX((texBaseDir + "ibl_nightIrr.ktx").c_str());
+	iblDiffuseSourceList[TimeOfScene_Noon] = Texture::LoadKTX((iblSourcePath + "noonIrr.ktx").c_str());
+	iblDiffuseSourceList[TimeOfScene_Sunset] = Texture::LoadKTX((iblSourcePath + "sunsetIrr.ktx").c_str());
+	iblDiffuseSourceList[TimeOfScene_Night] = Texture::LoadKTX((iblSourcePath + "nightIrr.ktx").c_str());
 #else
 	textureList.insert({ "iblNoonHigh", Texture::LoadKTX((texBaseDir + "ibl_noonHigh.ktx").c_str()) });
 	textureList.insert({ "iblNoonLow", Texture::LoadKTX((texBaseDir + "ibl_noonLow.ktx").c_str()) });
