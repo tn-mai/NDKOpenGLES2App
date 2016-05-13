@@ -1210,6 +1210,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	}
 
 	GLuint currentProgramId = 0;
+	const int iblSourceSize = iblSpecularSourceList[timeOfScene].size() - 1;
 	for (const ObjectPtr* itr = begin; itr != end; ++itr) {
 		const Object& obj = *itr->get();
 		if (!obj.IsValid() || obj.shadowCapability == ShadowCapability::ShadowOnly) {
@@ -1304,7 +1305,15 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUniform3f(shader.eyePos, invEye.x, invEye.y, invEye.z);
 		  }
 		}
-		mesh.Draw();
+		glActiveTexture(GL_TEXTURE2);
+		for (auto& e : mesh.materialList) {
+			const float m = std::min(1.0f, std::max(0.0f, e.material.metallic.To<float>() - metallic));
+			const float r = std::min(1.0f, std::max(0.0f, e.material.roughness.To<float>() + roughness));
+			const int index = std::min(iblSourceSize, std::max(0, static_cast<int>(r * static_cast<float>(iblSourceSize) + 0.5f)));
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][index]->TextureId());
+			glUniform2f(shader.materialMetallicAndRoughness, m, r);
+			glDrawElements(GL_TRIANGLES, e.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(e.iboOffset));
+		}
 	}
 	glDepthMask(GL_TRUE);
 	glEnable(GL_CULL_FACE);
