@@ -64,7 +64,7 @@ namespace SunnySideUp {
 	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(3, 3 * 4));
 
 	{
-	  auto obj = r.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), -0.1f, 0), "default");
+	  auto obj = r.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 	  obj->SetScale(Vector3F(7, 7, 7));
 	  obj->SetTranslation(Vector3F(0, 2.5f, 0));
 	  objList.push_back(obj);

@@ -325,6 +325,14 @@ Matrix4x4 LookAt(const Position3F& eyePos, const Position3F& targetPos, const Ve
   return m;
 }
 
+/** Draw the elements.
+*/
+void Mesh::Draw() const {
+  for (auto& e : materialList) {
+	glDrawElements(GL_TRIANGLES, e.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(e.iboOffset));
+  }
+}
+
 /** Shaderデストラクタ.
 */
 Shader::~Shader()
@@ -819,7 +827,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
 	Matrix4x4 mMV = Matrix4x4::FromScale(0.5f, 0.5f, 1.0f);
 	mMV = mV * Matrix4x4::Translation(x, pos.y, 0) * mMV;
 	glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mMV.f);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset + *p * 6 * sizeof(GLushort)));
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.materialList[0].iboOffset + *p * 6 * sizeof(GLushort)));
 	x += 8.0f;
   }
   glEnable(GL_CULL_FACE);
@@ -1039,8 +1047,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			  const Matrix4x3 m =  ToMatrix(obj.RotTrans()) * mScale;
 			  glUniform4fv(shader.bones, 3, m.f);
 			}
-			const Mesh& mesh = *obj.GetMesh();
-			glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+			obj.GetMesh()->Draw();
 		}
 		if(0){
 		  glCullFace(GL_BACK);
@@ -1063,8 +1070,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  m.Set(1, 3, frustumCenter.y);
 		  m.Set(2, 3, frustumCenter.z);
 		  glUniform4fv(shader.bones, 3, m.f);
-		  const Mesh& mesh = meshList["Sphere"];
-		  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+		  meshList["Sphere"].Draw();
 		}
 
 		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_PATH], GL_ALL_COMPLETED_NV);
@@ -1096,8 +1102,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
 
-		const Mesh& mesh = meshList["board2D"];
-		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+		meshList["board2D"].Draw();
 	}
 #endif
 #if 0
@@ -1120,8 +1125,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureList["fboShadow0"]->TextureId());
 
-		const Mesh& mesh = meshList["board2D"];
-		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+		meshList["board2D"].Draw();
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
@@ -1201,8 +1205,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	  glActiveTexture(GL_TEXTURE5);
 	  glBindTexture(GL_TEXTURE_2D, 0);
-	  const Mesh& mesh = meshList["skybox"];
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  meshList["skybox"].Draw();
 	  Local::glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
 	}
 
@@ -1301,7 +1304,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUniform3f(shader.eyePos, invEye.x, invEye.y, invEye.z);
 		  }
 		}
-		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+		mesh.Draw();
 	}
 	glDepthMask(GL_TRUE);
 	glEnable(GL_CULL_FACE);
@@ -1386,8 +1389,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
-	  const Mesh& mesh = meshList["board2D"];
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  meshList["board2D"].Draw();
 	}
 	// fboSub ->(hdrdiff)-> fboHDR[0]
 	{
@@ -1405,8 +1407,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
-	  const Mesh& mesh = meshList["board2D"];
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  meshList["board2D"].Draw();
 	}
 	// fboHDR[0] ->(sample4)-> fboHDR[1] ... fboHDR[4]
 	{
@@ -1427,7 +1428,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / scale, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / scale);
 		glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.25f / static_cast<float>(MAIN_RENDERING_PATH_WIDTH / scale), 0.25f / static_cast<float>(MAIN_RENDERING_PATH_HEIGHT / scale));
 		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
-		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+		mesh.Draw();
 	  }
 	}
 	// fboHDR[4] ->(default2D)-> fboHDR[3] ... fboHDR[0]
@@ -1450,7 +1451,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glBindFramebuffer(GL_FRAMEBUFFER, *GetFBOInfo(i - 1).p);
 		glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / scale, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / scale);
 		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
-		glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+		mesh.Draw();
 	  }
 	}
 #endif // USE_HDR_BLOOM
@@ -1494,8 +1495,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
 	  glActiveTexture(GL_TEXTURE2);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboHDR0"]->TextureId());
-	  const Mesh& mesh = meshList["board2D"];
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  meshList["board2D"].Draw();
 
 	  Local::glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
 	}
@@ -1591,8 +1591,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
-	  const Mesh& mesh = meshList["board2D"];
-	  glDrawElements(GL_TRIANGLES, mesh.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(mesh.iboOffset));
+	  meshList["board2D"].Draw();
 	}
 #endif
 #endif // NDEBUG

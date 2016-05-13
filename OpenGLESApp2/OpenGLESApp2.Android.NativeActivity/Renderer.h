@@ -168,14 +168,22 @@ namespace Mai {
   */
   struct Mesh {
 	Mesh() {}
-	Mesh(const std::string& name, int32_t offset, int32_t size) : iboOffset(offset), iboSize(size), id(name) {}
+	Mesh(const std::string& name, int32_t offset, int32_t size) : id(name) {
+	  materialList.push_back({ Material(Color4B(255, 255, 255, 255), 0, 1), offset, size});
+	}
+	void Draw() const;
 	void SetJoint(const std::vector<std::string>& names, const std::vector<Joint>& joints) {
 	  jointNameList = names;
 	  jointList = joints;
 	}
 
-	int32_t iboOffset;
-	int32_t iboSize;
+	struct MeshMaterial {
+	  Material material;
+	  int32_t iboOffset;
+	  int32_t iboSize;
+	};
+
+	std::vector<MeshMaterial> materialList;
 	std::string id;
 	std::vector<std::string> jointNameList;
 	JointList jointList;
