@@ -9,6 +9,7 @@
 #include <GLES2/gl2.h>
 #include <boost/random/mersenne_twister.hpp>
 #include <vector>
+#include <array>
 #include <map>
 #include <string>
 #include <math.h>
@@ -167,14 +168,22 @@ namespace Mai {
   */
   struct Mesh {
 	Mesh() {}
-	Mesh(const std::string& name, int32_t offset, int32_t size) : iboOffset(offset), iboSize(size), id(name) {}
+	Mesh(const std::string& name, int32_t offset, int32_t size) : id(name) {
+	  materialList.push_back({ Material(Color4B(255, 255, 255, 255), 0, 1), offset, size});
+	}
+	void Draw() const;
 	void SetJoint(const std::vector<std::string>& names, const std::vector<Joint>& joints) {
 	  jointNameList = names;
 	  jointList = joints;
 	}
 
-	int32_t iboOffset;
-	int32_t iboSize;
+	struct MeshMaterial {
+	  Material material;
+	  int32_t iboOffset;
+	  int32_t iboSize;
+	};
+
+	std::vector<MeshMaterial> materialList;
 	std::string id;
 	std::vector<std::string> jointNameList;
 	JointList jointList;
@@ -251,6 +260,7 @@ namespace Mai {
     TimeOfScene_Sunset, ///< —[•û.
     TimeOfScene_Night, ///< –é.
   };
+  static const size_t TimeOfScene_Count = 3;
   Vector3F GetSunRayDirection(TimeOfScene);
 
   /// ‰e‚ð¶¬‚·‚é”\—Í‚Ì—L–³.
@@ -486,6 +496,10 @@ namespace Mai {
 	std::map<std::string, Mesh> meshList;
 	std::map<std::string, Animation> animationList;
 	std::map<std::string, Texture::TexturePtr> textureList;
+
+	static const size_t iblSourceRoughnessCount = 7;
+	std::array<std::array<Texture::TexturePtr, iblSourceRoughnessCount>, TimeOfScene_Count> iblSpecularSourceList;
+	std::array<Texture::TexturePtr, TimeOfScene_Count> iblDiffuseSourceList;
 
 	std::vector<DebugStringObject> debugStringList;
   };

@@ -43,24 +43,32 @@ void main(void)
 {
   lowp vec4 col = texture2D(texDiffuse, texCoord.xy);
   col.rgb *= materialColor.rgb;
+
 //  if (col.a == 0.0) {
 //	gl_FragColor = vec4(0, 0, 0, 0);
 //  } else {
-	mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
 
+	// NOTE: This shader uses the object space normal mapping, so the normal is in the object space.
+	//       In general, the object space normal mapping is used the pre-transformed light position
+	//       in the object spece. But this shader is the image based light source in the world space.
+	//       Of course, it cannot pre-transform to the object space.
+	//       Therefore, the object space normal mapping cannot increase efficiency of the shader
+	//       that contrary to our expectations :(
+	mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
 	mediump vec3 refVector = matTBN * reflect(eyeVectorW, normal.xyz);
-	mediump vec4 iblColor = textureCube(texIBL[2], refVector);
-	iblColor.rgb *= dynamicRangeFactor / iblColor.a;
 
 	// Diffuse
-	gl_FragColor.rgb = iblColor.rgb * col.rgb * metallicAndRoughness.x;
+	mediump vec4 irradiance = textureCube(texIBL[2], refVector);
+	irradiance.rgb *= dynamicRangeFactor / irradiance.a;
+	gl_FragColor.rgb = irradiance.rgb * col.rgb * (1.0 - metallicAndRoughness.x);
 
 	// Specular
 	mediump vec3 F0;
-	mediump float metal = 1.0 - metallicAndRoughness.x;
-	CalcF0(F0, col.rgb, metal);
-	mediump float dotNV2 = dot(eyeVectorW, normal.xyz);
-	gl_FragColor.rgb += iblColor.rgb * FresnelSchlick(F0, dotNV2);
+	CalcF0(F0, col.rgb, metallicAndRoughness.x);
+	mediump float dotNV = dot(eyeVectorW, normal.xyz);
+	mediump vec4 specular = textureCube(texIBL[0], refVector);
+	specular.rgb *= dynamicRangeFactor / specular.a;
+	gl_FragColor.rgb += specular.rgb * FresnelSchlick(F0, dotNV);
 
 	gl_FragColor.a = materialColor.a;
 //	lowp float alpha = col.a * materialColor.a;
@@ -75,5 +83,6 @@ void main(void)
 		gl_FragColor.rgb *= exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
 	  }
 	}
+
 //  }
 }

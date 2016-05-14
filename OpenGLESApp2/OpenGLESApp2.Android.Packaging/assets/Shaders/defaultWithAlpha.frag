@@ -54,166 +54,39 @@ varying lowp vec3 color;
 
 void main(void)
 {
-  const highp float pi = 3.14159265358979323846264;
-  const highp float maxLightRadius = 1000.0;
-#if 1
-  // material parameter
-  lowp vec3 Idiff = vec3(0.0, 0.0, 0.0);
-  mediump vec3 Ispec = vec3(0.0, 0.0, 0.0);
-
-  lowp vec4 col = texture2D(texDiffuse, texCoord.xy);
-  col.rgb *= materialColor.rgb;
-  // note: Alpha component contains the transparency rather than the metallic.
-  //       it is unlike 'default.frag' shader. so we should keep it.
-
-  mediump vec4 normal = texture2D(texNormal, texCoord.xy);
-  lowp vec3 normal_raw = normal.xyz;
-  normal.xyz = normal.xyz * 2.0 - 1.0;
-  normal.xyz = normalize(matTBN * normal.xyz);
-  normal.x *= -1.0;
-  normal.w = min(1.0, max(0.0, normal.w + metallicAndRoughness.y));
-
-#if 0
-	mediump vec3 lightVector = lightVectorAndDistance.xyz;
-
-    highp float distance = lightVectorAndDistance.w;
-	highp float lightInfluence = distance / maxLightRadius;
-	highp float fallOffSrc = clamp(1.0 - lightInfluence * lightInfluence * lightInfluence * lightInfluence, 0.0, 1.0);
-    highp float attenuation = fallOffSrc * fallOffSrc / (distance * distance + 1.0);
-
-    Idiff += attenuation * col.rgb * lightColor * max(dot(normal, lightVector), 0.0);
-
-    // [GGX]
-    // D(h) = alpha^2 / ( pi * (dot(n, h)^2 * (alpha^2 - 1) + 1)^2)
-    lowp float roughness = metallicAndRoughness.y;
-    highp float alpha = roughness * roughness;
-    highp float alpha2 = alpha * alpha;
-    highp float dotNH = dot(normal, halfVector);
-    highp float x = dotNH * dotNH * (alpha2 - 1.0) + 1.0;
-    highp float D = alpha2 / (pi * x * x);
-
-    // [FGS]
-    // F0 : fresnel refrectance of material. we use metallic.
-    // v : eye vector.
-    // h : half vector.
-    // F(v, h) = F0 + (1.0 - F0) * 2^(-5.55473*dot(v, h) - 6.98316)*dot(v, h)
-    lowp float metallic = metallicAndRoughness.x;
-    mediump float dotVH = dot(eyeVector, halfVector);
-	mediump vec3 F0;
-	CalcF0(F0, col.rgb, metallic);
-    mediump vec3 F = FresnelSchlick(F0, dotVH);
-
-    // k = (roughness + 1)^2 / 8
-    // G1(v) = dot(n, v) / dot(n, v) * (1 - k) + k
-    // G(l, v, h) = G1(l) * G1(v)
-    mediump float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
-    mediump float dotNL = max(dot(normal.xyz, lightVector), 0.0001);
-    mediump float dotNV = max(dot(normal.xyz, eyeVector), 0.0001);
-    mediump float G = G1(dotNL, k) * G1(dotNV, k);
-
-    // f(l, v) = D(h) * F(v, h) * G(l, v, h) / (4 * dot(n, l) * dot(n, v))
-	// Ž‹ü‚Æ–@ü‚ÌŠp“x‚É‚æ‚Á‚Ä‚Íf‚ªinf‚É‚È‚é‚±‚Æ‚ª‚ ‚é.
-    mediump vec3 f = max((D * F * G) / (4.0 * dotNL * dotNV), 0.0);
-    Ispec += lightColor * attenuation * f;
-
+  lowp vec4 col = texture2D(texDiffuse, texCoord.xy) * materialColor;
+  if (col.a == 0.0) {
+	gl_FragColor = vec4(0, 0, 0, 0);
+  } else {
+	mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
+	normal = matTBN * normal;
 	mediump vec3 eyeVectorW = normalize(eyePos - posW.xyz);
-#else
-	mediump vec3 eyeVectorW = normalize(eyePos - posW.xyz);
+	mediump vec3 refVector = reflect(eyeVectorW, normal);
+
+	// Diffuse
+	mediump vec4 diffuse = textureCube(texIBL[2], refVector);
+	diffuse.rgb *= dynamicRangeFactor / diffuse.a;
+	diffuse.rgb = diffuse.rgb * col.rgb * (1.0 - metallicAndRoughness.x);
+
+	// Specular
 	mediump vec3 F0;
-	lowp float metallic = max(min(-metallicAndRoughness.x, 1.0), 0.0);
-	CalcF0(F0, col.rgb, metallic);
-#endif
+	CalcF0(F0, col.rgb, metallicAndRoughness.x);
+	mediump float dotNV = max(dot(eyeVectorW, normal), 0.0001);
+	mediump vec4 specular = textureCube(texIBL[0], refVector);
+	specular.rgb *= dynamicRangeFactor / max(specular.a, 1.0 / 128.0);
+	specular.rgb = max(specular.rgb * FresnelSchlick(F0, dotNV), vec3(0.0, 0.0, 0.0));
 
-#if 1
-	mediump float mipmapLevel = clamp(2.0 * normal.w, 0.0, 2.0);
-	mediump vec3 refVector2 = reflect(eyeVectorW, normal.xyz);
-	lowp vec4 iblColor[3];
-	iblColor[0] = textureCube(texIBL[0], refVector2);
-	iblColor[1] = textureCube(texIBL[1], refVector2);
-	iblColor[2] = textureCube(texIBL[2], refVector2);
-	// Alpha component has the strength of color. it has (255 / strength).
-	// We can restore the actual color by multiply (1.0 / alpha). And we want
-	// to compress the diffuse range 0-2 to 0-1, because keep the HDR
-	// luminance. So, we use (dynamicRangeFactor / alpha).
-	iblColor[0].rgb *= dynamicRangeFactor / iblColor[0].a;
-	iblColor[1].rgb *= dynamicRangeFactor / iblColor[1].a;
-	iblColor[2].rgb *= dynamicRangeFactor / iblColor[2].a;
+	gl_FragColor.rgb = diffuse.rgb + specular.rgb;
+	gl_FragColor.a = max(col.a, dot(diffuse.rgb * col.a + specular.rgb, vec3(0.3, 0.6, 0.1)));
 
-	mediump vec3 colIBL = mix(iblColor[0].rgb , iblColor[1].rgb, min(mipmapLevel, 1.0));
-	colIBL = mix(colIBL, iblColor[2].rgb, max(mipmapLevel - 1.0, 0.0));
-	mediump float dotNV2 = max(dot(eyeVectorW, normal.xyz), 0.0001);
-	Ispec += max(colIBL * FresnelSchlick(F0, dotNV2), vec3(0.0, 0.0, 0.0));
-	Idiff = iblColor[2].rgb * col.rgb * metallic;
-#else
-	mediump vec3 refVector2 = reflect(eyeVectorW, normal.xyz);
-	Idiff += textureCube(texIBL[2], refVector2).rgb * col.rgb;
-#endif
-
-#endif
-	if (col.a == 0.0) {
-	  gl_FragColor = vec4(0, 0, 0, 0);
-	} else {
-	  gl_FragColor.rgb = Idiff + Ispec;
-	  gl_FragColor.a = max(col.a * materialColor.a, dot(Idiff * materialColor.a + Ispec, vec3(0.3, 0.6, 0.1)));
-#if 0
-	mediump vec4 shadowTexCoord = posForShadow;
-	shadowTexCoord.xy = 0.5 * (posForShadow.xy + posForShadow.w);
-	//	highp vec2 stc_div_w = shadowTexCoord.xy * (1.0 / shadowTexCoord.w);
-	//	if (stc_div_w.x >= 0.01 && stc_div_w.x < 0.99 && stc_div_w.y > 0.01 && stc_div_w.y < 0.99) {
-	/** ChebyshevUpperBound
-	@ref http://http.developer.nvidia.com/GPUGems3/gpugems3_ch08.html
-	@ref http://codeflow.org/entries/2013/feb/15/soft-shadow-mapping/
-	*/
-	lowp vec4 tex = texture2DProj(texShadow, shadowTexCoord);
-	highp float Ex = tex.x + tex.y * (1.0 / 255.0);
-	if (posForShadow.z > Ex) {
-	  highp float E_x2 = (tex.z + tex.w * (1.0 / 255.0));
-	  highp float variance = max(E_x2 - (Ex * Ex), 0.002);
-	  highp float mD = (posForShadow.z - Ex) * 25.0;
-	  highp float p = variance / (variance + mD * mD);
-	  lowp float lit = min(max(p - 0.6, 0.0), 0.3) * 2.0 + 0.4;
-	  gl_FragColor.rgb *= lit;
+	// Shadow
+	const highp float coef = 1.0 / 256.0;
+	lowp vec4 tex = texture2D(texShadow, vec2(posForShadow.x * 0.5 + 0.5, posForShadow.y * -0.5 + 0.5));
+	highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
+	if (Ex < 1.0) {
+	  if (posForShadow.z > Ex) {
+		gl_FragColor.rgb *= exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
+	  }
 	}
-	//	}
-#endif
-	}
-/*
-#ifdef DEBUG
-	int iDebug = int(debug);
-	if (iDebug == 0) {
-	  mediump float nv = max(dot(eyeVectorW, vec3(matTBN[0][2], matTBN[1][2], matTBN[2][2])), 0.0001) * 0.25 + 0.25;
-	  gl_FragColor.rgb = vec3(nv, nv, nv);
-	} else if (iDebug == 1) {
-	  gl_FragColor.rgb = vec3(dotNV2, dotNV2, dotNV2) * 0.25 + 0.25;
-	} else if (iDebug == 2) {
-	  gl_FragColor.rgb = normal.xyz * 0.25 + 0.25;
-	} else if (iDebug == 3) {
-	  gl_FragColor.rgb = vec3(matTBN[0][2], matTBN[1][2], matTBN[2][2]) * 0.25 + 0.25;
-	} else if (iDebug == 4) {
-	  gl_FragColor.rgb = vec3(matTBN[0][1], matTBN[1][1], matTBN[2][1]) * 0.25 + 0.25;
-	} else if (iDebug == 5) {
-	  gl_FragColor.rgb = vec3(matTBN[0][0], matTBN[1][0], matTBN[2][0]) * 0.25 + 0.25;
-	} else if (iDebug == 6) {
-	  gl_FragColor.rgb = iblColor[0].rgb;
-	} else if (iDebug == 7) {
-	  gl_FragColor.rgb = iblColor[1].rgb;
-	} else if (iDebug == 8) {
-	  gl_FragColor.rgb = iblColor[2].rgb;
-	} else if (iDebug == 9) {
-	  gl_FragColor.rgb = normal_raw * 0.5;
-	} else if (iDebug == 10) {
-	  gl_FragColor.rgb = vec3(matTBN[0][2] * 0.25 + 0.25, 0.0, 0.0);
-	} else if (iDebug == 11) {
-	  gl_FragColor.rgb = vec3(0.0, matTBN[1][2] * 0.25 + 0.25, 0.0);
-	} else if (iDebug == 12) {
-	  gl_FragColor.rgb = vec3(0.0, 0.0, matTBN[2][2] * 0.25 + 0.25);
-	} else if (iDebug == 13) {
-	  gl_FragColor.rgb = vec3(normal.x * 0.25 + 0.25, 0.0, 0.0);
-	} else if (iDebug == 14) {
-	  gl_FragColor.rgb = vec3(0.0, normal.y * 0.25 + 0.25, 0.0);
-	} else if (iDebug == 15) {
-	  gl_FragColor.rgb = vec3(0.0, 0.0, normal.z * 0.25 + 0.25);
-	}
-#endif
-*/
+  }
 }

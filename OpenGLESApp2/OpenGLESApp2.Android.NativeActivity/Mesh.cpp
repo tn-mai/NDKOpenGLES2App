@@ -39,19 +39,36 @@ namespace Mai {
 
 	char[3]           "MSH"
 	uint8_t           mesh count.
+	reserved          (2 byte)
 	uint32_t          vbo offset by the top of file(32bit alignment).
 	uint32_t          vbo byte size(32bit alignment).
 	uint32_t          ibo byte size(32bit alignment).
+
 	[
-	  uint32_t        ibo offset.
-	  uint32_t        ibo size.
 	  uint8_t         mesh name length.
-	  char[length]    mesh name.
-	  padding         (4 - (length + 1) % 4) % 4 byte.
+	  char[mesh name length] mesh name(without zero ternmination).
+	  uint8_t         material count.
+	  padding         (4 - (length + 2) % 4) % 4 byte.
+	  [
+		uint32_t        ibo offset.
+		uint16_t        ibo size(this is the polygon counts, so actual ibo size is 3 times).
+		uint8_t         red
+		uint8_t         green
+		uint8_t         blue
+		uint8_t         alpha
+		uint8_t         metallic
+		uint8_t         roughness
+		] x (ibo count)
 	] x (mesh count)
+
+	uint8_t                          albedo texture name length.
+	char[albedo texture name length] albedo texture name(without zero ternmination).
+	uint8_t                          normal texture name length.
+	char[normal texture name length] normal texture name(without zero ternmination).
+	padding                          (4 - (texture name block size % 4) % 4 byte.
+
 	vbo               vbo data.
 	ibo               ibo data.
-
 	padding           (4 - (ibo byte size % 4) % 4 byte.
 
 	uint16_t          bone count.
@@ -98,13 +115,23 @@ namespace Mai {
 	result.meshes.reserve(count);
 	for (int i = 0; i < count; ++i) {
 	  Mesh m;
-	  m.iboOffset = iboBaseOffset; p += 4;
-	  m.iboSize = GetValue(p, 4); p += 4;
 	  const uint32_t nameLength = *p++;
 	  m.id.assign(p, p + nameLength); p += nameLength;
+	  const size_t materialCount = *p++;
+	  p += (4 - (nameLength + 2) % 4) % 4;
+	  m.materialList.resize(materialCount);
+	  for (auto& e : m.materialList) {
+		e.iboOffset = iboBaseOffset; p += 4;
+		e.iboSize = GetValue(p, 2); p += 2;
+		e.material.color.r = *p++;
+		e.material.color.g = *p++;
+		e.material.color.b = *p++;
+		e.material.color.a = *p++;
+		e.material.metallic.Set(static_cast<float>(*p++) / 255.0f);
+		e.material.roughness.Set(static_cast<float>(*p++) / 255.0f);
+		iboBaseOffset += e.iboSize * sizeof(GLushort);
+	  }
 	  result.meshes.push_back(m);
-	  iboBaseOffset += m.iboSize * sizeof(GLushort);
-	  p += (4 - (nameLength + 1) % 4) % 4;
 	  if (p >= pEnd) {
 		return ImportMeshResult(ImportMeshResult::Result::invalidMeshInfo);
 	  }
