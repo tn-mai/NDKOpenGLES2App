@@ -2284,7 +2284,7 @@ void Renderer::InitTexture()
 	textureList.insert({ "ascii", Texture::LoadKTX("Textures/Common/ascii.ktx") });
 
 #if 1
-	const std::string iblSourcePath = texBaseDir + "/IBL/ibl_";
+	const std::string iblSourcePath = texBaseDir + "IBL/ibl_";
 	for (char i = '1'; i <= '7'; ++i) {
 	  iblSpecularSourceList[TimeOfScene_Noon][i - '1'] = Texture::LoadKTX((iblSourcePath + "noon_" + i + ".ktx").c_str());
 	  iblSpecularSourceList[TimeOfScene_Sunset][i - '1'] = Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str());
