@@ -263,6 +263,7 @@ namespace {
 		s.bones = glGetUniformLocation(program, "boneMatrices");
 		s.lightDirForShadow = glGetUniformLocation(program, "lightDirForShadow");
 		s.matLightForShadow = glGetUniformLocation(program, "matLightForShadow");
+		s.cloudColor = glGetUniformLocation(program, "cloudColor");
 
 		s.debug = glGetUniformLocation(program, "debug");
 
@@ -503,6 +504,7 @@ Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
 */
 Renderer::Renderer()
   : isInitialized(false)
+  , doesDrawSkybox(true)
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
   , timeOfScene(TimeOfScene_Noon)
@@ -1166,13 +1168,15 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  5000.0f
 	);
 
-	static struct {
+	static const struct {
 	  float range;
 	  float inverse;
+	  Vector3F cloudColorMain;
+	  Vector3F cloudColorEdge;
 	} iblDynamicRangeArray[] = {
-	  { 0.5f, 1.0f / 0.5f },
-	  { 0.5f, 1.0f / 0.5f },
-	  { 0.5f, 1.0f / 4.0f },
+	  { 0.5f, 1.0f / 0.5f, Vector3F(0.65f, 0.75f, 0.85f), Vector3F(0.0f, 0.05f, 0.2f) },
+	  { 0.5f, 1.0f / 0.5f, Vector3F(0.9f, 0.8f, 0.5f), Vector3F(0.6f, 0.1f, 0.05f) },
+	  { 0.5f, 1.0f / 4.0f, Vector3F(1.5f, 1.5f, 1.2f), Vector3F(0.4f, 0.1f, 0.5f) },
 	};
 	const float dynamicRangeFactor = iblDynamicRangeArray[timeOfScene].range;
 
@@ -1180,7 +1184,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	const Vector4F lightPos(50, 50, 50, 1.0);
 	const Vector3F lightColor(7000.0f, 6000.0f, 5000.0f);
 #if 1
-	{
+	if (doesDrawSkybox) {
 	  const Shader& shader = shaderList["skybox"];
 	  glUseProgram(shader.program);
 
@@ -1209,6 +1213,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  Local::glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
 	}
 
+	const GLuint cloudProgramId = shaderList["cloud"].program;
 	GLuint currentProgramId = 0;
 	const int iblSourceSize = iblSpecularSourceList[timeOfScene].size() - 1;
 	for (const ObjectPtr* itr = begin; itr != end; ++itr) {
@@ -1249,7 +1254,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glActiveTexture(GL_TEXTURE5);
 			glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 
-			if (shader.program == shaderList["cloud"].program) {
+			if (shader.program == cloudProgramId) {
 				glDepthMask(GL_FALSE);
 				glDisable(GL_CULL_FACE);
 			} else {
@@ -1263,7 +1268,15 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		}
 
 		const Vector4F materialColor = obj.Color().ToVector4F();
-		glUniform4fv(shader.materialColor, 1, &materialColor.x);
+		if (shader.program == cloudProgramId) {
+		  const auto& e = iblDynamicRangeArray[timeOfScene];
+		  const Vector3F color0 = e.cloudColorMain * e.range * e.inverse;
+		  const Vector3F color1 = e.cloudColorEdge * e.range * e.inverse;
+		  glUniform4f(shader.materialColor, color0.x, color0.y, color0.z, materialColor.w);
+		  glUniform3f(shader.cloudColor, color1.x, color1.y, color1.z);
+		} else {
+		  glUniform4fv(shader.materialColor, 1, &materialColor.x);
+		}
 		const float metallic = obj.Metallic();
 		const float roughness = obj.Roughness();
 		glUniform2f(shader.materialMetallicAndRoughness, metallic, roughness);

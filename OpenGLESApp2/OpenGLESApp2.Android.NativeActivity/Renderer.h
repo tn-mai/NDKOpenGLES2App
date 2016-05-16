@@ -236,6 +236,8 @@ namespace Mai {
 	GLint lightDirForShadow;
 	GLint matLightForShadow;
 
+	GLint cloudColor;
+
 	GLint debug;
 
 	ShaderType type;
@@ -409,6 +411,8 @@ namespace Mai {
 	float GetShadowNear() const { return shadowNear; }
 	float GetShadowFar() const { return shadowFar; }
 	Vector2F GetShadowMapScale() const { return shadowScale; }
+	bool DoesDrawSkybox() const { return doesDrawSkybox; }
+	void DoesDrawSkybox(bool b) { doesDrawSkybox = b; }
 
   private:
 	enum FBOIndex {
@@ -442,6 +446,7 @@ namespace Mai {
 
   private:
 	bool isInitialized;
+	bool doesDrawSkybox;
 
 	EGLDisplay display;
 	EGLSurface surface;

@@ -35,6 +35,7 @@ namespace SunnySideUp {
 		};
 		boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
 		r.SetTimeOfScene(sceneIncidence[random() % (sizeof(sceneIncidence)/sizeof(sceneIncidence[0]))]);
+		r.DoesDrawSkybox(true);
 
 		{
 		  auto obj = r.CreateObject("TitleLogo", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);

@@ -448,6 +448,7 @@ namespace SunnySideUp {
 		}
 	  }();
       renderer.SetTimeOfScene(tos);
+	  renderer.DoesDrawSkybox(false);
 
 	  // The player character.
 	  {
