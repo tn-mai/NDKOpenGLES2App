@@ -41,48 +41,37 @@ varying mediump vec3 posForShadow;
 
 void main(void)
 {
-  lowp vec4 col = texture2D(texDiffuse, texCoord.xy);
-  col.rgb *= materialColor.rgb;
+  lowp vec3 col = texture2D(texDiffuse, texCoord.xy).rgb * materialColor.rgb;
 
-//  if (col.a == 0.0) {
-//	gl_FragColor = vec4(0, 0, 0, 0);
-//  } else {
+  // NOTE: This shader uses the object space normal mapping, so the normal is in the object space.
+  //       In general, the object space normal mapping is used the pre-transformed light position
+  //       in the object spece. But this shader is the image based light source in the world space.
+  //       Of course, it cannot pre-transform to the object space.
+  //       Therefore, the object space normal mapping cannot increase efficiency of the shader
+  //       that contrary to our expectations :(
+  mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
+  mediump vec3 refVector = matTBN * reflect(eyeVectorW, normal.xyz);
 
-	// NOTE: This shader uses the object space normal mapping, so the normal is in the object space.
-	//       In general, the object space normal mapping is used the pre-transformed light position
-	//       in the object spece. But this shader is the image based light source in the world space.
-	//       Of course, it cannot pre-transform to the object space.
-	//       Therefore, the object space normal mapping cannot increase efficiency of the shader
-	//       that contrary to our expectations :(
-	mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
-	mediump vec3 refVector = matTBN * reflect(eyeVectorW, normal.xyz);
+  // Diffuse
+  mediump vec4 irradiance = textureCube(texIBL[2], refVector);
+  irradiance.rgb *= dynamicRangeFactor / irradiance.a;
+  gl_FragColor = vec4(irradiance.rgb * col * (1.0 - metallicAndRoughness.x), 1.0);
 
-	// Diffuse
-	mediump vec4 irradiance = textureCube(texIBL[2], refVector);
-	irradiance.rgb *= dynamicRangeFactor / irradiance.a;
-	gl_FragColor.rgb = irradiance.rgb * col.rgb * (1.0 - metallicAndRoughness.x);
+  // Specular
+  mediump vec3 F0;
+  CalcF0(F0, col, metallicAndRoughness.x);
+  mediump float dotNV = dot(eyeVectorW, normal);
+  mediump vec4 specular = textureCube(texIBL[0], refVector);
+  specular.rgb *= dynamicRangeFactor / specular.a;
+  gl_FragColor.rgb += specular.rgb * FresnelSchlick(F0, dotNV);
 
-	// Specular
-	mediump vec3 F0;
-	CalcF0(F0, col.rgb, metallicAndRoughness.x);
-	mediump float dotNV = dot(eyeVectorW, normal.xyz);
-	mediump vec4 specular = textureCube(texIBL[0], refVector);
-	specular.rgb *= dynamicRangeFactor / specular.a;
-	gl_FragColor.rgb += specular.rgb * FresnelSchlick(F0, dotNV);
-
-	gl_FragColor.a = materialColor.a;
-//	lowp float alpha = col.a * materialColor.a;
-//	gl_FragColor.a = max(alpha, dot(Idiff * alpha + Ispec, vec3(0.3, 0.6, 0.1)));
-
-	// Shadow
-	const mediump float coef = 1.0 / 256.0;
-	mediump vec4 tex = texture2D(texShadow, posForShadow.xy);
-	highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
-	if (Ex < 1.0) {
-	  if (posForShadow.z > Ex) {
-		gl_FragColor.rgb *= exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
-	  }
+  // Shadow
+  const mediump float coef = 1.0 / 256.0;
+  mediump vec4 tex = texture2D(texShadow, posForShadow.xy);
+  highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
+  if (Ex < 1.0) {
+	if (posForShadow.z > Ex) {
+	  gl_FragColor.rgb *= 0.6;// exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
 	}
-
-//  }
+  }
 }
