@@ -950,9 +950,6 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	if (!isInitialized) {
 	  return;
 	}
-//	if (begin == end) {
-//		return;
-//	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -1105,31 +1102,6 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
 
 		meshList["board2D"].Draw();
-	}
-#endif
-#if 0
-	// fboShadow0 ->(gaussian3x3)-> fboShadow1
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow1);
-		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_SUB_WIDTH), static_cast<GLsizei>(SHADOWMAP_SUB_HEIGHT));
-		glDisable(GL_DEPTH_TEST);
-		glBlendFunc(GL_ONE, GL_ZERO);
-		glCullFace(GL_BACK);
-
-		const Shader& shader = shaderList["gaussian3x3"];
-		glUseProgram(shader.program);
-
-		Matrix4x4 mtx = Matrix4x4::Unit();
-		mtx.Scale(1.0f, -1.0f, 1.0f);
-		glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
-
-		glUniform1i(shader.texShadow, 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureList["fboShadow0"]->TextureId());
-
-		meshList["board2D"].Draw();
-
-		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 #endif
 #endif
