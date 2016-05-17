@@ -454,7 +454,13 @@ void Object::Update(float t)
 		animationPlayer.pAnime = pAnime;
 		std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
 		UpdateJointRotTrans(rtList, &mesh->jointList[0], &mesh->jointList[0], Mai::RotTrans::Unit());
-		std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) { return ToMatrix(this->rotTrans * rt); });
+		std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) {
+		  Matrix4x3 m = ToMatrix(this->rotTrans * rt);
+		  m.SetVector(0, m.GetVector(0) * Vector4F(this->scale.x, this->scale.x, this->scale.x, 1.0f));
+		  m.SetVector(1, m.GetVector(1) * Vector4F(this->scale.y, this->scale.y, this->scale.y, 1.0f));
+		  m.SetVector(2, m.GetVector(2) * Vector4F(this->scale.z, this->scale.z, this->scale.z, 1.0f));
+		  return m;
+		});
 	  }
 	}
   }

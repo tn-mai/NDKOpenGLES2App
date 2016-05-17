@@ -147,6 +147,8 @@ struct Vector4F {
 	Vector4F operator+(const Vector4F& rhs) const { return Vector4F(*this) += rhs; }
 	Vector4F& operator-=(const Vector4F& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; w -= rhs.w;  return *this; }
 	Vector4F operator-(const Vector4F& rhs) const { return Vector4F(*this) -= rhs; }
+	Vector4F& operator*=(const Vector4F& rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; w *= rhs.w;  return *this; }
+	Vector4F operator*(const Vector4F& rhs) const { return Vector4F(*this) *= rhs; }
 	Vector4F& operator*=(GLfloat rhs) { x *= rhs; y *= rhs; z *= rhs; w *= rhs;  return *this; }
 	Vector4F operator*(GLfloat rhs) const { return Vector4F(*this) *= rhs; }
 	friend Vector4F operator*(GLfloat lhs, const Vector4F& rhs) { return rhs * lhs; }
