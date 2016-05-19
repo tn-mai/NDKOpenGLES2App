@@ -542,19 +542,25 @@ Renderer::~Renderer()
 
 Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 {
-	static const char* const  fboNameList[] = {
-		"fboMain",
-		"fboSub",
-		"fboShadow0",
-		"fboShadow1",
-		"fboHDR0",
-		"fboHDR1",
-		"fboHDR2",
-		"fboHDR3",
-		"fboHDR4",
+	static const struct {
+		const char* name;
+		uint16_t width;
+		uint16_t height;
+	} fboNameList[] = {
+		{ "fboMain", static_cast<uint16_t>(FBO_MAIN_WIDTH), static_cast<uint16_t>(FBO_MAIN_HEIGHT) },
+		{ "fboSub", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4) },
+		{ "fboShadow0", static_cast<uint16_t>(SHADOWMAP_SUB_WIDTH), static_cast<uint16_t>(SHADOWMAP_SUB_HEIGHT) },
+		{ "fboShadow1", static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
+		{ "fboHDR0", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboHDR1", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboHDR2", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 8), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 8) },
+		{ "fboHDR3", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 16), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 16) },
+		{ "fboHDR4", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 32), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 32) },
+		{ "fboHDR5", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 64), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 64) },
 	};
+
 	GLuint* p = const_cast<GLuint*>(&fboMain + id);
-	return { fboNameList[id], p };
+	return { fboNameList[id].name, fboNameList[id].width, fboNameList[id].height, p };
 }
 
 /** ï`âÊä¬ã´ÇÃèâä˙ê›íË.
@@ -830,6 +836,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glUniform1i(shader.texDiffuse, 0);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureList["ascii"]->TextureId());
+  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
   const Mesh& mesh = meshList["ascii"];
   float x = pos.x;
   for (const char* p = str; *p; ++p) {
@@ -1155,7 +1162,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	} iblDynamicRangeArray[] = {
 	  { 0.5f, 1.0f / 0.5f, Vector3F(0.65f, 0.75f, 0.85f), Vector3F(0.0f, 0.05f, 0.2f) },
 	  { 0.5f, 1.0f / 0.5f, Vector3F(0.9f, 0.8f, 0.5f), Vector3F(0.6f, 0.1f, 0.05f) },
-	  { 0.5f, 1.0f / 4.0f, Vector3F(1.5f, 1.5f, 1.2f), Vector3F(0.4f, 0.1f, 0.5f) },
+	  { 0.5f, 1.0f / 2.0f, Vector3F(1.5f, 1.5f, 1.2f), Vector3F(0.4f, 0.1f, 0.5f) },
 	};
 	const float dynamicRangeFactor = iblDynamicRangeArray[timeOfScene].range;
 
@@ -1392,9 +1399,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
 	  meshList["board2D"].Draw();
 	}
-	// fboSub ->(hdrdiff)-> fboHDR[0]
+	// fboSub ->(hdrdiff)-> fboHDR[1]
 	{
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR[0]);
+	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR[1]);
 	  glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / 4, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / 4);
 
 	  const Shader& shader = shaderList["hdrdiff"];
@@ -1403,36 +1410,73 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  Matrix4x4 mtx = Matrix4x4::Unit();
 	  mtx.Scale(1.0f, -1.0f, 1.0f);
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
-	  glUniform1f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].inverse);
+	  glUniform2f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].range, 1.0f / (1.0f - iblDynamicRangeArray[timeOfScene].range));
 
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
 	  meshList["board2D"].Draw();
 	}
-	// fboHDR[0] ->(sample4)-> fboHDR[1] ... fboHDR[4]
+
+	static const bool useWideBloom = false;
+
+	// fboHDR[1] ->(sample4)-> fboHDR[0] ... fboHDR[4]
 	{
 	  const Shader& shader = shaderList["sample4"];
 	  glUseProgram(shader.program);
-
 	  Matrix4x4 mtx = Matrix4x4::Unit();
 	  mtx.Scale(1.0f, -1.0f, 1.0f);
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
-
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
-
 	  const Mesh& mesh = meshList["board2D"];
-	  int scale = 8;
-	  for (int i = FBO_HDR0; i < FBO_HDR4; ++i, scale *= 2) {
-		glBindFramebuffer(GL_FRAMEBUFFER, *GetFBOInfo(i + 1).p);
-		glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / scale, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / scale);
-		glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.25f / static_cast<float>(MAIN_RENDERING_PATH_WIDTH / scale), 0.25f / static_cast<float>(MAIN_RENDERING_PATH_HEIGHT / scale));
-		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
-		mesh.Draw();
+
+	  if (useWideBloom) {
+		for (int i = FBO_HDR1; ;) {
+		  const FBOInfo fboInfoDest = GetFBOInfo(i - 1);
+		  const FBOInfo fboInfo = GetFBOInfo(i);
+		  {
+			glBindFramebuffer(GL_FRAMEBUFFER, *fboInfoDest.p);
+			glViewport(0, 0, fboInfo.width, fboInfo.height);
+
+			glBindTexture(GL_TEXTURE_2D, textureList[fboInfo.name]->TextureId());
+			glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.5f / fboInfo.width, 0.5f / fboInfo.height);
+			mesh.Draw();
+		  }
+		  if (i >= FBO_HDR5) {
+			break;
+		  }
+		  ++i;
+		  {
+			const FBOInfo fboInfoNext = GetFBOInfo(i);
+			glBindFramebuffer(GL_FRAMEBUFFER, *fboInfoNext.p);
+			glViewport(0, 0, fboInfoNext.width, fboInfoNext.height);
+
+			glBindTexture(GL_TEXTURE_2D, textureList[fboInfoDest.name]->TextureId());
+			glUniform4f(
+			  shader.unitTexCoord,
+			  static_cast<float>(fboInfo.width) / static_cast<float>(fboInfoDest.width),
+			  static_cast<float>(fboInfo.height) / static_cast<float>(fboInfoDest.height),
+			  0.25f / fboInfoDest.width,
+			  0.25f / fboInfoDest.height
+			);
+			mesh.Draw();
+		  }
+		}
+	  } else {
+		for (int i = FBO_HDR1; i < FBO_HDR5; ++i) {
+		  const FBOInfo fboInfoDest = GetFBOInfo(i + 1);
+		  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfoDest.p);
+		  glViewport(0, 0, fboInfoDest.width, fboInfoDest.height);
+
+		  const FBOInfo fboInfoSrc = GetFBOInfo(i);
+		  glBindTexture(GL_TEXTURE_2D, textureList[fboInfoSrc.name]->TextureId());
+		  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.25f / fboInfoSrc.width, 0.25f / fboInfoSrc.height);
+		  mesh.Draw();
+		}
 	  }
 	}
-	// fboHDR[4] ->(default2D)-> fboHDR[3] ... fboHDR[0]
+	// fboHDR[4] ->(default2D)-> fboHDR[4] ... fboHDR[0]
 	{
 	  const Shader& shader = shaderList["default2D"];
 	  glUseProgram(shader.program);
@@ -1447,12 +1491,28 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  glBlendFunc(GL_ONE, GL_ONE);
 	  const Mesh& mesh = meshList["board2D"];
-	  int scale = 32;
-	  for (int i = FBO_HDR4; i > FBO_HDR0; --i, scale /= 2) {
-		glBindFramebuffer(GL_FRAMEBUFFER, *GetFBOInfo(i - 1).p);
-		glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / scale, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / scale);
-		glBindTexture(GL_TEXTURE_2D, textureList[GetFBOInfo(i).name]->TextureId());
-		mesh.Draw();
+	  if (useWideBloom) {
+		for (int i = FBO_HDR4; i > FBO_HDR0; --i) {
+		  const FBOInfo fboInfo = GetFBOInfo(i + 1);
+		  const FBOInfo fboInfoSrc = GetFBOInfo(i);
+		  const FBOInfo fboInfoDest = GetFBOInfo(i - 1);
+		  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfoDest.p);
+		  glViewport(0, 0, fboInfoSrc.width, fboInfoSrc.height);
+		  glBindTexture(GL_TEXTURE_2D, textureList[fboInfoSrc.name]->TextureId());
+		  glUniform4f(shader.unitTexCoord, static_cast<float>(fboInfo.width) / static_cast<float>(fboInfoSrc.width), static_cast<float>(fboInfo.height) / static_cast<float>(fboInfoSrc.height), 0.0f, 0.0f);
+		  mesh.Draw();
+		}
+	  } else {
+		for (int i = FBO_HDR5; i > FBO_HDR1; --i) {
+		  const FBOInfo fboInfoDest = GetFBOInfo(i - 1);
+		  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfoDest.p);
+		  glViewport(0, 0, fboInfoDest.width, fboInfoDest.height);
+
+		  const FBOInfo fboInfoSrc = GetFBOInfo(i);
+		  glBindTexture(GL_TEXTURE_2D, textureList[fboInfoSrc.name]->TextureId());
+		  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
+		  mesh.Draw();
+		}
 	  }
 	}
 #endif // USE_HDR_BLOOM
@@ -1495,7 +1555,12 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glActiveTexture(GL_TEXTURE1);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
 	  glActiveTexture(GL_TEXTURE2);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboHDR0"]->TextureId());
+
+	  if (useWideBloom) {
+		glBindTexture(GL_TEXTURE_2D, textureList["fboHDR0"]->TextureId());
+	  } else {
+		glBindTexture(GL_TEXTURE_2D, textureList["fboHDR1"]->TextureId());
+	  }
 	  meshList["board2D"].Draw();
 
 	  Local::glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
@@ -1592,6 +1657,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
+	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
 	  meshList["board2D"].Draw();
 	}
 #endif
@@ -2266,10 +2332,9 @@ void Renderer::InitTexture()
 	textureList.insert({ "fboSub", Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / 4)) }); // ÉJÉâÅ[(1/4)
 	textureList.insert({ "fboShadow0", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // âeèkè¨
 	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_MAIN_WIDTH), static_cast<int>(SHADOWMAP_MAIN_HEIGHT)) }); // âeÇ⁄Ç©Çµ
-	int scale = 4;
-	for (int i = FBO_HDR0; i <= FBO_HDR4; ++i) {
-	  textureList.insert({ GetFBOInfo(i).name, Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / scale), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / scale)) }); // HDR
-	  scale *= 2;
+	for (int i = FBO_HDR_Begin; i < FBO_HDR_End; ++i) {
+	  const auto fboInfo = GetFBOInfo(i);
+	  textureList.insert({ fboInfo.name, Texture::CreateEmpty2D(fboInfo.width, fboInfo.height) }); // HDR
 	}
 
 	textureList.insert({ "dummyCubeMap", Texture::CreateDummyCubeMap() });

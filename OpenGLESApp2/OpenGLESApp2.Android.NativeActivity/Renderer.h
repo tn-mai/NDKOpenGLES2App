@@ -420,16 +420,21 @@ namespace Mai {
 	  FBO_Sub,
 	  FBO_Shadow0,
 	  FBO_Shadow1,
-	  FBO_HDR0,
+	  FBO_HDR_Begin,
+	  FBO_HDR0 = FBO_HDR_Begin,
 	  FBO_HDR1,
 	  FBO_HDR2,
 	  FBO_HDR3,
 	  FBO_HDR4,
+	  FBO_HDR5,
+	  FBO_HDR_End,
 
-	  FBO_End,
+	  FBO_End = FBO_HDR_End,
 	};
 	struct FBOInfo {
 	  const char* const name;
+	  uint16_t width;
+	  uint16_t height;
 	  GLuint* p;
 	};
 	FBOInfo GetFBOInfo(int) const;
@@ -470,7 +475,7 @@ namespace Mai {
 	Vector3F cameraDir;
 	Vector3F cameraUp;
 
-	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR[5];
+	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR[FBO_HDR_End - FBO_HDR_Begin];
 	GLuint depth;
 
 	GLuint vbo;

@@ -4,6 +4,8 @@ varying mediump vec4 texCoord[2];
 
 #define invLDRRange 1.0//(255.0/240.0)
 #if 1
+#define luminance(tex) max(tex.r, max(tex.g, tex.b))
+#elif 0
 // HDTV with BT.709
 #define luminance(tex) dot(tex, vec3(0.2126, 0.7152, 0.0722) * invLDRRange)
 #else
