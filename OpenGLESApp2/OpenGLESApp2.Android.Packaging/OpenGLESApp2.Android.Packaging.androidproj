@@ -79,6 +79,7 @@
     <Content Include="assets\Meshes\rock_collection.msh" />
     <Content Include="assets\Meshes\sphere.msh" />
     <Content Include="assets\Meshes\sunnysideup.msh" />
+    <Content Include="assets\Meshes\TargetCursor.msh" />
     <Content Include="assets\Meshes\titlelogo.msh" />
     <Content Include="assets\Shaders\applyhdr.frag" />
     <Content Include="assets\Shaders\applyhdr.vert" />
@@ -92,6 +93,8 @@
     <Content Include="assets\Shaders\default2D.vert" />
     <Content Include="assets\Shaders\defaultWithAlpha.frag" />
     <Content Include="assets\Shaders\defaultWithAlpha.vert" />
+    <Content Include="assets\Shaders\emission.frag" />
+    <Content Include="assets\Shaders\emission.vert" />
     <Content Include="assets\Shaders\font.frag" />
     <Content Include="assets\Shaders\font.vert" />
     <Content Include="assets\Shaders\gaussian3x3.frag" />

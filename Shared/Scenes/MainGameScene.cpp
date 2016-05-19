@@ -482,6 +482,15 @@ namespace SunnySideUp {
 	  }
 
 	  {
+		auto obj = renderer.CreateObject("TargetCursor", Material(Color4B(240, 2, 1, 255), 0, 0), "emission", ShadowCapability::Disable);
+		Object& o = *obj;
+		o.SetAnimation(renderer.GetAnimation("Rotation"));
+		o.SetScale(Vector3F(20, 20, 20));
+		o.SetTranslation(objFlyingPan->Position() - Position3F(0, -10, 0));
+		pPartitioner->Insert(obj);
+	  }
+
+	  {
 		static const size_t posListSize = 5;
 		const std::vector<Position3F> modelRoute = CreateModelRoute(Position3F(5, static_cast<float>(levelInfo.startHeight), 4.5f), objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
 		const auto end = modelRoute.end() - 2;

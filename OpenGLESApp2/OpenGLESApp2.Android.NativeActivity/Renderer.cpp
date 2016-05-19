@@ -694,6 +694,7 @@ void Renderer::Initialize(const Window& window)
 	  { ShaderType::Complex3D, "default2D" },
 	  { ShaderType::Complex3D, "cloud" },
 	  { ShaderType::Simple3D, "solidmodel" },
+	  { ShaderType::Complex3D, "emission" },
 	  { ShaderType::Complex3D, "skybox" },
 	  { ShaderType::Complex3D, "shadow" },
 	  { ShaderType::Complex3D, "bilinear4x4" },
@@ -1776,6 +1777,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/sunnysideup.msh", "sunnysideup", "sunnysideup_nml");
 	LoadFBX("Meshes/block1.msh", "block1", "block1_nml");
 	LoadFBX("Meshes/flyingpan.msh", "flyingpan", "flyingpan_nml");
+	LoadFBX("Meshes/TargetCursor.msh", "dummy", "dummy");
 	LoadFBX("Meshes/chickenegg.msh", "chickenegg", "chickenegg_nml");
 	LoadFBX("Meshes/titlelogo.msh", "titlelogo", "titlelogo_nml");
 	LoadFBX("Meshes/rock_collection.msh", "rock_s", "rock_s_nml");
