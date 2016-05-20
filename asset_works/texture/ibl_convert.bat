@@ -1,7 +1,7 @@
 @setlocal
 
 set EXR2PNG=..\..\Tools\exr2png-1_2\exr2png.exe
-set IMAGE_MAGICK=d:\bin\ImageMagick-6.9.3-7-portable-Q16-x64\convert.exe
+set IMAGE_MAGICK=c:\usr\local\bin\ImageMagick-6.9.3-7-portable-Q16-x64\convert.exe
 set SRC_DIR=%~dp0
 set TMP_DIR=.\converted\
 set OUT_DIR_FOR_OTHERS=.\to_others\IBL\
@@ -36,7 +36,7 @@ set OPT=
 @rem -X|-Z|+X
 @rem +Y|-Y|+Z
 
-call :convert noon 5.0
+call :convert noon 0.333
 call :convert sunset 1.0
 call :convert night 0.25
 goto :end
