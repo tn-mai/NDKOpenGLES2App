@@ -452,6 +452,7 @@ namespace Mai {
 		e.v = e.accel * delta;
 		e.innerEnergy = 0;
 	  }
+	  RigidBody* pLatestCollider = nullptr;
 	  for (auto itrL = bodies.begin(); itrL != bodies.end();) {
 		RigidBody& lhs = *itrL->get();
 		int collisionCount = 0;
@@ -459,18 +460,20 @@ namespace Mai {
 		++itrR;
 		for (; itrR != bodies.end(); ++itrR) {
 		  RigidBody& rhs = *itrR->get();
-		  if (&lhs == &rhs) {
+		  if (&lhs == &rhs || pLatestCollider == &rhs) {
 			continue;
 		  }
 		  if (dispatcherList[rhs.shapeID][lhs.shapeID](lhs, rhs)) {
 			lhs.hasLatestCollision = true;
 			rhs.hasLatestCollision = true;
+			pLatestCollider = &rhs;
 			++collisionCount;
 		  }
 		}
 		if (!collisionCount || lhs.v.LengthSq() <= 0.00000001f) {
 		  lhs.Move(lhs.v);
 		  lhs.v = Vector3F::Unit();
+		  pLatestCollider = nullptr;
 		  ++itrL;
 		}
 		// d—Í‚É‚æ‚éU“®‚ð‚¨‚³‚¦‚é.
@@ -479,6 +482,7 @@ namespace Mai {
 		  if (lhs.accel.y / v >= 0.8f) {
 			lhs.accel = Vector3F::Unit();
 			lhs.v = Vector3F::Unit();
+			pLatestCollider = nullptr;
 			++itrL;
 		  }
 		}
