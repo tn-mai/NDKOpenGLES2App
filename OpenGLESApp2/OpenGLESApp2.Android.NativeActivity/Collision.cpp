@@ -3,6 +3,16 @@
 #include <list>
 #include <boost/optional.hpp>
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#else
+#include <stdio.h>
+#define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#endif // __ANDROID__
+
 namespace Mai {
 
   namespace Collision {
@@ -330,6 +340,7 @@ namespace Mai {
 		}
 	  };
 
+	  bool logged = false;
 	  int u0 = 0, u1 = 0;
 	  const Vector3F p = sphere.shape.center + tmin * sphere.v - box.center;
 	  const float f0 = box.normal[0].Dot(p);
@@ -348,18 +359,24 @@ namespace Mai {
 		const Line l(sphere.shape.center, sphere.v);
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, local::Corner(box, u1 ^ 1), sphere.shape.radius))) {
 		  if (ret.t < tmin) {
+			LOGI("Hit 0: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+			logged = true;
 			tmin = ret.t;
 			n = ret.n;
 		  }
 		}
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, local::Corner(box, u1 ^ 2), sphere.shape.radius))) {
 		  if (ret.t < tmin) {
+			LOGI("Hit 1: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+			logged = true;
 			tmin = ret.t;
 			n = ret.n;
 		  }
 		}
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, local::Corner(box, u1 ^ 4), sphere.shape.radius))) {
 		  if (ret.t < tmin) {
+			LOGI("Hit 2: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+			logged = true;
 			tmin = ret.t;
 			n = ret.n;
 		  }
@@ -372,6 +389,8 @@ namespace Mai {
 		const Position3F c1 = local::Corner(box, u1);
 		const Line l(sphere.shape.center, sphere.v);
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, c1, sphere.shape.radius))) {
+		  LOGI("Hit 3: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+		  logged = true;
 		  tmin = ret.t;
 		  n = ret.n;
 		} else {
@@ -392,6 +411,9 @@ namespace Mai {
 		if (correctV2.LengthSq() >= 0.00000001f) {
 		  box.center -= correctV2;
 		}
+	  }
+	  if (!logged) {
+		LOGI("Hit: (%f, %f, %f), %f, %f", n.x, n.y, n.z, tmin, tmax);
 	  }
 	  const Plane plane(sphere.shape.center - sphere.shape.radius * n, n);
 	  SolveRestitution(lhs, rhs, plane, tmin);
