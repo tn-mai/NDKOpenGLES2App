@@ -421,14 +421,7 @@ namespace Mai {
 		RigidBody& e = *p;
 		Vector3F v = e.accel + e.thrust * delta;
 		v.y -= g * delta;
-		if (e.hasLatestCollision) {
-		  e.hasLatestCollision = false;
-		  if (v.LengthSq() < delta * delta * 100) {
-			v = Vector3F::Unit();
-		  } else {
-			v -= Vector3F(v).Normalize() * delta * 10;
-		  }
-		}
+
 		// solve air friction.
 		// スカイダイビングの終端加速度は50m/s～85m/sらしい.
 		// "Poynter, D. and Turoff, M., The Skydiver's Handbook, (2004), pp.191 - 193"に平均的な終端速度が書いてあるらしい.
@@ -463,14 +456,27 @@ namespace Mai {
 		  if (&lhs == &rhs || pLatestCollider == &rhs) {
 			continue;
 		  }
-		  if (dispatcherList[rhs.shapeID][lhs.shapeID](lhs, rhs)) {
+		  if (auto r = dispatcherList[rhs.shapeID][lhs.shapeID](lhs, rhs)) {
+			// 当たり方に応じて加速度を減らす(摩擦っぽい処理).
+			const Vector3F& normal = r->normal;
+			if (lhs.accel.LengthSq()) {
+			  const float friction = 0.9f - Normalize(lhs.accel).Dot(normal) * 0.125f;
+			  lhs.accel *= friction;
+			}
+			if (rhs.accel.LengthSq()) {
+			  const float friction = 0.9f - Normalize(rhs.accel).Dot(normal) * 0.125f;
+			  rhs.accel *= friction;
+			}
 			lhs.hasLatestCollision = true;
 			rhs.hasLatestCollision = true;
 			pLatestCollider = &rhs;
 			++collisionCount;
+			if (lhs.v.LengthSq() <= 0.0f) {
+			  break;
+			}
 		  }
 		}
-		if (!collisionCount || lhs.v.LengthSq() <= 0.00000001f) {
+		if (!collisionCount || lhs.v.LengthSq() <= 0.0f) {
 		  lhs.Move(lhs.v);
 		  lhs.v = Vector3F::Unit();
 		  pLatestCollider = nullptr;
