@@ -58,7 +58,9 @@ void main(void)
   if (col.a == 0.0) {
 	gl_FragColor = vec4(0, 0, 0, 0);
   } else {
-	mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
+	mediump vec3 normal;
+	normal.xy = texture2D(texNormal, texCoord.xy).yw * 2.0 - 1.0;
+	normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
 	normal = matTBN * normal;
 	mediump vec3 eyeVectorW = normalize(eyePos - posW.xyz);
 	mediump vec3 refVector = reflect(eyeVectorW, normal);
