@@ -279,7 +279,7 @@ namespace Texture {
 			curHeight = std::max(1, curHeight / 2);
 		}
 		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, CorrectFilter(mipCount, minFilter));
-		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, CorrectFilter(mipCount, magFilter));
+		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, CorrectFilter(1, magFilter));
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glBindTexture(tex.Target(), 0);
