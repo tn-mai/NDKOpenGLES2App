@@ -432,6 +432,10 @@ namespace Mai {
 		  return Result();
 		}
 	  }
+	  if (n.Dot(sphere.accel) >= 0.0f) {
+		LOGI("Outward:%x, %x, %f", u0, u1, n.Dot(sphere.accel));
+		return Result();
+	  }
 	  if (!logged) {
 		LOGI("Hit: (%f, %f, %f), %f, %f", n.x, n.y, n.z, tmin, tmax);
 	  }
