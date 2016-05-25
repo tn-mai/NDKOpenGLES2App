@@ -70,6 +70,12 @@ namespace Mai {
 	  return boost::optional<float>(-b - std::sqrt(discr));
 	}
 
+	float IntersectSegmentPlane(const Line& line, const Plane& plane) {
+	  const float distance = plane.normal.Dot(line.point - plane.point);
+	  const float denom = plane.normal.Dot(line.vec);
+	  return -distance / denom;
+	}
+
 	Result SphereSphere(RigidBody& lhs, RigidBody& rhs) {
 	  SphereShape& sphereA = static_cast<SphereShape&>(lhs);
 	  SphereShape& sphereB = static_cast<SphereShape&>(rhs);
@@ -292,41 +298,54 @@ namespace Mai {
 		  return Result();
 		}
 	  }
-	  Vector3F x = box.normal[0] * box.scale.x + box.normal[1] * box.scale.y + box.normal[2] * box.scale.z;
-	  x += (box.normal[0] + box.normal[1] + box.normal[2]) * sphere.shape.radius;
-	  const Vector3F pos0(box.center + x);
-	  const Vector3F pos1(box.center - x);
 	  const Vector3F so = sphere.shape.center - box.center;
 	  float tmin = 0;
 	  float tmax = 1;
+	  float distance = 1;
 	  Vector3F n = Vector3F::Unit();
+	  const Line line(sphere.shape.center, v);
 	  for (int i = 0; i < 3; ++i) {
-		const float vn = box.normal[i].Dot(v);
-		if (std::abs(vn) < FLT_EPSILON) {
-		  if (std::abs(box.normal[i].Dot(so)) > (&box.scale.x)[i] + sphere.shape.radius) {
-			return Result();
-		  }
-		} else {
-		  const float d1 = box.normal[i].Dot(pos0);
-		  const float d2 = -box.normal[i].Dot(pos1);
-		  float t1 = (d1 - box.normal[i].Dot(Vector3F(sphere.shape.center))) / vn;
-		  float t2 = (d2 + box.normal[i].Dot(Vector3F(sphere.shape.center))) / -vn;
-		  if (t1 <= t2) {
-			if (tmin < t1) {
-			  tmin = t1;
+		const float boxscale = (&box.scale.x)[i];
+		const float vn = Dot(v, box.normal[i]);
+		if (std::abs(vn) <= FLT_EPSILON) {
+		  float dist = Dot(so, box.normal[i]);
+		  if (dist >= 0.0f) {
+			dist -= boxscale + sphere.shape.radius;
+			if (dist > 0.0f) {
+			  return Result();
+			}
+			if (-dist < distance) {
+			  distance = -dist;
 			  n = box.normal[i];
 			}
-			tmax = std::min(tmax, t2);
 		  } else {
-			if (tmin < t2) {
-			  tmin = t2;
+			dist += boxscale + sphere.shape.radius;
+			if (dist < 0.0f) {
+			  return Result();
+			}
+			if (dist < distance) {
+			  distance = dist;
 			  n = -box.normal[i];
 			}
-			tmax = std::min(tmax, t1);
 		  }
-		  if (tmin > tmax) {
-			return Result();
+		}
+		const float t1 = IntersectSegmentPlane(line, Plane(box.center + box.normal[i] * (boxscale + sphere.shape.radius), box.normal[i]));
+		const float t2 = IntersectSegmentPlane(line, Plane(box.center - box.normal[i] * (boxscale + sphere.shape.radius), -box.normal[i]));
+		if (t1 <= t2) {
+		  if (tmin < t1) {
+			tmin = t1;
+			n = box.normal[i];
 		  }
+		  tmax = std::min(tmax, t2);
+		} else {
+		  if (tmin < t2) {
+			tmin = t2;
+			n = -box.normal[i];
+		  }
+		  tmax = std::min(tmax, t1);
+		}
+		if (tmin > tmax) {
+		  return Result();
 		}
 	  }
 
