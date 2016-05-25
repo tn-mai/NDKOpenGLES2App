@@ -485,6 +485,7 @@ namespace Mai {
 		e.SetAccel(v);
 		e.v = e.accel * delta;
 		e.innerEnergy = 0;
+		e.hasLatestCollision = false;
 	  }
 	  RigidBody* pLatestCollider = nullptr;
 	  for (auto itrL = bodies.begin(); itrL != bodies.end();) {
