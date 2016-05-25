@@ -420,15 +420,16 @@ namespace Mai {
 	  sphere.shape.center += sphere.v * tmin;
 	  box.center += box.v * tmin;
 	  if (n.x == 0 && n.y == 0 && n.z == 0) {
-		n = (sphere.shape.center - box.center).Normalize();
-		const float m2 = sphere.m + box.m;
-		const Vector3F correctV1 = n * 0.001f * box.m / m2;
-		if (correctV1.LengthSq() >= 0.00000001f) {
-		  sphere.shape.center += correctV1;
-		}
-		const Vector3F correctV2 = n * 0.001f * sphere.m / m2;
-		if (correctV2.LengthSq() >= 0.00000001f) {
-		  box.center -= correctV2;
+		switch (u0 + (u1 << 3)) {
+		case 0x01: n = -box.normal[0]; break;
+		case 0x02: n = -box.normal[1]; break;
+		case 0x04: n = -box.normal[2]; break;
+		case 0x08: n = box.normal[0]; break;
+		case 0x10: n = box.normal[1]; break;
+		case 0x20: n = box.normal[2]; break;
+		default:
+		  LOGI("Hit?:%x, %x", u0, u1);
+		  return Result();
 		}
 	  }
 	  if (!logged) {
