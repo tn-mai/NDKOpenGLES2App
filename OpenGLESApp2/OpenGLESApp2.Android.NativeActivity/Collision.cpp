@@ -3,6 +3,8 @@
 #include <list>
 #include <boost/optional.hpp>
 
+//#define ENABLE_COLLISION_LOGGING
+#ifdef ENABLE_COLLISION_LOGGING
 #ifdef __ANDROID__
 #include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
@@ -12,6 +14,10 @@
 #define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
+#else
+#define LOGI(...)
+#define LOGE(...)
+#endif // ENABLE_COLLISION_LOGGING
 
 namespace Mai {
 
@@ -349,6 +355,7 @@ namespace Mai {
 			tmax = std::min(tmax, t1);
 		  }
 		  if (tmin > tmax) {
+			LOGI("No collision: (%f, %f, %f), %f, %f", v.x, v.y, v.z, tmin, tmax);
 			return Result();
 		  }
 		}
@@ -364,7 +371,10 @@ namespace Mai {
 		}
 	  };
 
+#ifdef ENABLE_COLLISION_LOGGING
 	  bool logged = false;
+#endif // ENABLE_COLLISION_LOGGING
+
 	  int u0 = 0, u1 = 0;
 	  const Vector3F p = sphere.shape.center + tmin * sphere.v - box.center;
 	  const float f0 = box.normal[0].Dot(p);
@@ -383,24 +393,30 @@ namespace Mai {
 		const Line l(sphere.shape.center, sphere.v);
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, local::Corner(box, u1 ^ 1), sphere.shape.radius))) {
 		  if (ret.t < tmin) {
-			LOGI("Hit 0: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+#ifdef ENABLE_COLLISION_LOGGING
+			LOGI("Hit 0: %f %f, %f, (%f, %f, %f)", ret.t, tmin, tmax, ret.n.x, ret.n.y, ret.n.z);
 			logged = true;
+#endif // ENABLE_COLLISION_LOGGING
 			tmin = ret.t;
 			n = ret.n;
 		  }
 		}
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, local::Corner(box, u1 ^ 2), sphere.shape.radius))) {
 		  if (ret.t < tmin) {
-			LOGI("Hit 1: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+#ifdef ENABLE_COLLISION_LOGGING
+			LOGI("Hit 1: %f %f, %f, (%f, %f, %f)", ret.t, tmin, tmax, ret.n.x, ret.n.y, ret.n.z);
 			logged = true;
+#endif // ENABLE_COLLISION_LOGGING
 			tmin = ret.t;
 			n = ret.n;
 		  }
 		}
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, local::Corner(box, u1 ^ 4), sphere.shape.radius))) {
 		  if (ret.t < tmin) {
-			LOGI("Hit 2: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+#ifdef ENABLE_COLLISION_LOGGING
+			LOGI("Hit 2: %f %f, %f, (%f, %f, %f)", ret.t, tmin, tmax, ret.n.x, ret.n.y, ret.n.z);
 			logged = true;
+#endif // ENABLE_COLLISION_LOGGING
 			tmin = ret.t;
 			n = ret.n;
 		  }
@@ -413,11 +429,14 @@ namespace Mai {
 		const Position3F c1 = local::Corner(box, u1);
 		const Line l(sphere.shape.center, sphere.v);
 		if (auto ret = IntersectSegmentCapsule(l, Capsule(c0, c1, sphere.shape.radius))) {
-		  LOGI("Hit 3: (%f, %f, %f), %f, %f", ret.n.x, ret.n.y, ret.n.z, tmin, tmax);
+#ifdef ENABLE_COLLISION_LOGGING
+		  LOGI("Hit 3: %f %f, %f, (%f, %f, %f)", ret.t, tmin, tmax, ret.n.x, ret.n.y, ret.n.z);
 		  logged = true;
+#endif // ENABLE_COLLISION_LOGGING
 		  tmin = ret.t;
 		  n = ret.n;
 		} else {
+		  LOGI("Through: %f, %f", tmin, tmax);
 		  return Result();
 		}
 	  }
@@ -441,9 +460,13 @@ namespace Mai {
 		LOGI("Outward:%x, %x, %f", u0, u1, n.Dot(sphere.accel));
 		return Result();
 	  }
+
+#ifdef ENABLE_COLLISION_LOGGING
 	  if (!logged) {
 		LOGI("Hit: (%f, %f, %f), %f, %f", n.x, n.y, n.z, tmin, tmax);
 	  }
+#endif // ENABLE_COLLISION_LOGGING
+
 	  const Plane plane(sphere.shape.center - sphere.shape.radius * n, n);
 	  SolveRestitution(lhs, rhs, plane, tmin);
 	  return Result(plane);
