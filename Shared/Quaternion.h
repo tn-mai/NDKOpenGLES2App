@@ -66,9 +66,9 @@ struct Quaternion {
   // @ref http://nic-gamedev.blogspot.jp/2011/11/quaternion-math-getting-local-axis.html
   constexpr Vector3F ForwardVector() const {
     return Vector3F(
-      2 * (x * z + w * y),
-      2 * (y * x - w * x),
-      1 - 2 * (x * x + y * y)
+      -2 * (x * z + w * y),
+      2 * (w * x - y * z),
+      -(1 - 2 * (x * x + y * y))
     );
   }
   constexpr Vector3F UpVector() const {
