@@ -2370,7 +2370,7 @@ void Renderer::InitTexture()
 //	textureList.insert({ "floor", Texture::LoadKTX((texBaseDir + "floor.ktx").c_str()) });
 //	textureList.insert({ "floor_nml", Texture::LoadKTX((texBaseDir + "floorNR.ktx").c_str()) });
 	textureList.insert({ "floor", Texture::LoadKTX("Textures/Common/landscape.ktx") });
-	textureList.insert({ "floor_nml", Texture::LoadKTX((texBaseDir + "landscapeNR.ktx").c_str()) });
+	textureList.insert({ "floor_nml", Texture::LoadKTX("Textures/Common/landscapeNR.ktx") });
 	textureList.insert({ "flyingrock", Texture::LoadKTX((texBaseDir + "flyingrock.ktx").c_str()) });
 	textureList.insert({ "flyingrock_nml", Texture::LoadKTX((texBaseDir + "flyingrockNR.ktx").c_str()) });
 	textureList.insert({ "block1", Texture::LoadKTX("Textures/Common/block1.ktx") });

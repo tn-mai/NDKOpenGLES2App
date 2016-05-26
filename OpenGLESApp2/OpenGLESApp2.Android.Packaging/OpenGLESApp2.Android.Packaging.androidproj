@@ -153,7 +153,6 @@
     <Content Include="assets\Textures\Adreno\IBL\ibl_sunset_5.ktx" />
     <Content Include="assets\Textures\Adreno\IBL\ibl_sunset_6.ktx" />
     <Content Include="assets\Textures\Adreno\IBL\ibl_sunset_7.ktx" />
-    <Content Include="assets\Textures\Adreno\landscapeNR.ktx" />
     <Content Include="assets\Textures\Adreno\rock_s.ktx" />
     <Content Include="assets\Textures\Adreno\rock_s_NR.ktx" />
     <Content Include="assets\Textures\Adreno\sphere.ktx" />
@@ -168,6 +167,7 @@
     <Content Include="assets\Textures\Common\cloud.ktx" />
     <Content Include="assets\Textures\Common\font.ktx" />
     <Content Include="assets\Textures\Common\landscape.ktx" />
+    <Content Include="assets\Textures\Common\landscapeNR.ktx" />
     <Content Include="assets\Textures\Common\titlelogo.ktx" />
     <Content Include="assets\Textures\Common\titlelogoNR.ktx" />
     <Content Include="assets\Textures\Others\accelerator.ktx" />
@@ -206,7 +206,6 @@
     <Content Include="assets\Textures\Others\IBL\ibl_sunset_5.ktx" />
     <Content Include="assets\Textures\Others\IBL\ibl_sunset_6.ktx" />
     <Content Include="assets\Textures\Others\IBL\ibl_sunset_7.ktx" />
-    <Content Include="assets\Textures\Others\landscapeNR.ktx" />
     <Content Include="assets\Textures\Others\rock_s.ktx" />
     <Content Include="assets\Textures\Others\rock_s_NR.ktx" />
     <Content Include="assets\Textures\Others\sphere.ktx" />
