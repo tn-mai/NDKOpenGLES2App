@@ -457,7 +457,8 @@ namespace SunnySideUp {
 		o.SetAnimation(renderer.GetAnimation("Dive"));
 		const Vector3F trans(5, static_cast<GLfloat>(levelInfo.startHeight), 4.5f);
 		o.SetTranslation(trans);
-		//o.SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(45), degreeToRadian<float>(0));
+		playerRotation = Vector3F(degreeToRadian<float>(0), degreeToRadian<float>(180), degreeToRadian<float>(0));
+		o.SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
 		//o.SetScale(Vector3F(5, 5, 5));
 		Collision::RigidBodyPtr p(new Collision::SphereShape(trans.ToPosition3F(), 3.0f, 0.1f));
 		//p->thrust = Vector3F(0, 9.8f, 0);
@@ -729,17 +730,17 @@ namespace SunnySideUp {
         if (std::abs(tz) <= margin) {
           playerMovement.x = 0.0f;
         } else if (tz < 0.0f) {
-          playerMovement.x = -(tz + margin) * scale;
+          playerMovement.x = (tz + margin) * scale;
         } else {
-          playerMovement.x = -(tz - margin) * scale;
+          playerMovement.x = (tz - margin) * scale;
         }
 		const float ty = e.Tilt.Y + offsetY;
         if (std::abs(ty) < margin) {
           playerMovement.z = 0.0f;
         } else if (ty < 0.0f) {
-          playerMovement.z = (ty + margin) * scale;
+          playerMovement.z = -(ty + margin) * scale;
         } else {
-          playerMovement.z = (ty - margin) * scale;
+          playerMovement.z = -(ty - margin) * scale;
         }
         break;
       }
@@ -787,9 +788,9 @@ namespace SunnySideUp {
 		}
 #ifndef __ANDROID__
 		if (directionKeyDownList[DIRECTIONKEY_UP]) {
-		  rigidCamera->thrust.z = std::min(15.0f, rigidCamera->thrust.z + 1.0f);
+		  rigidCamera->thrust.z = std::min(15.0f, rigidCamera->thrust.z - 1.0f);
 		} else if (directionKeyDownList[DIRECTIONKEY_DOWN]) {
-		  rigidCamera->thrust.z = std::max(-15.0f, rigidCamera->thrust.z - 1.0f);
+		  rigidCamera->thrust.z = std::max(-15.0f, rigidCamera->thrust.z + 1.0f);
 		} else {
 		  rigidCamera->thrust.z *= 0.9f;
 		  if (std::abs(rigidCamera->thrust.z) < 0.1) {
@@ -797,9 +798,9 @@ namespace SunnySideUp {
 		  }
 		}
 		if (directionKeyDownList[DIRECTIONKEY_LEFT]) {
-		  rigidCamera->thrust.x = std::min(15.0f, rigidCamera->thrust.x + 1.0f);
+		  rigidCamera->thrust.x = std::min(15.0f, rigidCamera->thrust.x - 1.0f);
 		} else if (directionKeyDownList[DIRECTIONKEY_RIGHT]) {
-		  rigidCamera->thrust.x = std::max(-15.0f, rigidCamera->thrust.x - 1.0f);
+		  rigidCamera->thrust.x = std::max(-15.0f, rigidCamera->thrust.x + 1.0f);
 		} else {
 		  rigidCamera->thrust.x *= 0.9f;
 		  if (std::abs(rigidCamera->thrust.x) < 0.1) {
@@ -810,7 +811,7 @@ namespace SunnySideUp {
 		const float decelFactor = rigidCamera->thrust.Length() * 0.5f;
 		rigidCamera->thrust.y = decelFactor;
 		playerRotation.x = std::min(0.5f, std::max(-0.5f, rigidCamera->thrust.z * -0.05f));
-		playerRotation.z = std::min(0.5f, std::max(-0.5f, rigidCamera->thrust.x * 0.05f));
+		playerRotation.z = std::min(0.5f, std::max(-0.5f, rigidCamera->thrust.x * -0.05f));
 		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
 #else
 		rigidCamera->thrust = playerMovement;
@@ -818,7 +819,7 @@ namespace SunnySideUp {
 		const float decelFactor = rigidCamera->thrust.Length() * 0.5f;
 		rigidCamera->thrust.y = decelFactor;
 		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerMovement.z * -0.05f));
-		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * 0.05f));
+		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * -0.05f));
 		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
 #endif // __ANDROID__
 	  }
@@ -858,7 +859,7 @@ namespace SunnySideUp {
 #endif
 	  Renderer& renderer = engine.GetRenderer();
 	  if (!debugData.Updata(renderer, deltaTime)) {
-		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
+		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, -2), Vector3F(0, -1, 0), Vector3F(0, 0, -1));
 		//			for (auto&& e : engine.obj) {
 		//				e.Update(engine.deltaTime);
 		//				while (e.GetCurrentTime() >= 1.0f) {
@@ -898,7 +899,7 @@ namespace SunnySideUp {
 	int DoFadeOut(Engine& engine, float deltaTime) {
 	  Renderer& renderer = engine.GetRenderer();
 	  if (!debugData.Updata(renderer, deltaTime)) {
-		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, 2), Vector3F(0, -1, 0), Vector3F(0, 0, 1));
+		renderer.Update(deltaTime, rigidCamera->Position() + Vector3F(0, 20, -2), Vector3F(0, -1, 0), Vector3F(0, 0, -1));
 	  }
 	  if (renderer.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 		engine.GetCommonData<CommonData>()->currentTime = static_cast<int64_t>(stopWatch * 1000.0f);
