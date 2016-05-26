@@ -328,24 +328,25 @@ namespace Mai {
 			  n = -box.normal[i];
 			}
 		  }
-		}
-		const float t1 = IntersectSegmentPlane(line, Plane(box.center + box.normal[i] * (boxscale + sphere.shape.radius), box.normal[i]));
-		const float t2 = IntersectSegmentPlane(line, Plane(box.center - box.normal[i] * (boxscale + sphere.shape.radius), -box.normal[i]));
-		if (t1 <= t2) {
-		  if (tmin < t1) {
-			tmin = t1;
-			n = box.normal[i];
-		  }
-		  tmax = std::min(tmax, t2);
 		} else {
-		  if (tmin < t2) {
-			tmin = t2;
-			n = -box.normal[i];
+		  const float t1 = IntersectSegmentPlane(line, Plane(box.center + box.normal[i] * (boxscale + sphere.shape.radius), box.normal[i]));
+		  const float t2 = IntersectSegmentPlane(line, Plane(box.center - box.normal[i] * (boxscale + sphere.shape.radius), -box.normal[i]));
+		  if (t1 <= t2) {
+			if (tmin < t1) {
+			  tmin = t1;
+			  n = box.normal[i];
+			}
+			tmax = std::min(tmax, t2);
+		  } else {
+			if (tmin < t2) {
+			  tmin = t2;
+			  n = -box.normal[i];
+			}
+			tmax = std::min(tmax, t1);
 		  }
-		  tmax = std::min(tmax, t1);
-		}
-		if (tmin > tmax) {
-		  return Result();
+		  if (tmin > tmax) {
+			return Result();
+		  }
 		}
 	  }
 
