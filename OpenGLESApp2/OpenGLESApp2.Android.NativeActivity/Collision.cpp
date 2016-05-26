@@ -236,20 +236,22 @@ namespace Mai {
 	  return ResultISC();
 	}
 	ResultISC IntersectSegmentCapsule(const Line& l, const Capsule& capsule) {
+	  const Vector3F d = capsule.n.vec;
 	  const Vector3F m = l.point - capsule.n.point;
-	  const float md = m.Dot(capsule.n.vec);
-	  const float nd = l.vec.Dot(capsule.n.vec);
-	  const float dd = capsule.n.vec.Dot(capsule.n.vec);
+	  const Vector3F n = l.vec;
+	  const float md = Dot(m, d);
+	  const float nd = Dot(n, d);
+	  const float dd = Dot(d, d);
 	  if (md < 0.0f && md + nd < 0.0f) {
 		return IntersectSegmentSphere(l, Sphere(capsule.n.point, capsule.r));
-	  } else if (md < dd && md + nd > dd) {
+	  } else if (md > dd && md + nd > dd) {
 		return IntersectSegmentSphere(l, Sphere(capsule.n.point + capsule.n.vec, capsule.r));
 	  }
 
-	  const float nn = l.vec.Dot(l.vec);
-	  const float mn = m.Dot(l.vec);
+	  const float nn = Dot(n, n);
+	  const float mn = Dot(m, n);
 	  const float a = dd * nn - nd * nd;
-	  const float k = m.Dot(m) - capsule.r * capsule.r;
+	  const float k = Dot(m, m) - capsule.r * capsule.r;
 	  const float c = dd * k - md * md;
 	  if (std::abs(a) < FLT_EPSILON) {
 		if (c > 0.0f) {
