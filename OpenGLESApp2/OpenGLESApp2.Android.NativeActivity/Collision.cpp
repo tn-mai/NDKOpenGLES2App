@@ -273,16 +273,14 @@ namespace Mai {
 		return ResultISC();
 	  }
 	  const float t = (-b - std::sqrt(discr)) / a;
-	  if (t < 0.0f || t > 1.0f) {
-		return ResultISC();
-	  }
 	  const float u = md + t * nd;
 	  if (u < 0.0f) {
 		return IntersectSegmentSphere(l, Sphere(capsule.n.point, capsule.r));
 	  } else if (u > dd) {
 		return IntersectSegmentSphere(l, Sphere(capsule.n.point + capsule.n.vec, capsule.r));
+	  } else if (t < 0.0f || t > 1.0f) {
+		return ResultISC();
 	  }
-
 	  const Position3F x = l.point + l.vec * t;
 	  const float t0 = ClosestPointLine(x, capsule.n.point, capsule.n.vec);
 	  const Position3F p0 = capsule.n.point + capsule.n.vec * t0;
