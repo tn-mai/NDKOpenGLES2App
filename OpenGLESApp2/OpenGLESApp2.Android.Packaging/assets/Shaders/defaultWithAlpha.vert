@@ -28,8 +28,6 @@ varying mediump mat3 matTBN;
 varying mediump vec4 texCoord;
 varying mediump vec4 posForShadow;
 
-varying lowp vec3 color;
-
 void main()
 {
   vec4 bid = vBoneID * 3.0;
@@ -81,5 +79,4 @@ void main()
 
   texCoord = SCALE_TEXCOORD(vTexCoord01);
   gl_Position = (matProjection * matView * m) * vec4(vPosition, 1);
-  //color = vTangent * 0.5 + 0.5;
 }

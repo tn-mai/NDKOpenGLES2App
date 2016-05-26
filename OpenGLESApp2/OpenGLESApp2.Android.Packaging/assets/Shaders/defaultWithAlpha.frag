@@ -13,8 +13,6 @@ uniform sampler2D texNormal;
 uniform samplerCube texIBL[3];
 uniform sampler2D texShadow;
 
-uniform lowp float debug;
-
 varying mediump vec4 lightVectorAndDistance;
 varying mediump vec3 eyeVector;
 varying mediump vec3 halfVector;
@@ -23,9 +21,6 @@ varying mediump mat3 matTBN;
 
 varying mediump vec4 texCoord;
 varying mediump vec4 posForShadow;
-
-// use for debugging.
-varying lowp vec3 color;
 
 #define G1(dottedFactor, k) \
   (dottedFactor / (dottedFactor * (1.0 - k) + k))
