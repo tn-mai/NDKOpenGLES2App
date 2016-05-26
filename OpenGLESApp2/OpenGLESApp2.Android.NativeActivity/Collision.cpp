@@ -298,6 +298,11 @@ namespace Mai {
 		  return Result();
 		}
 	  }
+	  const float boxscale[3] = {
+		box.scale.x + sphere.shape.radius,
+		box.scale.y + sphere.shape.radius,
+		box.scale.z + sphere.shape.radius
+	  };
 	  const Vector3F so = sphere.shape.center - box.center;
 	  float tmin = 0;
 	  float tmax = 1;
@@ -305,12 +310,11 @@ namespace Mai {
 	  Vector3F n = Vector3F::Unit();
 	  const Line line(sphere.shape.center, v);
 	  for (int i = 0; i < 3; ++i) {
-		const float boxscale = (&box.scale.x)[i];
 		const float vn = Dot(v, box.normal[i]);
 		if (std::abs(vn) <= FLT_EPSILON) {
 		  float dist = Dot(so, box.normal[i]);
 		  if (dist >= 0.0f) {
-			dist -= boxscale + sphere.shape.radius;
+			dist -= boxscale[i];
 			if (dist > 0.0f) {
 			  return Result();
 			}
@@ -319,7 +323,7 @@ namespace Mai {
 			  n = box.normal[i];
 			}
 		  } else {
-			dist += boxscale + sphere.shape.radius;
+			dist += boxscale[i];
 			if (dist < 0.0f) {
 			  return Result();
 			}
@@ -329,8 +333,8 @@ namespace Mai {
 			}
 		  }
 		} else {
-		  const float t1 = IntersectSegmentPlane(line, Plane(box.center + box.normal[i] * (boxscale + sphere.shape.radius), box.normal[i]));
-		  const float t2 = IntersectSegmentPlane(line, Plane(box.center - box.normal[i] * (boxscale + sphere.shape.radius), -box.normal[i]));
+		  const float t1 = IntersectSegmentPlane(line, Plane(box.center + box.normal[i] * boxscale[i], box.normal[i]));
+		  const float t2 = IntersectSegmentPlane(line, Plane(box.center - box.normal[i] * boxscale[i], -box.normal[i]));
 		  if (t1 <= t2) {
 			if (tmin < t1) {
 			  tmin = t1;
