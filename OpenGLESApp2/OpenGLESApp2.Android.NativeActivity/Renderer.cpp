@@ -1161,7 +1161,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  Vector3F cloudColorEdge;
 	} iblDynamicRangeArray[] = {
 	  { 0.5f, 1.0f / 0.5f, Vector3F(0.65f, 0.75f, 0.85f), Vector3F(0.0f, 0.05f, 0.2f) },
-	  { 0.5f, 1.0f / 0.5f, Vector3F(0.9f, 0.8f, 0.5f), Vector3F(0.6f, 0.1f, 0.05f) },
+	  { 0.5f, 1.0f / 0.5f, Vector3F(0.65f, 0.5f, 0.3f), Vector3F(0.75f, 0.1f, 0.05f) },
 	  { 0.5f, 1.0f / 2.0f, Vector3F(1.5f, 1.5f, 1.2f), Vector3F(0.4f, 0.1f, 0.5f) },
 	};
 	const float dynamicRangeFactor = iblDynamicRangeArray[timeOfScene].range;
