@@ -26,6 +26,7 @@
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #else
+#include <stdio.h>
 #define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
@@ -193,6 +194,7 @@ namespace Mai {
 
 	  // 次のシーンの準備.
 	  if (!pUnloadingScene && pNextScene) {
+		LOGI("[Mai::Engine] Prepare scene %p", pNextScene.get());
 		if (pNextScene->Load(*this)) {
 		  // 準備ができたので、前のシーンをアンロード対象とし、次のシーンを現在のシーンに登録する.
 		  pUnloadingScene = pCurrentScene;
@@ -203,15 +205,18 @@ namespace Mai {
 
 	  // 前のシーンの破棄.
 	  if (pUnloadingScene) {
+		LOGI("[Mai::Engine] Destroy scene %p", pUnloadingScene.get());
 		if (pUnloadingScene->Unload(*this)) {
 		  pUnloadingScene.reset();
 		}
 	  }
 
 	  // 現在のシーンを実行.
+	  static bool isFirstRun = true;
 	  if (pCurrentScene) {
 		switch (pCurrentScene->GetState()) {
 		case Scene::STATUSCODE_LOADING:
+		  LOGI("[Mai::Engine] Load scene %p", pCurrentScene.get());
 		  pCurrentScene->Load(*this);
 		  break;
 		case Scene::STATUSCODE_RUNNABLE: {
@@ -230,7 +235,14 @@ namespace Mai {
 			  deltaTime = (deltaTime + 1.0f / latestFps) * 0.5f;
 			}
 		  }
+		  if ((frames % 180) == 0) {
+			LOGI("FPS:%02.1f", avgFps);
+		  }
 #endif
+		  if (isFirstRun) {
+			LOGI("[Mai::Engine] Run scene %p", pCurrentScene.get());
+			isFirstRun = false;
+		  }
 		  const int nextScneId = pCurrentScene->Update(*this, deltaTime);
 		  switch (nextScneId) {
 		  case SCENEID_TERMINATE:
@@ -239,12 +251,15 @@ namespace Mai {
 		  case SCENEID_CONTINUE:
 			break;
 		  default:
+			isFirstRun = true;
+			LOGI("[Mai::Engine] Next scene %d", nextScneId);
 			SetNextScene(nextScneId);
 			break;
 		  }
 		  break;
 		}
 		case Scene::STATUSCODE_UNLOADING:
+		  LOGI("[Mai::Engine] Unload scene %p", pCurrentScene.get());
 		  pCurrentScene->Unload(*this);
 		  break;
 		case Scene::STATUSCODE_STOPPED:
