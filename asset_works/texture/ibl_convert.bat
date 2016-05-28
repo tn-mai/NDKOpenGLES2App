@@ -23,7 +23,7 @@ set REGION_PZ=+z 256 256 512 512 l
 set REGION_NZ=-z 256 0 512 256 t
 set REGION=%REGION_PX% %REGION_NX% %REGION_PY% %REGION_NY% %REGION_PZ% %REGION_NZ% 
 
-set CUBEMAP_SIZE_HIGH=128x128
+set CUBEMAP_SIZE_HIGH=256x256
 set CUBEMAP_SIZE_IRR=8x8
 
 set GEN_CUBEMAP=c:/usr/local/projects/gen_cubemap/gen_cubemap.exe
@@ -37,7 +37,7 @@ set OPT=
 @rem +Y|-Y|+Z
 
 call :convert noon 0.333
-call :convert sunset 1.0
+call :convert sunset 1.1
 call :convert night 0.25
 goto :end
 
@@ -63,13 +63,14 @@ call :cubemap_for_others ibl_%1Irr.ktx
 call :cubemap_for_adreno ibl_%1Irr.ktx
 
 :convert_low
-set /a "CUBEMAP_SIZE = 96"
+set /a "CUBEMAP_SIZE = 128"
 set /a "ANGLE = 1"
+set /a "BASE_SCALE = 1"
 for /L %%i in (2, 1, 7) do (call :convert_cubemap %1 %2 ibl_%1_%%i.ktx %%i)
 goto :convert_high
 
 :convert_cubemap
-%EXR2PNG% -s %2 -f tga -c filtered -a %ANGLE% %REGION% -m %4 "%1HighRez.exr" "filtered"
+%EXR2PNG% -s %2 -f tga -c filtered -a %ANGLE% %REGION% -m %BASE_SCALE% "%1HighRez.exr" "filtered"
 if errorlevel 0 goto :success_low
 pause
 exit 1
@@ -88,8 +89,9 @@ del "filtered_pz.tga"
 del "filtered_nz.tga"
 call :cubemap_for_others %3
 call :cubemap_for_adreno %3
-set /a "CUBEMAP_SIZE = ((CUBEMAP_SIZE * 2) / 12) * 4"
+set /a "CUBEMAP_SIZE = CUBEMAP_SIZE / 2"
 set /a "ANGLE = ANGLE * 2"
+set /a "BASE_SCALE = BASE_SCALE * 2"
 exit /b
 
 :convert_high
