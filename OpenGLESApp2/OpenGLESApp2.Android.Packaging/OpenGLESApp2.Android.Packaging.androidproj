@@ -63,11 +63,11 @@
     </AntPackage>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Content Include="assets\Audio\background.mp3" />
     <Content Include="assets\Audio\bound.wav" />
     <Content Include="assets\Audio\dive.mp3" />
     <Content Include="assets\Audio\miss.wav" />
     <Content Include="assets\Audio\success.wav" />
+    <Content Include="assets\Audio\title.mp3" />
     <Content Include="assets\Audio\wind.wav" />
     <Content Include="assets\Meshes\accelerator.msh" />
     <Content Include="assets\Meshes\block1.msh" />
