@@ -127,7 +127,7 @@ namespace SunnySideUp {
 		r.SetFilterColor(Color4B(0, 0, 0, 255));
 		r.FadeIn(1.0f);
 		AudioInterface& audio = engine.GetAudio();
-		audio.PlayBGM("Audio/title.mp3");
+		audio.PlayBGM("Audio/title.mp3", 1.0f);
 		updateFunc = &TitleScene::DoUpdate;
 	  }
 	  return SCENEID_CONTINUE;
