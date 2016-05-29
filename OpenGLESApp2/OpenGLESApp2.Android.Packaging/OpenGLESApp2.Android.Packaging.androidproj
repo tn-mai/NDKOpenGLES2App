@@ -214,6 +214,10 @@
     <Content Include="assets\Textures\Others\sunnysideupNR.ktx" />
     <Content Include="assets\Textures\Others\wood.ktx" />
     <Content Include="assets\Textures\Others\woodNR.ktx" />
+    <Content Include="res\drawable-hdpi\launchericon.png" />
+    <Content Include="res\drawable-mdpi\launchericon.png" />
+    <Content Include="res\drawable-xhdpi\launchericon.png" />
+    <Content Include="res\drawable-xxhdpi\launchericon.png" />
     <Content Include="res\values\strings.xml" />
     <AntBuildXml Include="build.xml" />
     <AndroidManifest Include="AndroidManifest.xml">
