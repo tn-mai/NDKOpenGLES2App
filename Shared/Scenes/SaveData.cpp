@@ -184,7 +184,7 @@ bool SetNewRecord(const Mai::Window& window, int level, int64_t recordTime) {
   time(&currentTime);
   const struct tm* pGMT = gmtime(&currentTime);
   if (!pGMT) {
-	LOGE("ERROR in SetNewRecord: gmtime failed(time:%lld)", currentTime);
+	LOGE("ERROR in SetNewRecord: gmtime failed(time:%ld)", currentTime);
 	return false;
   }
   Record record;
