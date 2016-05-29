@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "OpenGLESApp2", "OpenGLESApp2", "{D44C1DE1-E17B-412B-BFDE-E77A69B2DE14}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SunnySideUp", "SunnySideUp", "{D44C1DE1-E17B-412B-BFDE-E77A69B2DE14}"
 EndProject
 Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "OpenGLESApp2.Android.Packaging", "OpenGLESApp2\OpenGLESApp2.Android.Packaging\OpenGLESApp2.Android.Packaging.androidproj", "{FD358821-EF7E-47BF-ADB1-C4E3C10739C2}"
 EndProject

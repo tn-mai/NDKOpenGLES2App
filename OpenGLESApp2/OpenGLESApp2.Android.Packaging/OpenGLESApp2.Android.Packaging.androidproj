@@ -50,6 +50,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <AntPackage>
       <AndroidAppLibName>$(RootNamespace)</AndroidAppLibName>
+      <AntTarget>release</AntTarget>
     </AntPackage>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
@@ -60,6 +61,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <AntPackage>
       <AndroidAppLibName>$(RootNamespace)</AndroidAppLibName>
+      <AntTarget>release</AntTarget>
     </AntPackage>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -229,6 +231,9 @@
     <ProjectReference Include="..\OpenGLESApp2.Android.NativeActivity\OpenGLESApp2.Android.NativeActivity.vcxproj">
       <Project>{5f4fc41b-61f9-460c-bdd6-cb58f82c3b9c}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <JavaCompile Include="ant.properties" />
   </ItemGroup>
   <Import Project="$(AndroidTargetsPath)\Android.targets" />
   <ImportGroup Label="ExtensionTargets" />
