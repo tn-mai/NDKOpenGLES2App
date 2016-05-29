@@ -284,7 +284,7 @@ namespace Mai {
   */
   bool MakeDirectory(const std::string& path, mode_t mode) {
 	if (path.size() >= PATH_MAX - 1) {
-	  LOGE("ERROR in MakeDirectory(path is too long): %s", errno, path.c_str());
+	  LOGE("ERROR in MakeDirectory(path is too long): %s", path.c_str());
 	  return false;
 	}
 	char tmp[PATH_MAX];
