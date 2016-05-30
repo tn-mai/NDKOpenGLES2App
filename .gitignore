@@ -11,6 +11,13 @@
 *.sln.docstates
 *.VC.opendb
 ant.properties
+asset_works/Audio/*.wav
+asset_works/Audio/*.mid
+asset_works/Audio/*.mp3
+asset_works/Texture/to_adreno/*
+asset_works/Texture/to_others/*
+asset_works/Texture/to_common/*
+asset_works/*.fbx
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
