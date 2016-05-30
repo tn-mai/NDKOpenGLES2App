@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5f4fc41b-61f9-460c-bdd6-cb58f82c3b9c}</ProjectGuid>
     <Keyword>Android</Keyword>
-    <RootNamespace>OpenGLESApp2</RootNamespace>
+    <RootNamespace>SunnySideUp</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <ApplicationType>Android</ApplicationType>

@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <RootNamespace>OpenGLESApp2</RootNamespace>
+    <RootNamespace>SunnySideUp</RootNamespace>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <ProjectVersion>1.0</ProjectVersion>
     <ProjectGuid>{fd358821-ef7e-47bf-adb1-c4e3c10739c2}</ProjectGuid>
