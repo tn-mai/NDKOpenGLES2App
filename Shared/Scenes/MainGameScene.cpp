@@ -808,16 +808,18 @@ namespace SunnySideUp {
 		  }
 		}
 		rigidCamera->thrust.y = 0.0f;
-		const float decelFactor = rigidCamera->thrust.Length() * 0.5f;
-		rigidCamera->thrust.y = decelFactor;
+		if (rigidCamera->accel.y < 0.0f) {
+		  rigidCamera->thrust.y = std::min(-rigidCamera->accel.y, std::max(0.0f, rigidCamera->thrust.Length() * 0.5f));
+		}
 		playerRotation.x = std::min(0.5f, std::max(-0.5f, rigidCamera->thrust.z * -0.05f));
 		playerRotation.z = std::min(0.5f, std::max(-0.5f, rigidCamera->thrust.x * -0.05f));
 		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
 #else
 		rigidCamera->thrust = playerMovement;
 		rigidCamera->thrust.y = 0.0f;
-		const float decelFactor = rigidCamera->thrust.Length() * 0.5f;
-		rigidCamera->thrust.y = decelFactor;
+		if (rigidCamera->accel.y < 0.0f) {
+		  rigidCamera->thrust.y = std::min(-rigidCamera->accel.y, std::max(0.0f, rigidCamera->thrust.Length() * 0.5f));
+		}
 		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerMovement.z * -0.05f));
 		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * -0.05f));
 		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
