@@ -99,8 +99,6 @@
     <Content Include="assets\Shaders\emission.vert" />
     <Content Include="assets\Shaders\font.frag" />
     <Content Include="assets\Shaders\font.vert" />
-    <Content Include="assets\Shaders\gaussian3x3.frag" />
-    <Content Include="assets\Shaders\gaussian3x3.vert" />
     <Content Include="assets\Shaders\hdrdiff.frag" />
     <Content Include="assets\Shaders\hdrdiff.vert" />
     <Content Include="assets\Shaders\reduceLum.frag" />

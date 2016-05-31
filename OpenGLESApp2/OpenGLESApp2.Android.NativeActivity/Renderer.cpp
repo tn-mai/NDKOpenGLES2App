@@ -706,7 +706,6 @@ void Renderer::Initialize(const Window& window)
 	  { ShaderType::Complex3D, "skybox" },
 	  { ShaderType::Complex3D, "shadow" },
 	  { ShaderType::Complex3D, "bilinear4x4" },
-	  { ShaderType::Complex3D, "gaussian3x3" },
 	  { ShaderType::Complex3D, "sample4" },
 	  { ShaderType::Complex3D, "reduceLum" },
 	  { ShaderType::Complex3D, "hdrdiff" },
