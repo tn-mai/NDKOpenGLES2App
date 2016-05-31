@@ -519,16 +519,12 @@ Renderer::Renderer()
   , shadowNear(10)
   ,	shadowFar(2000)
   , shadowScale(1, 1)
-  , fboMain(0)
-  , fboSub(0)
-  , fboShadow0(0)
-  , fboShadow1(0)
   , depth(0)
   , filterMode(FILTERMODE_NONE)
   , filterColor(0, 0, 0, 0)
   , filterTimer(0.0f)
 {
-  for (auto& e : fboHDR) {
+  for (auto& e : fbo) {
 	e = 0;
   }
 }
@@ -542,24 +538,30 @@ Renderer::~Renderer()
 
 Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 {
+	// This list should keep same order as a enumeration type of 'FBOIndex'.
 	static const struct {
 		const char* name;
+		FBOIndex index;
 		uint16_t width;
 		uint16_t height;
 	} fboNameList[] = {
-		{ "fboMain", static_cast<uint16_t>(FBO_MAIN_WIDTH), static_cast<uint16_t>(FBO_MAIN_HEIGHT) },
-		{ "fboSub", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4) },
-		{ "fboShadow0", static_cast<uint16_t>(SHADOWMAP_SUB_WIDTH), static_cast<uint16_t>(SHADOWMAP_SUB_HEIGHT) },
-		{ "fboShadow1", static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
-		{ "fboHDR0", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboHDR1", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboHDR2", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 8), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 8) },
-		{ "fboHDR3", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 16), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 16) },
-		{ "fboHDR4", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 32), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 32) },
-		{ "fboHDR5", static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 64), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 64) },
+		// Entity
+		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(FBO_MAIN_WIDTH), static_cast<uint16_t>(FBO_MAIN_HEIGHT) },
+		{ "fboSub", FBO_Sub, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboShadow1", FBO_Shadow1, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
+		{ "fboHDR0", FBO_HDR0, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboHDR1", FBO_HDR1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboHDR2", FBO_HDR2, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 8), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 8) },
+		{ "fboHDR3", FBO_HDR3, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 16), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 16) },
+		{ "fboHDR4", FBO_HDR4, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 32), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 32) },
+		{ "fboHDR5", FBO_HDR5, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 64), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 64) },
+
+		// Alias
+		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT) },
+		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
 	};
 
-	GLuint* p = const_cast<GLuint*>(&fboMain + id);
+	GLuint* p = const_cast<GLuint*>(&fbo[fboNameList[id].index]);
 	return { fboNameList[id].name, fboNameList[id].width, fboNameList[id].height, p };
 }
 
@@ -759,23 +761,25 @@ void Renderer::Initialize(const Window& window)
 	}
 
 	{
-		const auto& tex = *textureList["fboMain"];
-		glGenFramebuffers(1, &fboMain);
+		const FBOInfo fboMainInfo = GetFBOInfo(FBO_Main);
+		const auto& tex = *textureList[fboMainInfo.name];
+		glGenFramebuffers(1, fboMainInfo.p);
 		glGenRenderbuffers(1, &depth);
 		glBindRenderbuffer(GL_RENDERBUFFER, depth);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, tex.Width(), tex.Height());
-		glBindFramebuffer(GL_FRAMEBUFFER, fboMain);
+		glBindFramebuffer(GL_FRAMEBUFFER, *fboMainInfo.p);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex.TextureId());
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.TextureId(), 0);
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			LOGE("Error: FrameBufferObject(fboMain) is not complete!\n");
+			LOGE("Error: FrameBufferObject(%s) is not complete!\n", fboMainInfo.name);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glDeleteRenderbuffers(1, &depth);
-			glDeleteFramebuffers(1, &fboMain);
+			glDeleteFramebuffers(1, fboMainInfo.p);
 			glBindTexture(GL_TEXTURE_2D, 0);
-			fboMain = depth = 0;
+			*fboMainInfo.p = 0;
+			depth = 0;
 		}
 	}
 
@@ -1029,13 +1033,14 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glEnableVertexAttribArray(VertexAttribLocation_BoneID);
 		glVertexAttribPointer(VertexAttribLocation_BoneID, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offBoneID);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, fboMain);
+		const FBOInfo fboShadowInfo = GetFBOInfo(FBO_Shadow);
+		glBindFramebuffer(GL_FRAMEBUFFER, *fboShadowInfo.p);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glBlendFunc(GL_ONE, GL_ZERO);
 		glCullFace(GL_BACK);
 
-		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_MAIN_WIDTH), static_cast<GLsizei>(SHADOWMAP_MAIN_HEIGHT));
+		glViewport(0, 0, fboShadowInfo.width, fboShadowInfo.height);
 		glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1089,15 +1094,16 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		Local::glSetFenceNV(fences[FENCE_ID_SHADOW_PATH], GL_ALL_COMPLETED_NV);
 	}
 #if 1
-	// fboMain ->(bilinear4x4)-> fboShadow0
+	// fboMain ->(bilinear4x4)-> fboShadow1
 	{
 		glEnableVertexAttribArray(VertexAttribLocation_Position);
 		glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
 		glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
 		glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, fboShadow1);
-		glViewport(0, 0, static_cast<GLsizei>(SHADOWMAP_MAIN_WIDTH), static_cast<GLsizei>(SHADOWMAP_MAIN_HEIGHT));
+		const FBOInfo fboShadow1Info = GetFBOInfo(FBO_Shadow1);
+		glBindFramebuffer(GL_FRAMEBUFFER, *fboShadow1Info.p);
+		glViewport(0, 0, fboShadow1Info.width, fboShadow1Info.height);
 		glDisable(GL_DEPTH_TEST);
 		glBlendFunc(GL_ONE, GL_ZERO);
 		glCullFace(GL_NONE);
@@ -1122,9 +1128,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	Local::glSetFenceNV(fences[FENCE_ID_SHADOW_FILTER_PATH], GL_ALL_COMPLETED_NV);
 
 	// color path.
-
-	glBindFramebuffer(GL_FRAMEBUFFER, fboMain);
-	glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH), static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT));
+	const FBOInfo fboMainInfo = GetFBOInfo(FBO_Main);
+	glBindFramebuffer(GL_FRAMEBUFFER, *fboMainInfo.p);
+	glViewport(0, 0, fboMainInfo.width, fboMainInfo.height);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1148,8 +1154,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	const Matrix4x4 mProj = Perspective(
 	  fov,
-	  MAIN_RENDERING_PATH_WIDTH,
-	  MAIN_RENDERING_PATH_HEIGHT,
+	  fboMainInfo.width,
+	  fboMainInfo.height,
 	  1.0f,
 	  5000.0f
 	);
@@ -1381,8 +1387,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	// fboMain ->(reduceLum)-> fboSub
 	{
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboSub);
-	  glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / 4, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / 4);
+	  const FBOInfo fboSubInfo = GetFBOInfo(FBO_Sub);
+	  glBindFramebuffer(GL_FRAMEBUFFER, *fboSubInfo.p);
+	  glViewport(0, 0, fboSubInfo.width, fboSubInfo.height);
 	  glDisable(GL_DEPTH_TEST);
 	  glBlendFunc(GL_ONE, GL_ZERO);
 	  glCullFace(GL_BACK);
@@ -1401,8 +1408,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	}
 	// fboSub ->(hdrdiff)-> fboHDR[1]
 	{
-	  glBindFramebuffer(GL_FRAMEBUFFER, fboHDR[1]);
-	  glViewport(0, 0, static_cast<GLsizei>(MAIN_RENDERING_PATH_WIDTH) / 4, static_cast<GLsizei>(MAIN_RENDERING_PATH_HEIGHT) / 4);
+	  const FBOInfo fboHDR1Info = GetFBOInfo(FBO_HDR1);
+	  glBindFramebuffer(GL_FRAMEBUFFER, *fboHDR1Info.p);
+	  glViewport(0, 0, fboHDR1Info.width, fboHDR1Info.height);
 
 	  const Shader& shader = shaderList["hdrdiff"];
 	  glUseProgram(shader.program);
@@ -2328,11 +2336,7 @@ void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
 
 void Renderer::InitTexture()
 {
-	textureList.insert({ "fboMain", Texture::CreateEmpty2D(static_cast<int>(FBO_MAIN_WIDTH), static_cast<int>(FBO_MAIN_HEIGHT)) }); // âeèâä˙ï`âÊ & ÉJÉâÅ[ï`âÊ
-	textureList.insert({ "fboSub", Texture::CreateEmpty2D(static_cast<int>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<int>(MAIN_RENDERING_PATH_HEIGHT / 4)) }); // ÉJÉâÅ[(1/4)
-	textureList.insert({ "fboShadow0", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_SUB_WIDTH), static_cast<int>(SHADOWMAP_SUB_HEIGHT)) }); // âeèkè¨
-	textureList.insert({ "fboShadow1", Texture::CreateEmpty2D(static_cast<int>(SHADOWMAP_MAIN_WIDTH), static_cast<int>(SHADOWMAP_MAIN_HEIGHT)) }); // âeÇ⁄Ç©Çµ
-	for (int i = FBO_HDR_Begin; i < FBO_HDR_End; ++i) {
+	for (int i = FBO_Begin; i < FBO_End; ++i) {
 	  const auto fboInfo = GetFBOInfo(i);
 	  textureList.insert({ fboInfo.name, Texture::CreateEmpty2D(fboInfo.width, fboInfo.height) }); // HDR
 	}

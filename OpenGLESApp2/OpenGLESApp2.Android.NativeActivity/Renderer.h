@@ -415,28 +415,41 @@ namespace Mai {
 	void DoesDrawSkybox(bool b) { doesDrawSkybox = b; }
 
   private:
-	enum FBOIndex {
-	  FBO_Main,
-	  FBO_Sub,
-	  FBO_Shadow0,
-	  FBO_Shadow1,
-	  FBO_HDR_Begin,
-	  FBO_HDR0 = FBO_HDR_Begin,
-	  FBO_HDR1,
-	  FBO_HDR2,
-	  FBO_HDR3,
-	  FBO_HDR4,
-	  FBO_HDR5,
-	  FBO_HDR_End,
+	/** The index for identifying each FBO.
 
-	  FBO_End = FBO_HDR_End,
+	  @sa FBOInfo, GetFBOInfo()
+	*/
+	enum FBOIndex {
+	  // Entity
+	  FBO_Main_Internal, ///< Internal only. Use FBO_Main or FBO_Shadow instead of this.
+	  FBO_Sub, /// It has 1/4 reduced size from FBO_Main.
+	  FBO_Shadow1, ///< For bluring shadow.
+	  FBO_HDR0, ///< For HDR bloom effect.
+	  FBO_HDR1, ///< For HDR bloom effect.
+	  FBO_HDR2, ///< For HDR bloom effect.
+	  FBO_HDR3, ///< For HDR bloom effect.
+	  FBO_HDR4, ///< For HDR bloom effect.
+	  FBO_HDR5, ///< For HDR bloom effect.
+
+	  // Alias
+	  FBO_Main, ///< For rendering color.
+	  FBO_Shadow, /// For rendering shadow.
+
+	  FBO_Begin = FBO_Main_Internal, ///< The index of first fbo entity.
+	  FBO_End = FBO_HDR5 + 1, ///< The next index of last fbo entity.
+	  FBO_HDR_Begin = FBO_HDR0, ///< The index of first fbo entity for bloom effect.
+	  FBO_HDR_End = FBO_HDR5 + 1, ///< The next index of last fbo entity for bloom effect.
+
 	};
+
+	/// FBO information.
 	struct FBOInfo {
-	  const char* const name;
-	  uint16_t width;
-	  uint16_t height;
-	  GLuint* p;
+	  const char* const name; ///< The texture name of FBO.
+	  uint16_t width; ///< The viewport width.
+	  uint16_t height; ///< The viewport height.
+	  GLuint* p; ///< The pointer to FBO identification variable.
 	};
+
 	FBOInfo GetFBOInfo(int) const;
 	void LoadFBX(const char* filename, const char* diffuse, const char* normal);
 	void CreateSkyboxMesh();
@@ -475,7 +488,7 @@ namespace Mai {
 	Vector3F cameraDir;
 	Vector3F cameraUp;
 
-	GLuint fboMain, fboSub, fboShadow0, fboShadow1, fboHDR[FBO_HDR_End - FBO_HDR_Begin];
+	std::array<GLuint, FBO_End - FBO_Begin> fbo;
 	GLuint depth;
 
 	GLuint vbo;
