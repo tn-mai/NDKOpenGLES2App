@@ -31,17 +31,6 @@ static const Vector2F referenceViewportSize(480, 800);
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
 
-#define MAIN_RENDERING_PATH_WIDTH 360.0
-#define MAIN_RENDERING_PATH_HEIGHT 640.0
-#define FBO_SUB_WIDTH 128.0
-#define FBO_SUB_HEIGHT 128.0
-#define SHADOWMAP_MAIN_WIDTH 256.0
-#define SHADOWMAP_MAIN_HEIGHT 1024.0
-#define SHADOWMAP_SUB_WIDTH (SHADOWMAP_MAIN_WIDTH * 0.25)
-#define SHADOWMAP_SUB_HEIGHT (SHADOWMAP_MAIN_HEIGHT * 0.25)
-#define FBO_MAIN_WIDTH (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH)
-#define FBO_MAIN_HEIGHT (MAIN_RENDERING_PATH_HEIGHT > SHADOWMAP_MAIN_HEIGHT ? MAIN_RENDERING_PATH_HEIGHT : SHADOWMAP_MAIN_HEIGHT)
-
 #define MAX_FONT_RENDERING_COUNT 256
 
 namespace {
@@ -137,34 +126,20 @@ namespace {
 		}
 	}
 
-	GLuint LoadShader(GLenum shaderType, const char* path) {
+	GLuint LoadShader(GLenum shaderType, const char* path, const std::string& additionalDefineList) {
 		GLuint shader = 0;
 		if (auto buf = FileSystem::LoadFile(path)) {
 			static const GLchar version[] = "#version 100\n";
-#define MAKE_DEFINE_0(str, val) "#define " str " " #val "\n"
-#define MAKE_DEFINE(def) MAKE_DEFINE_0(#def, def)
 			static const GLchar defineList[] =
 #ifdef SUNNYSIDEUP_DEBUG
 			  "#define DEBUG\n"
 #endif // SUNNYSIDEUP_DEBUG
-			  MAKE_DEFINE(FBO_MAIN_WIDTH)
-			  MAKE_DEFINE(FBO_MAIN_HEIGHT)
-			  MAKE_DEFINE(FBO_SUB_WIDTH)
-			  MAKE_DEFINE(FBO_SUB_HEIGHT)
-			  MAKE_DEFINE(MAIN_RENDERING_PATH_WIDTH)
-			  MAKE_DEFINE(MAIN_RENDERING_PATH_HEIGHT)
-			  MAKE_DEFINE(SHADOWMAP_MAIN_WIDTH)
-			  MAKE_DEFINE(SHADOWMAP_MAIN_HEIGHT)
-			  MAKE_DEFINE(SHADOWMAP_SUB_WIDTH)
-			  MAKE_DEFINE(SHADOWMAP_SUB_HEIGHT)
 #ifdef USE_HDR_BLOOM
 			  "#define USE_HDR_BLOOM\n"
 #endif // USE_HDR_BLOOM
 			  "#define SCALE_BONE_WEIGHT(w) ((w) * (1.0 / 255.0))\n"
 			  "#define SCALE_TEXCOORD(c) ((c) * (1.0 / 65535.0))\n"
 			  ;
-#undef MAKE_DEFINE
-#undef MAKE_DEFINE_0
 			shader = glCreateShader(shaderType);
 			if (!shader) {
 				return 0;
@@ -172,11 +147,13 @@ namespace {
 			const GLchar* pSrc[] = {
 			  version,
 			  defineList,
+			  additionalDefineList.data(),
 			  reinterpret_cast<GLchar*>(static_cast<void*>(&(*buf)[0])),
 			};
 			const GLint srcSize[] = {
 			  sizeof(version) - 1,
 			  sizeof(defineList) - 1,
+			  static_cast<GLint>(additionalDefineList.size()),
 			  static_cast<GLint>(buf->size()),
 			};
 			glShaderSource(shader, sizeof(pSrc)/sizeof(pSrc[0]), pSrc, srcSize);
@@ -201,13 +178,13 @@ namespace {
 		return shader;
 	}
 
-	boost::optional<Shader> CreateShaderProgram(const char* name, const char* vshPath, const char* fshPath) {
-		GLuint vertexShader = LoadShader(GL_VERTEX_SHADER, vshPath);
+	boost::optional<Shader> CreateShaderProgram(const char* name, const char* vshPath, const char* fshPath, const std::string& additionalDefineList) {
+		GLuint vertexShader = LoadShader(GL_VERTEX_SHADER, vshPath, additionalDefineList);
 		if (!vertexShader) {
 			return boost::none;
 		}
 
-		GLuint pixelShader = LoadShader(GL_FRAGMENT_SHADER, fshPath);
+		GLuint pixelShader = LoadShader(GL_FRAGMENT_SHADER, fshPath, additionalDefineList);
 		if (!pixelShader) {
 			return boost::none;
 		}
@@ -538,7 +515,14 @@ Renderer::~Renderer()
 
 Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 {
-	// This list should keep same order as a enumeration type of 'FBOIndex'.
+	static const uint16_t MAIN_RENDERING_PATH_WIDTH = 360;
+	static const uint16_t MAIN_RENDERING_PATH_HEIGHT = 640;
+	static const uint16_t SHADOWMAP_MAIN_WIDTH = 256;
+	static const uint16_t SHADOWMAP_MAIN_HEIGHT = 1024;
+	static const uint16_t FBO_MAIN_WIDTH = (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH);
+	static const uint16_t FBO_MAIN_HEIGHT = (MAIN_RENDERING_PATH_HEIGHT > SHADOWMAP_MAIN_HEIGHT ? MAIN_RENDERING_PATH_HEIGHT : SHADOWMAP_MAIN_HEIGHT);
+
+  // This list should keep same order as a enumeration type of 'FBOIndex'.
 	static const struct {
 		const char* name;
 		FBOIndex index;
@@ -546,19 +530,19 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 		uint16_t height;
 	} fboNameList[] = {
 		// Entity
-		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(FBO_MAIN_WIDTH), static_cast<uint16_t>(FBO_MAIN_HEIGHT) },
-		{ "fboSub", FBO_Sub, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboShadow1", FBO_Shadow1, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
-		{ "fboHDR0", FBO_HDR0, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboHDR1", FBO_HDR1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboHDR2", FBO_HDR2, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 8), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 8) },
-		{ "fboHDR3", FBO_HDR3, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 16), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 16) },
-		{ "fboHDR4", FBO_HDR4, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 32), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 32) },
-		{ "fboHDR5", FBO_HDR5, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 64), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 64) },
+		{ "fboMain", FBO_Main_Internal, FBO_MAIN_WIDTH, FBO_MAIN_HEIGHT },
+		{ "fboSub", FBO_Sub, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4 },
+		{ "fboShadow1", FBO_Shadow1, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT },
+		{ "fboHDR0", FBO_HDR0, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4 },
+		{ "fboHDR1", FBO_HDR1, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4 },
+		{ "fboHDR2", FBO_HDR2, MAIN_RENDERING_PATH_WIDTH / 8, MAIN_RENDERING_PATH_HEIGHT / 8 },
+		{ "fboHDR3", FBO_HDR3, MAIN_RENDERING_PATH_WIDTH / 16, MAIN_RENDERING_PATH_HEIGHT / 16 },
+		{ "fboHDR4", FBO_HDR4, MAIN_RENDERING_PATH_WIDTH / 32, MAIN_RENDERING_PATH_HEIGHT / 32 },
+		{ "fboHDR5", FBO_HDR5, MAIN_RENDERING_PATH_WIDTH / 64, MAIN_RENDERING_PATH_HEIGHT / 64 },
 
 		// Alias
-		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT) },
-		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
+		{ "fboMain", FBO_Main_Internal, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT },
+		{ "fboMain", FBO_Main_Internal, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT },
 	};
 
 	GLuint* p = const_cast<GLuint*>(&fbo[fboNameList[id].index]);
@@ -693,6 +677,19 @@ void Renderer::Initialize(const Window& window)
 	glDepthFunc(GL_LESS);
 	glEnable(GL_BLEND);
 
+	std::ostringstream  additionalDefineList;
+	{
+	  const FBOInfo fboMainInternalInfo = GetFBOInfo(FBO_Main_Internal);
+	  additionalDefineList << "#define FBO_MAIN_WIDTH (" << fboMainInternalInfo.width << ".0)\n";
+	  additionalDefineList << "#define FBO_MAIN_HEIGHT (" << fboMainInternalInfo.height << ".0)\n";
+	  const FBOInfo fboShadowInfo = GetFBOInfo(FBO_Shadow);
+	  additionalDefineList << "#define SHADOWMAP_MAIN_WIDTH (" << fboShadowInfo.width << ".0)\n";
+	  additionalDefineList << "#define SHADOWMAP_MAIN_HEIGHT (" << fboShadowInfo.height << ".0)\n";
+	  const FBOInfo fboMainInfo = GetFBOInfo(FBO_Main);
+	  additionalDefineList << "#define MAIN_RENDERING_PATH_WIDTH (" << fboMainInfo.width << ".0)\n";
+	  additionalDefineList << "#define MAIN_RENDERING_PATH_HEIGHT (" << fboMainInfo.height << ".0)\n";
+	}
+
 	static const struct {
 	  ShaderType type;
 	  const char* name;
@@ -716,7 +713,7 @@ void Renderer::Initialize(const Window& window)
 	for (const auto e : shaderInfoList) {
 		const std::string vert = std::string("Shaders/") + std::string(e.name) + std::string(".vert");
 		const std::string frag = std::string("Shaders/") + std::string(e.name) + std::string(".frag");
-		if (boost::optional<Shader> s = CreateShaderProgram(e.name, vert.c_str(), frag.c_str())) {
+		if (boost::optional<Shader> s = CreateShaderProgram(e.name, vert.c_str(), frag.c_str(), additionalDefineList.str())) {
 			s->type = e.type;
 			shaderList.insert({ s->id, *s });
 		}
@@ -990,7 +987,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	// shadow path.
 	const Vector3F shadowUp = (Dot(shadowLightDir, Vector3F(0, 1, 0)) > 0.99f) ? Vector3F(0, 0, -1) : Vector3F(0, 1, 0);
 	const Matrix4x4 mViewL = LookAt(shadowLightPos, shadowLightPos + shadowLightDir, shadowUp);
-	const Matrix4x4 mProjL = Olthographic(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT, shadowNear, shadowFar);
+	const Matrix4x4 mProjL = Olthographic(GetFBOInfo(FBO_Shadow).width, GetFBOInfo(FBO_Shadow).height, shadowNear, shadowFar);
 	Matrix4x4 mCropL;
 	{
 	  // sqrt(480*480+800*800)/480=1.94365063
