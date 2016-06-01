@@ -515,15 +515,18 @@ Renderer::~Renderer()
 
 Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 {
-	static const uint16_t MAIN_RENDERING_PATH_WIDTH = 360;
+	static const float baseAspectRatio = 9.0f / 16.0f;
 	static const uint16_t MAIN_RENDERING_PATH_HEIGHT = 640;
 	static const uint16_t SHADOWMAP_MAIN_WIDTH = 256;
 	static const uint16_t SHADOWMAP_MAIN_HEIGHT = 1024;
-	static const uint16_t FBO_MAIN_WIDTH = (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH);
 	static const uint16_t FBO_MAIN_HEIGHT = (MAIN_RENDERING_PATH_HEIGHT > SHADOWMAP_MAIN_HEIGHT ? MAIN_RENDERING_PATH_HEIGHT : SHADOWMAP_MAIN_HEIGHT);
 
-  // This list should keep same order as a enumeration type of 'FBOIndex'.
-	static const struct {
+	static float aspectRatio = static_cast<float>(viewport[2]) / static_cast<float>(viewport[3]);
+	static uint16_t MAIN_RENDERING_PATH_WIDTH = static_cast<uint16_t>(std::max(256.0f, std::min(1920.0f, 360.0f / baseAspectRatio * aspectRatio + 0.5f)));
+	static uint16_t FBO_MAIN_WIDTH = (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH);
+
+	// This list should keep same order as a enumeration type of 'FBOIndex'.
+	static struct {
 		const char* name;
 		FBOIndex index;
 		uint16_t width;
@@ -531,18 +534,18 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 	} fboNameList[] = {
 		// Entity
 		{ "fboMain", FBO_Main_Internal, FBO_MAIN_WIDTH, FBO_MAIN_HEIGHT },
-		{ "fboSub", FBO_Sub, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4 },
-		{ "fboShadow1", FBO_Shadow1, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT },
-		{ "fboHDR0", FBO_HDR0, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4 },
-		{ "fboHDR1", FBO_HDR1, MAIN_RENDERING_PATH_WIDTH / 4, MAIN_RENDERING_PATH_HEIGHT / 4 },
-		{ "fboHDR2", FBO_HDR2, MAIN_RENDERING_PATH_WIDTH / 8, MAIN_RENDERING_PATH_HEIGHT / 8 },
-		{ "fboHDR3", FBO_HDR3, MAIN_RENDERING_PATH_WIDTH / 16, MAIN_RENDERING_PATH_HEIGHT / 16 },
-		{ "fboHDR4", FBO_HDR4, MAIN_RENDERING_PATH_WIDTH / 32, MAIN_RENDERING_PATH_HEIGHT / 32 },
-		{ "fboHDR5", FBO_HDR5, MAIN_RENDERING_PATH_WIDTH / 64, MAIN_RENDERING_PATH_HEIGHT / 64 },
+		{ "fboSub", FBO_Sub, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboShadow1", FBO_Shadow1, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
+		{ "fboHDR0", FBO_HDR0, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboHDR1", FBO_HDR1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboHDR2", FBO_HDR2, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 8), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 8) },
+		{ "fboHDR3", FBO_HDR3, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 16), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 16) },
+		{ "fboHDR4", FBO_HDR4, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 32), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 32) },
+		{ "fboHDR5", FBO_HDR5, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 64), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 64) },
 
 		// Alias
-		{ "fboMain", FBO_Main_Internal, MAIN_RENDERING_PATH_WIDTH, MAIN_RENDERING_PATH_HEIGHT },
-		{ "fboMain", FBO_Main_Internal, SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT },
+		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT) },
+		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
 	};
 
 	GLuint* p = const_cast<GLuint*>(&fbo[fboNameList[id].index]);
@@ -973,7 +976,10 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	const Position3F at = cameraPos + cameraDir;
 	const Matrix4x4 mView = LookAt(eye, at, cameraUp);
 
-	static float fov = 60.0f;
+	// 9:16のときを60をとし、アスペクト比に応じて変更する。
+	static const float baseAspectRatio = 9.0f / 16.0f;
+	const float aspectRatio = static_cast<float>(viewport[2]) / static_cast<float>(viewport[3]);
+	const float fov = 60.0f / baseAspectRatio * aspectRatio;
 
 	// パフォーマンス計測準備.
 	static const int FENCE_ID_SHADOW_PATH = 0;
@@ -1150,8 +1156,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	const Matrix4x4 mProj = Perspective(
 	  fov,
-	  fboMainInfo.width,
-	  fboMainInfo.height,
+	  static_cast<float>(viewport[2]),
+	  static_cast<float>(viewport[3]),
 	  1.0f,
 	  5000.0f
 	);
