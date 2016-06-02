@@ -1,6 +1,8 @@
 #include "Scene.h"
 #include "SaveData.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
+#include <vector>
+#include <memory>
 
 #ifndef NDEBUG
 //#define SSU_DEBUG_DISPLAY_GYRO
@@ -10,6 +12,144 @@ namespace SunnySideUp {
 
   using namespace Mai;
 
+  /** The base class of menu items.
+
+    All menu item classes should inherit this class.
+  */
+  struct MenuItem {
+	typedef std::shared_ptr<MenuItem> Pointer;
+
+	virtual ~MenuItem() = 0 {}
+	virtual void Draw(Renderer&, Vector2F) const = 0;
+	virtual void Update(float) = 0;
+  };
+
+  /** A text menu item.
+  */
+  struct TextMenuItem : public MenuItem {
+	TextMenuItem(const char* str, const Vector2F& p, float s) : pos(p), transparency(1.0f), baseScale(s), scaleTick(0) {
+	  strncpy(label, str, 15);
+	  label[15] = '\0';
+	}
+	virtual ~TextMenuItem() {}
+	virtual void Draw(Renderer& r, Vector2F offset) const {
+	  offset += pos;
+	  float scale;
+	  if (scaleTick < 1.0f) {
+		scale = 1.0f + scaleTick * 0.5f;
+	  } else {
+		scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
+	  }
+	  scale *= baseScale;
+	  const float w = r.GetStringWidth(label) * scale * 0.5f;
+	  r.AddString(offset.x - w, offset.y, scale, Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * transparency)), label);
+	}
+	virtual void Update(float tick) {
+	  scaleTick += tick;
+	  if (scaleTick > 2.0f) {
+		scaleTick -= 2.0f;
+	  }
+	}
+
+	Vector2F pos;
+	float transparency;
+	float baseScale;
+	float scaleTick;
+	char label[16];
+  };
+
+  /** Menu container.
+
+    Usually, this is used as the root of menu.
+  */
+  struct Menu : public MenuItem {
+	Menu() : pos(0, 0) {}
+	virtual ~Menu() {}
+	virtual void Draw(Renderer& r, Vector2F offset) const {
+	  offset += pos;
+	  for (auto& e : items) {
+		e->Draw(r, offset);
+	  }
+	}
+	virtual void Update(float tick) {
+	  for (auto& e : items) {
+		e->Update(tick);
+	  }
+	}
+
+	void Add(Menu::Pointer& p) { items.push_back(p); }
+	void Clear() { items.clear(); }
+
+	Vector2F pos;
+	std::vector<MenuItem::Pointer> items;
+  };
+
+  /** Multiple menu item container.
+  */
+  struct CarouselMenu : public MenuItem {
+	CarouselMenu() : pos(0, 0), windowSize(0), topOfWindow(0) {}
+	virtual ~CarouselMenu() {}
+	virtual void Draw(Renderer& r, Vector2F offset) const {
+	  offset += pos;
+	  const size_t containerSize = items.size();
+	  for (size_t i = 0; i < windowSize; ++i) {
+		auto& e = items[i % containerSize];
+		e->Draw(r, offset + Vector2F(0, static_cast<float>(i) * 0.1f));
+	  }
+	}
+	virtual void Update(float tick) {
+	  for (auto& e : items) {
+		e->Update(tick);
+	  }
+	}
+
+	void Add(Menu::Pointer& p) { items.push_back(p); }
+
+	Vector2F pos;
+	std::vector<MenuItem::Pointer> items;
+	size_t windowSize;
+	size_t topOfWindow;
+  };
+
+  /** Title scene.
+
+	+----------+
+	|          | - Touch: Transition to the level selection menu.
+	| SUNNY    |
+	|  SIDE UP |
+	|          |
+	| TOUCH ME |
+	|          |
+	+----------+
+
+	+----------+
+	|   ...    | - Swipe: Select playing level.
+	|  level1  | - Touch: Determine playing level and transition to the main game scene.
+	| LEVEL2   | - Touch on REC icon: Transition to the record viewr.
+	|  level3  |
+	|   ...    | NOTE: Each level includes some courses.
+	|REC)      |
+	+----------+
+
+	+----------+
+	|. .. .. ..| - Swipe: Rotate record list.
+	|2 00:00:00| - Touch on RET icon: Transition to the level selection menu.
+	|3 00:00:00| - Touch on DEL icon: Transition to deleting record menu.
+	|4 00:00:00|
+	|. .. .. ..|
+	|DEL)  (RET|
+	+----------+
+
+	+----------+
+	|DELETE ALL| - Touch on YES icon: Delete all recodes and transition to the level selection menu.
+	| RECORDS? | - Touch on NO icon: transition to the record viewr.
+	|          |
+	|   YES    |
+	|   NO     |
+	|          |
+	+----------+
+
+  */
   class TitleScene : public Scene {
   public:
 	TitleScene()
@@ -85,8 +225,9 @@ namespace SunnySideUp {
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
+		pTouchMeItem.reset(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f));
+
 		animeNo = 0;
-		scaleTick = 0;
 		cloudRot = 0;
 		loaded = true;
 	  }
@@ -100,6 +241,8 @@ namespace SunnySideUp {
 		objGyro.reset();
 #endif // SSU_DEBUG_DISPLAY_GYRO
 		objList.clear();
+		pTouchMeItem.reset();
+		levelMenu.Clear();
 		loaded = false;
 	  }
 	  status = STATUSCODE_STOPPED;
@@ -139,10 +282,10 @@ namespace SunnySideUp {
 	This is the update function called from Update().
 	*/
 	int DoUpdate(Engine& engine, float tick) {
-	  scaleTick += tick;
-	  if (scaleTick > 2.0f) {
-		scaleTick -= 2.0f;
+	  if (pTouchMeItem) {
+		pTouchMeItem->Update(tick);
 	  }
+
 	  cloudRot += tick;
 	  if (cloudRot > 360.0f) {
 		cloudRot -= 360.0f;
@@ -160,6 +303,24 @@ namespace SunnySideUp {
 	  }
 #endif // SSU_DEBUG_DISPLAY_GYRO
 
+	  return SCENEID_CONTINUE;
+	}
+
+	/**
+	*/
+	int DoTransitionToLevelSelect(Engine&, float) {
+	  return SCENEID_CONTINUE;
+	}
+
+	/**
+	*/
+	int DoLevelSelect(Engine&, float) {
+	  return SCENEID_CONTINUE;
+	}
+
+	/**
+	*/
+	int DoTransitionToRecordViwer(Engine&, float) {
 	  return SCENEID_CONTINUE;
 	}
 
@@ -240,15 +401,9 @@ namespace SunnySideUp {
 	virtual void Draw(Engine& engine) {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
-		const char str[] = "TOUCH ME!";
-		float scale;
-		if (scaleTick < 1.0f) {
-		  scale = 1.0f + scaleTick * 0.5f;
-		} else {
-		  scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
+		if (pTouchMeItem) {
+		  pTouchMeItem->Draw(r, Vector2F(0, 0));
 		}
-		const float w = r.GetStringWidth(str) * scale;
-		r.AddString(0.5f - w * 0.5f, 0.7f, scale, Color4B(240, 240, 240, 255), str);
 	  }
 	  r.Render(&objList[0], &objList[0] + objList.size());
 	}
@@ -259,7 +414,10 @@ namespace SunnySideUp {
 	Vector3F eyeDir;
 	int animeNo;
 	bool loaded;
-	float scaleTick;
+
+	MenuItem::Pointer pTouchMeItem;
+	Menu levelMenu;
+
 	float cloudRot;
 	int (TitleScene::*updateFunc)(Engine&, float);
 
