@@ -349,7 +349,7 @@ namespace SunnySideUp {
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
-		pTouchMeItem.reset(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f));
+		rootMenu.Add(MenuItem::Pointer(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f)));
 
 		animeNo = 0;
 		cloudRot = 0;
@@ -365,8 +365,7 @@ namespace SunnySideUp {
 		objGyro.reset();
 #endif // SSU_DEBUG_DISPLAY_GYRO
 		objList.clear();
-		pTouchMeItem.reset();
-		levelMenu.Clear();
+		rootMenu.Clear();
 		loaded = false;
 	  }
 	  status = STATUSCODE_STOPPED;
@@ -377,6 +376,7 @@ namespace SunnySideUp {
 	  for (auto e : objList) {
 		e->Update(tick);
 	  }
+	  rootMenu.Update(tick);
 	  Renderer& r = engine.GetRenderer();
 	  r.Update(tick, eyePos, eyeDir, Vector3F(0, 1, 0));
 
@@ -406,10 +406,6 @@ namespace SunnySideUp {
 	This is the update function called from Update().
 	*/
 	int DoUpdate(Engine& engine, float tick) {
-	  if (pTouchMeItem) {
-		pTouchMeItem->Update(tick);
-	  }
-
 	  cloudRot += tick;
 	  if (cloudRot > 360.0f) {
 		cloudRot -= 360.0f;
@@ -470,13 +466,14 @@ namespace SunnySideUp {
 		case Event::EVENT_MOUSE_BUTTON_PRESSED:
 		  if (e.MouseButton.Button == MOUSEBUTTON_LEFT) {
 			//r.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
+			rootMenu.Clear();
 			std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 0));
 			for (int i = 0; i < 8; ++i) {
 			  std::ostringstream ss;
 			  ss << "LEVEL " << i;
 			  pCarouselMenu->Add(MenuItem::Pointer(new TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f)));
 			}
-			levelMenu.Add(pCarouselMenu);
+			rootMenu.Add(pCarouselMenu);
 			updateFunc = &TitleScene::DoTransitionToLevelSelect;
 		  }
 		  break;
@@ -532,9 +529,7 @@ namespace SunnySideUp {
 	virtual void Draw(Engine& engine) {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
-		if (pTouchMeItem) {
-		  pTouchMeItem->Draw(r, Vector2F(0, 0));
-		}
+		rootMenu.Draw(r, Vector2F(0, 0));
 	  }
 	  r.Render(&objList[0], &objList[0] + objList.size());
 	}
@@ -546,8 +541,7 @@ namespace SunnySideUp {
 	int animeNo;
 	bool loaded;
 
-	MenuItem::Pointer pTouchMeItem;
-	Menu levelMenu;
+	Menu rootMenu;
 
 	float cloudRot;
 	int (TitleScene::*updateFunc)(Engine&, float);
