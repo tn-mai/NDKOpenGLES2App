@@ -72,7 +72,7 @@ namespace SunnySideUp {
 	  std::copy(str, str + len, label);
 	  label[len] = '\0';
 	  wh = Vector2F(static_cast<float>(len) * 0.1f * baseScale, baseScale * 0.1f);
-	  lt = pos + wh * 0.5f;
+	  lt = pos - wh * 0.5f;
 	  color = Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * s));
 	}
 	virtual ~TextMenuItem() {}
@@ -122,7 +122,9 @@ namespace SunnySideUp {
     Usually, this is used as the root of menu.
   */
   struct Menu : public MenuItem {
-	Menu() : pos(0, 0) {}
+	Menu() : pos(0, 0) {
+	  SetRegion(Vector2F(0, 0), Vector2F(1, 1));
+	}
 	virtual ~Menu() {}
 	virtual void Draw(Renderer& r, Vector2F offset) const {
 	  offset += pos;
@@ -396,6 +398,20 @@ namespace SunnySideUp {
 
 		std::shared_ptr<TextMenuItem> pTouchMeItem(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f));
 		pTouchMeItem->SetFlag(TextMenuItem::FLAG_ZOOM_ANIMATION);
+		pTouchMeItem->clickHandler = [this, &r](const Vector2F&, MouseButton) -> bool {
+		  if (r.GetCurrentFilterMode() != Renderer::FILTERMODE_NONE) {
+			return false;
+		  }
+		  rootMenu.Clear();
+		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 0));
+		  for (int i = 0; i < 8; ++i) {
+			std::ostringstream ss;
+			ss << "LEVEL " << i;
+			pCarouselMenu->Add(MenuItem::Pointer(new TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f)));
+		  }
+		  rootMenu.Add(pCarouselMenu);
+		  return true;
+		};
 		rootMenu.Add(pTouchMeItem);
 
 		animeNo = 0;
@@ -507,23 +523,13 @@ namespace SunnySideUp {
 	}
 
 	virtual void ProcessWindowEvent(Engine& engine, const Event& e) {
+	  if (rootMenu.ProcessWindowEvent(engine, e)) {
+		return;
+	  }
+
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 		switch (e.Type) {
-		case Event::EVENT_MOUSE_BUTTON_PRESSED:
-		  if (e.MouseButton.Button == MOUSEBUTTON_LEFT) {
-			//r.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
-			rootMenu.Clear();
-			std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 0));
-			for (int i = 0; i < 8; ++i) {
-			  std::ostringstream ss;
-			  ss << "LEVEL " << i;
-			  pCarouselMenu->Add(MenuItem::Pointer(new TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f)));
-			}
-			rootMenu.Add(pCarouselMenu);
-			updateFunc = &TitleScene::DoTransitionToLevelSelect;
-		  }
-		  break;
 #ifndef NDEBUG
 		case Event::EVENT_KEY_PRESSED:
 		  switch (e.Key.Code) {
