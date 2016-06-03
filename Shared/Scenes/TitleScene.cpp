@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <boost/math/constants/constants.hpp>
 
 #ifndef NDEBUG
 //#define SSU_DEBUG_DISPLAY_GYRO
@@ -66,12 +67,13 @@ namespace SunnySideUp {
   /** A text menu item.
   */
   struct TextMenuItem : public MenuItem {
-	TextMenuItem(const char* str, const Vector2F& p, float s) : pos(p), transparency(1.0f), baseScale(s), scaleTick(0) {
+	TextMenuItem(const char* str, const Vector2F& p, float s) : pos(p), baseScale(s), scaleTick(0), flags(0) {
 	  const size_t len = std::min(sizeof(label) - 1, strlen(str));
 	  std::copy(str, str + len, label);
 	  label[len] = '\0';
 	  wh = Vector2F(static_cast<float>(len) * 0.1f * baseScale, baseScale * 0.1f);
 	  lt = pos + wh * 0.5f;
+	  color = Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * s));
 	}
 	virtual ~TextMenuItem() {}
 	virtual void Draw(Renderer& r, Vector2F offset) const {
@@ -84,20 +86,35 @@ namespace SunnySideUp {
 	  }
 	  scale *= baseScale;
 	  const float w = r.GetStringWidth(label) * scale * 0.5f;
-	  r.AddString(offset.x - w, offset.y, scale, Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * transparency)), label);
+	  r.AddString(offset.x - w, offset.y, scale, color, label);
 	}
 	virtual void Update(float tick) {
-	  scaleTick += tick;
-	  if (scaleTick > 2.0f) {
-		scaleTick -= 2.0f;
+	  if (flags & FLAG_ZOOM_ANIMATION) {
+		scaleTick += tick;
+		if (scaleTick > 2.0f) {
+		  scaleTick -= 2.0f;
+		}
 	  }
 	}
 
+	int GetFlag() const { return flags; }
+	void SetFlag(int f) { flags |= f; }
+	void ClearFlag(int f) {
+	  flags &= ~f;
+	  if (!(flags & FLAG_ZOOM_ANIMATION)) {
+		scaleTick = 0.0f;
+	  }
+	}
+
+	static const uint8_t FLAG_ZOOM_ANIMATION = 0x01;
+	static const uint8_t FLAG_ALPHA_ANIMATION = 0x02;
+
 	Vector2F pos;
-	float transparency;
+	Color4B color;
 	float baseScale;
 	float scaleTick;
-	char label[16];
+	uint8_t flags;
+	char label[15];
   };
 
   /** Menu container.
@@ -199,13 +216,36 @@ namespace SunnySideUp {
 	virtual ~CarouselMenu() {}
 	virtual void Draw(Renderer& r, Vector2F offset) const {
 	  offset += pos;
-	  const int containerSize = static_cast<int>(items.size());
-	  for (int i = 0; i < windowSize; ++i) {
-		auto& e = items[i % containerSize];
-		e->Draw(r, offset + Vector2F(0, static_cast<float>(i) * 0.1f));
+	  for (auto& e : renderingList) {
+		e->Draw(r, offset);
 	  }
 	}
 	virtual void Update(float tick) {
+	  const int containerSize = static_cast<int>(items.size());
+	  const float center = static_cast<float>(windowSize / 2);
+	  const float unitTheta = boost::math::constants::pi<float>() * 0.5f / static_cast<float>(windowSize);
+	  renderingList.clear();
+	  for (int i = 0; i < windowSize; ++i) {
+		std::shared_ptr<TextMenuItem> pItem = std::static_pointer_cast<TextMenuItem>(items[i % containerSize]);
+		const float theta = (static_cast<float>(i) - center) * unitTheta;
+		const float alpha = std::cos(theta);
+		if (alpha < 1.0f) {
+		  pItem->color = Color4B(200, 200, 180, static_cast<uint8_t>(255.0f * alpha * alpha * alpha));
+		} else {
+		  pItem->color = Color4B(240, 240, 240, 255);
+		}
+		pItem->baseScale = (alpha * alpha) * 1.5f;
+		pItem->pos.y = std::sin(theta) * 0.25f;
+		renderingList.push_back(pItem);
+	  }
+	  std::sort(
+		renderingList.begin(),
+		renderingList.end(),
+		[](const MenuItem::Pointer& lhs, const MenuItem::Pointer& rhs) {
+		  return static_cast<const TextMenuItem*>(lhs.get())->baseScale > static_cast<const TextMenuItem*>(rhs.get())->baseScale;
+		}
+	  );
+
 	  for (auto& e : items) {
 		e->Update(tick);
 	  }
@@ -226,9 +266,14 @@ namespace SunnySideUp {
 	}
 
 	void Add(MenuItem::Pointer p) { items.push_back(p); }
+	void Clear() {
+	  renderingList.clear();
+	  items.clear();
+	}
 
 	Vector2F pos;
 	std::vector<MenuItem::Pointer> items;
+	std::vector<MenuItem::Pointer> renderingList;
 	int windowSize;
 	int topOfWindow;
 	float moveY;
@@ -349,7 +394,9 @@ namespace SunnySideUp {
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
-		rootMenu.Add(MenuItem::Pointer(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f)));
+		std::shared_ptr<TextMenuItem> pTouchMeItem(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f));
+		pTouchMeItem->SetFlag(TextMenuItem::FLAG_ZOOM_ANIMATION);
+		rootMenu.Add(pTouchMeItem);
 
 		animeNo = 0;
 		cloudRot = 0;
