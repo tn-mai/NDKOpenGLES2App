@@ -67,7 +67,7 @@ namespace SunnySideUp {
   */
   struct TextMenuItem : public MenuItem {
 	TextMenuItem(const char* str, const Vector2F& p, float s) : pos(p), transparency(1.0f), baseScale(s), scaleTick(0) {
-	  const size_t len = std::min(sizeof(label), strlen(str)) - 1;
+	  const size_t len = std::min(sizeof(label) - 1, strlen(str));
 	  std::copy(str, str + len, label);
 	  label[len] = '\0';
 	  wh = Vector2F(static_cast<float>(len) * 0.1f * baseScale, baseScale * 0.1f);
