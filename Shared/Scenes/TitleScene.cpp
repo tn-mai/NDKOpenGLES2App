@@ -262,10 +262,12 @@ namespace SunnySideUp {
 	  }
 	}
 	virtual bool OnClick(const Vector2F& currentPos, MouseButton button) {
+	  const int containerSize = static_cast<int>(items.size());
 	  if (!hasDragging) {
-		return items[topOfWindow % items.size()]->OnClick(currentPos, button);
+		const int center = windowSize / 2;
+		return items[(topOfWindow + center) % containerSize]->OnClick(currentPos, button);
 	  }
-	  topOfWindow = (topOfWindow + static_cast<int>(moveY * 10.0f)) % static_cast<int>(items.size());
+	  topOfWindow = (topOfWindow - static_cast<int>(moveY * 10.0f) + containerSize) % containerSize;
 	  hasDragging = false;
 	  moveY = 0.0f;
 	  return true;
@@ -407,16 +409,25 @@ namespace SunnySideUp {
 
 		std::shared_ptr<TextMenuItem> pTouchMeItem(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f));
 		pTouchMeItem->SetFlag(TextMenuItem::FLAG_ZOOM_ANIMATION);
+		pTouchMeItem->SetRegion(Vector2F(0, 0), Vector2F(1, 1));
 		pTouchMeItem->clickHandler = [this, &r](const Vector2F&, MouseButton) -> bool {
 		  if (r.GetCurrentFilterMode() != Renderer::FILTERMODE_NONE) {
 			return false;
 		  }
 		  rootMenu.Clear();
-		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 0));
+		  rootMenu.Add(MenuItem::Pointer(new TextMenuItem("REDORD", Vector2F(0.25f, 0.9f), 1.0f)));
+		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6));
 		  for (int i = 0; i < 8; ++i) {
 			std::ostringstream ss;
-			ss << "LEVEL " << i;
-			pCarouselMenu->Add(MenuItem::Pointer(new TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f)));
+			ss << "LEVEL " << (i + 1);
+			MenuItem::Pointer pItem(new TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f));
+			pItem->clickHandler = [this, &r, i](const Vector2F&, MouseButton) -> bool {
+			  selectedLevel = i;
+			  r.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
+			  updateFunc = &TitleScene::DoFadeOut;
+			  return true;
+			};
+			pCarouselMenu->Add(pItem);
 		  }
 		  rootMenu.Add(pCarouselMenu);
 		  return true;
@@ -524,6 +535,7 @@ namespace SunnySideUp {
 	int DoFadeOut(Engine& engine, float) {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+		engine.GetCommonData<CommonData>()->level = selectedLevel;
 		r.FadeIn(1.0f);
 		engine.GetAudio().StopBGM();
 		return SCENEID_STARTEVENT;
@@ -604,6 +616,7 @@ namespace SunnySideUp {
 	bool loaded;
 
 	Menu rootMenu;
+	int selectedLevel;
 
 	float cloudRot;
 	int (TitleScene::*updateFunc)(Engine&, float);
