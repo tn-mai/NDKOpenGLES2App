@@ -214,7 +214,11 @@ namespace SunnySideUp {
   /** Multiple menu item container.
   */
   struct CarouselMenu : public MenuItem {
-	CarouselMenu(const Vector2F& p, int size, int top) : pos(p), windowSize(size), topOfWindow(top), hasDragging(false) {}
+	CarouselMenu(const Vector2F& p, int size, int top)
+	  : pos(p), windowSize(size), topOfWindow(top), hasDragging(false), moveY(0)
+	{
+	  SetRegion(Vector2F(0, 0), Vector2F(1, 1));
+	}
 	virtual ~CarouselMenu() {}
 	virtual void Draw(Renderer& r, Vector2F offset) const {
 	  offset += pos;
@@ -226,12 +230,17 @@ namespace SunnySideUp {
 	  const int containerSize = static_cast<int>(items.size());
 	  const float center = static_cast<float>(windowSize / 2);
 	  const float unitTheta = boost::math::constants::pi<float>() * 0.5f / static_cast<float>(windowSize);
+	  const float startPos = moveY * 10.0f;
+	  const int indexOffset = static_cast<int>(startPos);
+	  const float fract = startPos - static_cast<float>(indexOffset);
 	  renderingList.clear();
 	  for (int i = 0; i < windowSize; ++i) {
-		std::shared_ptr<TextMenuItem> pItem = std::static_pointer_cast<TextMenuItem>(items[i % containerSize]);
-		const float theta = (static_cast<float>(i) - center) * unitTheta;
+		const float currentPos = startPos + static_cast<float>(topOfWindow + i);
+		const float theta = (static_cast<float>(i) - center + fract) * unitTheta;
 		const float alpha = std::cos(theta);
-		if (alpha < 1.0f) {
+		const int index = topOfWindow + i - indexOffset;
+		std::shared_ptr<TextMenuItem> pItem = std::static_pointer_cast<TextMenuItem>(items[(index + containerSize) % containerSize]);
+		if (i != center) {
 		  pItem->color = Color4B(200, 200, 180, static_cast<uint8_t>(255.0f * alpha * alpha * alpha));
 		} else {
 		  pItem->color = Color4B(240, 240, 240, 255);
@@ -256,7 +265,7 @@ namespace SunnySideUp {
 	  if (!hasDragging) {
 		return items[topOfWindow % items.size()]->OnClick(currentPos, button);
 	  }
-	  topOfWindow = (topOfWindow + static_cast<int>(moveY * 0.1f + 0.5f)) % static_cast<int>(items.size());
+	  topOfWindow = (topOfWindow + static_cast<int>(moveY * 10.0f)) % static_cast<int>(items.size());
 	  hasDragging = false;
 	  moveY = 0.0f;
 	  return true;
