@@ -227,6 +227,14 @@ namespace SunnySideUp {
 	  }
 	}
 	virtual void Update(float tick) {
+
+	  if (!hasDragging) {
+		if (moveY < 0.0f) {
+		  moveY = std::min(0.0f, moveY + tick * 0.5f);
+		} else if (moveY > 0.0f) {
+		  moveY = std::max(0.0f, moveY - tick * 0.5f);
+		}
+	  }
 	  const int containerSize = static_cast<int>(items.size());
 	  const float center = static_cast<float>(windowSize / 2);
 	  const float unitTheta = boost::math::constants::pi<float>() * 0.5f / static_cast<float>(windowSize);
@@ -269,7 +277,9 @@ namespace SunnySideUp {
 	  }
 	  topOfWindow = (topOfWindow - static_cast<int>(moveY * 10.0f) + containerSize) % containerSize;
 	  hasDragging = false;
-	  moveY = 0.0f;
+	  moveY *= 10.0f;
+	  moveY -= static_cast<float>(static_cast<int>(moveY));
+	  moveY *= 0.1f;
 	  return true;
 	}
 	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint) {
