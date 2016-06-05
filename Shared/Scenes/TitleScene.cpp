@@ -275,7 +275,7 @@ namespace SunnySideUp {
 		renderingList.begin(),
 		renderingList.end(),
 		[](const MenuItem::Pointer& lhs, const MenuItem::Pointer& rhs) {
-		  return static_cast<const TextMenuItem*>(lhs.get())->baseScale > static_cast<const TextMenuItem*>(rhs.get())->baseScale;
+		  return static_cast<const TextMenuItem*>(lhs.get())->baseScale < static_cast<const TextMenuItem*>(rhs.get())->baseScale;
 		}
 	  );
 
