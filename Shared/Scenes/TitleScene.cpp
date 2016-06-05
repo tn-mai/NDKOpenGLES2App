@@ -1,10 +1,8 @@
 #include "Scene.h"
+#include "../Menu.h"
 #include "SaveData.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <vector>
-#include <memory>
-#include <functional>
-#include <boost/math/constants/constants.hpp>
 
 #ifndef NDEBUG
 //#define SSU_DEBUG_DISPLAY_GYRO
@@ -13,310 +11,6 @@
 namespace SunnySideUp {
 
   using namespace Mai;
-
-  Vector2F GetDeviceIndependentPositon(int x, int y, int w, int h) {
-	return Vector2F(static_cast<float>(x) / static_cast<float>(w), static_cast<float>(y) / static_cast<float>(h));
-  }
-
-  /** The base class of menu items.
-
-    All menu item classes should inherit this class.
-  */
-  struct MenuItem {
-	typedef std::shared_ptr<MenuItem> Pointer;
-	typedef std::function<bool(const Vector2F&, MouseButton)> ClickEventHandler;
-	typedef std::function<bool(const Vector2F&, const Vector2F&)> MoveEventHandler;
-
-	MenuItem() : lt(0, 0), wh(0, 0), isActive(true){}
-	virtual ~MenuItem() = 0;
-	virtual void Draw(Renderer&, Vector2F, float) const {}
-	virtual void Update(float) {}
-
-	virtual bool OnClick(const Vector2F& currentPos, MouseButton button) {
-	  if (clickHandler) {
-		return clickHandler(currentPos, button);
-	  }
-	  return false;
-	}
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos) {
-	  if (mouseMoveHandler) {
-		return mouseMoveHandler(currentPos, startPos);
-	  }
-	  return false;
-	}
-
-	void SetRegion(const Vector2F& pos, const Vector2F& size) {
-	  lt = pos;
-	  wh = size;
-	}
-	bool OnRegion(const Vector2F& pos) const {
-	  if (!isActive) {
-		return false;
-	  }
-	  if (pos.x < lt.x || pos.x > lt.x + wh.x) {
-		return false;
-	  } else if (pos.y < lt.y || pos.y > lt.y + wh.y) {
-		return false;
-	  }
-	  return true;
-	}
-	float GetAlpha() const { return isActive ? 1.0f : 0.25f; };
-
-	Vector2F lt, wh; ///< Active area.
-	ClickEventHandler clickHandler;
-	MoveEventHandler mouseMoveHandler;
-	bool isActive;
-  };
-  inline MenuItem::~MenuItem() = default;
-
-  /** A text menu item.
-  */
-  struct TextMenuItem : public MenuItem {
-	static const uint8_t FLAG_ZOOM_ANIMATION = 0x01;
-	static const uint8_t FLAG_ALPHA_ANIMATION = 0x02;
-	static const uint8_t FLAG_SHADOW = 0x04;
-
-	TextMenuItem(const char* str, const Vector2F& p, float s, int flg = FLAG_SHADOW) : pos(p), baseScale(s), scaleTick(0), flags(flg) {
-	  const size_t len = std::min(sizeof(label) - 1, strlen(str));
-	  std::copy(str, str + len, label);
-	  label[len] = '\0';
-	  wh = Vector2F(static_cast<float>(len) * 0.1f * baseScale, baseScale * 0.1f);
-	  lt = pos - wh * 0.5f;
-	  color = Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * s));
-	}
-	virtual ~TextMenuItem() {}
-	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const {
-	  offset += pos;
-	  float scale;
-	  if (scaleTick < 1.0f) {
-		scale = 1.0f + scaleTick * 0.5f;
-	  } else {
-		scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
-	  }
-	  scale *= baseScale;
-	  const float w = r.GetStringWidth(label) * scale * 0.5f;
-	  Color4B c = color;
-	  c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
-	  if (flags & FLAG_SHADOW) {
-		const Color4B shadowColor(c.r / 4, c.g / 4, c.b / 4, c.a / 2);
-		r.AddString(offset.x - w + 0.0075f, offset.y + 0.01f, scale, shadowColor, label);
-	  }
-	  r.AddString(offset.x - w, offset.y, scale, c, label);
-	}
-	virtual void Update(float tick) {
-	  if (flags & FLAG_ZOOM_ANIMATION) {
-		scaleTick += tick;
-		if (scaleTick > 2.0f) {
-		  scaleTick -= 2.0f;
-		}
-	  }
-	}
-
-	int GetFlag() const { return flags; }
-	void SetFlag(int f) { flags |= f; }
-	void ClearFlag(int f) {
-	  flags &= ~f;
-	  if (!(flags & FLAG_ZOOM_ANIMATION)) {
-		scaleTick = 0.0f;
-	  }
-	}
-
-	Vector2F pos;
-	Color4B color;
-	float baseScale;
-	float scaleTick;
-	uint8_t flags;
-	char label[15];
-  };
-
-  /** Menu container.
-
-    Usually, this is used as the root of menu.
-  */
-  struct Menu : public MenuItem {
-	Menu() : pos(0, 0) {
-	  SetRegion(Vector2F(0, 0), Vector2F(1, 1));
-	}
-	virtual ~Menu() {}
-	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const {
-	  offset += pos;
-	  alpha *= GetAlpha();
-	  for (auto& e : items) {
-		e->Draw(r, offset, alpha);
-	  }
-	}
-	virtual void Update(float tick) {
-	  for (auto& e : items) {
-		e->Update(tick);
-	  }
-	}
-	virtual bool OnClick(const Vector2F& currentPos, MouseButton button) {
-	  const auto re = items.rend();
-	  for (auto ri = items.rbegin(); ri != re; ++ri) {
-		if ((*ri)->OnRegion(currentPos)) {
-		  return (*ri)->OnClick(currentPos, button);
-		}
-	  }
-	  return false;
-	}
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos) {
-	  const auto re = items.rend();
-	  for (auto ri = items.rbegin(); ri != re; ++ri) {
-		if ((*ri)->OnRegion(currentPos)) {
-		  return (*ri)->OnMouseMove(currentPos, startPos);
-		}
-	  }
-	  return false;
-	}
-
-	bool ProcessWindowEvent(Engine& engine, const Event& e) {
-	  const int windowWidth = engine.GetWindow().GetWidth();
-	  const int windowHeight = engine.GetWindow().GetHeight();
-	  switch (e.Type) {
-	  case Event::EVENT_MOUSE_MOVED:
-		if (pActiveItem) {
-		  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseMove.X, e.MouseMove.Y, windowWidth, windowHeight);
-		  return pActiveItem->OnMouseMove(currentPos, dragStartPoint);
-		}
-		break;
-	  case Event::EVENT_MOUSE_BUTTON_PRESSED: {
-		const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
-		if (OnRegion(currentPos)) {
-		  dragStartPoint = currentPos;
-		  const auto re = items.rend();
-		  for (auto ri = items.rbegin(); ri != re; ++ri) {
-			if ((*ri)->OnRegion(currentPos)) {
-			  pActiveItem = *ri;
-			  return true;
-			}
-		  }
-		}
-		break;
-	  }
-	  case Event::EVENT_MOUSE_BUTTON_RELEASED: {
-		const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
-		if (pActiveItem) {
-		  MenuItem::Pointer p(std::move(pActiveItem));
-		  if (p->OnClick(currentPos, e.MouseButton.Button)) {
-			return true;
-		  }
-		}
-		if (OnRegion(currentPos)) {
-		  const auto re = items.rend();
-		  for (auto ri = items.rbegin(); ri != re; ++ri) {
-			if ((*ri)->OnRegion(currentPos)) {
-			  return (*ri)->OnClick(currentPos, e.MouseButton.Button);
-			}
-		  }
-		}
-		break;
-	  }
-	  }
-	  return false;
-	}
-
-	void Add(MenuItem::Pointer p) { items.push_back(p); }
-	void Clear() { items.clear(); }
-
-	Vector2F pos;
-	std::vector<MenuItem::Pointer> items;
-	Vector2F dragStartPoint;
-	MenuItem::Pointer pActiveItem;
-  };
-
-  /** Multiple menu item container.
-  */
-  struct CarouselMenu : public MenuItem {
-	CarouselMenu(const Vector2F& p, int size, int top, float s)
-	  : pos(p), windowSize(size), topOfWindow(top), scale(s), moveY(0), hasDragging(false)
-	{
-	  SetRegion(Vector2F(0, 0), Vector2F(1, 1));
-	}
-	virtual ~CarouselMenu() {}
-	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const {
-	  offset += pos;
-	  alpha *= GetAlpha();
-	  for (auto& e : renderingList) {
-		e->Draw(r, offset, alpha);
-	  }
-	}
-	virtual void Update(float tick) {
-
-	  if (!hasDragging) {
-		if (moveY < 0.0f) {
-		  moveY = std::min(0.0f, moveY + tick * 0.5f);
-		} else if (moveY > 0.0f) {
-		  moveY = std::max(0.0f, moveY - tick * 0.5f);
-		}
-	  }
-	  const int containerSize = static_cast<int>(items.size());
-	  const float center = static_cast<float>(windowSize / 2);
-	  const float unitTheta = boost::math::constants::pi<float>() * 0.5f / static_cast<float>(windowSize);
-	  const float startPos = moveY * 10.0f;
-	  const int indexOffset = static_cast<int>(startPos);
-	  const float fract = startPos - static_cast<float>(indexOffset);
-	  renderingList.clear();
-	  for (int i = 0; i < windowSize; ++i) {
-		const float currentPos = startPos + static_cast<float>(topOfWindow + i);
-		const float theta = (static_cast<float>(i) - center + fract) * unitTheta;
-		const float alpha = std::cos(theta);
-		const int index = topOfWindow + i - indexOffset;
-		std::shared_ptr<TextMenuItem> pItem = std::static_pointer_cast<TextMenuItem>(items[(index + containerSize) % containerSize]);
-		if (i != center) {
-		  pItem->color = Color4B(200, 200, 180, static_cast<uint8_t>(255.0f * alpha * alpha * alpha));
-		} else {
-		  pItem->color = Color4B(240, 240, 240, 255);
-		}
-		pItem->baseScale = (alpha * alpha) * scale;
-		pItem->pos.y = std::sin(theta) * 0.25f;
-		renderingList.push_back(pItem);
-	  }
-	  std::sort(
-		renderingList.begin(),
-		renderingList.end(),
-		[](const MenuItem::Pointer& lhs, const MenuItem::Pointer& rhs) {
-		  return static_cast<const TextMenuItem*>(lhs.get())->baseScale < static_cast<const TextMenuItem*>(rhs.get())->baseScale;
-		}
-	  );
-
-	  for (auto& e : items) {
-		e->Update(tick);
-	  }
-	}
-	virtual bool OnClick(const Vector2F& currentPos, MouseButton button) {
-	  const int containerSize = static_cast<int>(items.size());
-	  if (!hasDragging) {
-		const int center = windowSize / 2;
-		return items[(topOfWindow + center) % containerSize]->OnClick(currentPos, button);
-	  }
-	  topOfWindow = (topOfWindow - static_cast<int>(moveY * 10.0f) + containerSize) % containerSize;
-	  hasDragging = false;
-	  moveY *= 10.0f;
-	  moveY -= static_cast<float>(static_cast<int>(moveY));
-	  moveY *= 0.1f;
-	  return true;
-	}
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint) {
-	  moveY = currentPos.y - dragStartPoint.y;
-	  hasDragging = true;
-	  return true;
-	}
-
-	void Add(MenuItem::Pointer p) { items.push_back(p); }
-	void Clear() {
-	  renderingList.clear();
-	  items.clear();
-	}
-
-	Vector2F pos;
-	std::vector<MenuItem::Pointer> items;
-	std::vector<MenuItem::Pointer> renderingList;
-	int windowSize;
-	int topOfWindow;
-	float scale;
-	float moveY;
-	bool hasDragging;
-  };
 
   /** Title scene.
 
@@ -432,9 +126,9 @@ namespace SunnySideUp {
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
-		pRecordView.reset(new Menu());
+		pRecordView.reset(new Menu::Menu());
 		{
-		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("BEST RECORDS", Vector2F(0.5f, 0.05f), 1.25f));
+		  std::shared_ptr<Menu::TextMenuItem> pTitleLabel(new Menu::TextMenuItem("BEST RECORDS", Vector2F(0.5f, 0.05f), 1.25f));
 		  pTitleLabel->color = Color4B(255, 240, 32, 255);
 		  pRecordView->Add(pTitleLabel);
 
@@ -448,10 +142,10 @@ namespace SunnySideUp {
 			} else {
 			  snprintf(buf, 32, "%d --:--.---", i + 1);
 			}
-			pRecordView->Add(MenuItem::Pointer(new TextMenuItem(buf, Vector2F(0.5f, 0.15f + static_cast<float>(i) * 0.075f), 1.0f)));
+			pRecordView->Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.15f + static_cast<float>(i) * 0.075f), 1.0f)));
 		  }
 
-		  std::shared_ptr<TextMenuItem> pReturnItem(new TextMenuItem("RETURN", Vector2F(0.25f, 0.9f), 1.0f));
+		  std::shared_ptr<Menu::TextMenuItem> pReturnItem(new Menu::TextMenuItem("RETURN", Vector2F(0.25f, 0.9f), 1.0f));
 		  pReturnItem->color = Color4B(240, 64, 32, 255);
 		  pReturnItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
 			rootMenu.Clear();
@@ -461,17 +155,17 @@ namespace SunnySideUp {
 		  pRecordView->Add(pReturnItem);
 		}
 
-		pLevelSelect.reset(new Menu());
+		pLevelSelect.reset(new Menu::Menu());
 		{
-		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("SELECT LEVEL", Vector2F(0.5f, 0.1f), 1.25f));
+		  std::shared_ptr<Menu::TextMenuItem> pTitleLabel(new Menu::TextMenuItem("SELECT LEVEL", Vector2F(0.5f, 0.1f), 1.25f));
 		  pTitleLabel->color = Color4B(250, 192, 128, 255);
 		  pLevelSelect->Add(pTitleLabel);
 
-		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6, 2.0f));
+		  std::shared_ptr<Menu::CarouselMenu> pCarouselMenu(new Menu::CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6, 2.0f));
 		  for (int i = 0; i < 8; ++i) {
 			std::ostringstream ss;
 			ss << "LEVEL " << (i + 1);
-			MenuItem::Pointer pItem(new TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f));
+			Menu::MenuItem::Pointer pItem(new Menu::TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f));
 			pItem->clickHandler = [this, &r, i](const Vector2F&, MouseButton) -> bool {
 			  selectedLevel = i;
 			  r.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
@@ -482,7 +176,7 @@ namespace SunnySideUp {
 		  }
 		  pLevelSelect->Add(pCarouselMenu);
 
-		  std::shared_ptr<TextMenuItem> pRecordItem(new TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f));
+		  std::shared_ptr<Menu::TextMenuItem> pRecordItem(new Menu::TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f));
 		  pRecordItem->color = Color4B(240, 64, 32, 255);
 		  pRecordItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
 			rootMenu.Clear();
@@ -492,7 +186,7 @@ namespace SunnySideUp {
 		  pLevelSelect->Add(pRecordItem);
 		}
 
-		std::shared_ptr<TextMenuItem> pTouchMeItem(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f, TextMenuItem::FLAG_ZOOM_ANIMATION));
+		std::shared_ptr<Menu::TextMenuItem> pTouchMeItem(new Menu::TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f, Menu::TextMenuItem::FLAG_ZOOM_ANIMATION));
 		pTouchMeItem->SetRegion(Vector2F(0, 0), Vector2F(1, 1));
 		pTouchMeItem->clickHandler = [this, &r](const Vector2F&, MouseButton) -> bool {
 		  if (r.GetCurrentFilterMode() != Renderer::FILTERMODE_NONE) {
@@ -685,9 +379,9 @@ namespace SunnySideUp {
 	int animeNo;
 	bool loaded;
 
-	Menu rootMenu;
-	std::shared_ptr<Menu> pRecordView;
-	std::shared_ptr<Menu> pLevelSelect;
+	Menu::Menu rootMenu;
+	std::shared_ptr<Menu::Menu> pRecordView;
+	std::shared_ptr<Menu::Menu> pLevelSelect;
 	int selectedLevel;
 
 	float cloudRot;

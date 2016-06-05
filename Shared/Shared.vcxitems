@@ -18,6 +18,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)File.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FontInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Matrix.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Menu.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\FailureScene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\GameOverScene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\LevelInfo.cpp" />
@@ -35,6 +36,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)FontInfo.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Keyboard.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Matrix.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Menu.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Mouse.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Quaternion.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\LevelInfo.h" />

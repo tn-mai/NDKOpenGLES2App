@@ -29,6 +29,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\SaveData.cpp">
       <Filter>Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Menu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine.h" />
@@ -51,6 +52,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\SaveData.h">
       <Filter>Scenes</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Menu.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scenes">
