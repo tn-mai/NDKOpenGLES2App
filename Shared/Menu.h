@@ -27,12 +27,11 @@ namespace Menu {
 	typedef std::function<bool(const Vector2F&, MouseButton)> ClickEventHandler;
 	typedef std::function<bool(const Vector2F&, const Vector2F&)> MoveEventHandler;
 
-	MenuItem() : lt(0, 0), wh(0, 0), isActive(true) {}
+	MenuItem();
 	virtual ~MenuItem() = 0;
 	virtual void Draw(Renderer&, Vector2F, float) const {}
 	virtual void Update(float) {}
 	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
-
 	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos);
 
 	void SetRegion(const Vector2F& pos, const Vector2F& size);

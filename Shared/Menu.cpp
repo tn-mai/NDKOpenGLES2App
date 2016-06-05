@@ -11,10 +11,34 @@ namespace Mai {
 
 namespace Menu {
 
+  /** Transform the screen space to the range of 0-1.
+
+    @param x  A position of X(pixel).
+	@param y  A position of Y(pixel).
+	@param w  A screen width(pixel).
+	@param h  A screen height(pixel).
+
+	@return 0-1 ranged position transformed from x and y.
+  */
   Vector2F GetDeviceIndependentPositon(int x, int y, int w, int h) {
 	return Vector2F(static_cast<float>(x) / static_cast<float>(w), static_cast<float>(y) / static_cast<float>(h));
   }
 
+  /** Constructor.
+  */
+  MenuItem::MenuItem()
+	: lt(0, 0), wh(0, 0), isActive(true)
+  {
+  }
+
+  /** Handle a click event.
+
+    @param currentPosition  A position that was used by a click.
+	@param button           A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
   bool MenuItem::OnClick(const Vector2F& currentPos, MouseButton button) {
 	if (clickHandler) {
 	  return clickHandler(currentPos, button);
@@ -22,6 +46,14 @@ namespace Menu {
 	return false;
   }
 
+  /** Handle a move event.
+
+	@param currentPos  A current mouse cursor or swiping position.
+	@param startPos    A position of start dragging.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
   bool MenuItem::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos) {
 	if (mouseMoveHandler) {
 	  return mouseMoveHandler(currentPos, startPos);
@@ -29,11 +61,23 @@ namespace Menu {
 	return false;
   }
 
+  /** Set a responding region.
+
+    @param  pos  The left-top position of a responding region.
+	@param  size The width-height of a responding region.
+  */
   void MenuItem::SetRegion(const Vector2F& pos, const Vector2F& size) {
 	lt = pos;
 	wh = size;
   }
 
+  /** Text that a point is within the responding region.
+
+    @param  pos  The tested position.
+
+	@retval true  pos is within the responding region.
+	@retval false pos is out of the responding region.
+  */
   bool MenuItem::OnRegion(const Vector2F& pos) const {
 	if (!isActive) {
 	  return false;
@@ -45,8 +89,20 @@ namespace Menu {
 	}
 	return true;
   }
+
+  /**  Get transparency value by the state.
+
+    @return A tranparency value.
+  */
   float MenuItem::GetAlpha() const { return isActive ? 1.0f : 0.25f; };
 
+  /** Constructor.
+
+    @param str A text for showing.
+	@param p   A center position of this object.
+	@param s   A base scale of text.
+	@param flg The logical sum of FLAG.
+  */
   TextMenuItem::TextMenuItem(const char* str, const Vector2F& p, float s, int flg)
 	: pos(p), baseScale(s), scaleTick(0), flags(flg)
   {
@@ -58,6 +114,12 @@ namespace Menu {
 	color = Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * s));
   }
 
+  /** Render the object.
+
+    @param  r       A renderer object.
+	@param  offset  A rendering offset.
+	@param  alpha   A text transparency.
+  */
   void TextMenuItem::Draw(Renderer& r, Vector2F offset, float alpha) const {
 	offset += pos;
 	float scale;
@@ -77,6 +139,10 @@ namespace Menu {
 	r.AddString(offset.x - w, offset.y, scale, c, label);
   }
 
+  /** Update a object and children.
+
+	@param tick  Second from previous frame.
+  */
   void TextMenuItem::Update(float tick) {
 	if (flags & FLAG_ZOOM_ANIMATION) {
 	  scaleTick += tick;
@@ -86,8 +152,24 @@ namespace Menu {
 	}
   }
 
+  /** Get the flags.
+
+	@return The flags that is logical sum of some flags.
+  */
   int TextMenuItem::GetFlag() const { return flags; }
+
+  /** Set the flags.
+
+	@param f  The flags that is logical sum of some flags.
+			  The object will have a logical sum of this and object flags.
+  */
   void TextMenuItem::SetFlag(int f) { flags |= f; }
+
+  /** Clear specified flags.
+
+	@param f  The flags that is logical sum of some flags.
+			  The object will have the flags that is reset this.
+  */
   void TextMenuItem::ClearFlag(int f) {
 	flags &= ~f;
 	if (!(flags & FLAG_ZOOM_ANIMATION)) {
@@ -95,12 +177,25 @@ namespace Menu {
 	}
   }
 
+  /** Constructor.
+
+	@param p    A display position.
+	@param size A line size of the window.
+	@param top  A top index of items that is showing in the window.
+	@param s    A font scale.
+  */
   CarouselMenu::CarouselMenu(const Vector2F& p, int size, int top, float s)
 	: pos(p), windowSize(size), topOfWindow(top), scale(s), moveY(0), hasDragging(false)
   {
 	SetRegion(Vector2F(0, 0), Vector2F(1, 1));
   }
 
+  /** Render the object.
+
+	@param  r       A renderer object.
+	@param  offset  A rendering offset.
+	@param  alpha   A text transparency.
+  */
   void CarouselMenu::Draw(Renderer& r, Vector2F offset, float alpha) const {
 	offset += pos;
 	alpha *= GetAlpha();
@@ -109,6 +204,10 @@ namespace Menu {
 	}
   }
 
+  /** Update a object and children.
+
+	@param tick  Second from previous frame.
+  */
   void CarouselMenu::Update(float tick) {
 	if (!hasDragging) {
 	  if (moveY < 0.0f) {
@@ -143,8 +242,8 @@ namespace Menu {
 	  renderingList.begin(),
 	  renderingList.end(),
 	  [](const MenuItem::Pointer& lhs, const MenuItem::Pointer& rhs) {
-	  return static_cast<const TextMenuItem*>(lhs.get())->baseScale < static_cast<const TextMenuItem*>(rhs.get())->baseScale;
-	}
+		return static_cast<const TextMenuItem*>(lhs.get())->baseScale < static_cast<const TextMenuItem*>(rhs.get())->baseScale;
+	  }
 	);
 
 	for (auto& e : items) {
@@ -152,6 +251,14 @@ namespace Menu {
 	}
   }
 
+  /** Handle a click event.
+
+	@param currentPosition  A position that was used by a click.
+	@param button           A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
   bool CarouselMenu::OnClick(const Vector2F& currentPos, MouseButton button) {
 	const int containerSize = static_cast<int>(items.size());
 	if (!hasDragging) {
@@ -166,24 +273,47 @@ namespace Menu {
 	return true;
   }
 
+  /** Handle a move event.
+
+	@param currentPos  A current mouse cursor or swiping position.
+	@param startPos    A position of start dragging.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
   bool CarouselMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint) {
 	moveY = currentPos.y - dragStartPoint.y;
 	hasDragging = true;
 	return true;
   }
 
+  /** Add a menu item.
+
+	@param p  A menu item that is added to this object.
+  */
   void CarouselMenu::Add(MenuItem::Pointer p) { items.push_back(p); }
+
+  /** Clear all menu item.
+  */
   void CarouselMenu::Clear() {
 	renderingList.clear();
 	items.clear();
   }
 
+  /** Constructor.
+  */
   Menu::Menu()
 	: pos(0, 0)
   {
 	SetRegion(Vector2F(0, 0), Vector2F(1, 1));
   }
 
+  /** Render the object.
+
+	@param  r       A renderer object.
+	@param  offset  A rendering offset.
+	@param  alpha   A text transparency.
+  */
   void Menu::Draw(Renderer& r, Vector2F offset, float alpha) const {
 	offset += pos;
 	alpha *= GetAlpha();
@@ -192,12 +322,24 @@ namespace Menu {
 	}
   }
 
+  /** Update a object and children.
+
+	@param tick  Second from previous frame.
+  */
   void Menu::Update(float tick) {
 	for (auto& e : items) {
 	  e->Update(tick);
 	}
   }
 
+  /** Handle a click event.
+
+	@param currentPosition  A position that was used by a click.
+	@param button           A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
   bool Menu::OnClick(const Vector2F& currentPos, MouseButton button) {
 	const auto re = items.rend();
 	for (auto ri = items.rbegin(); ri != re; ++ri) {
@@ -208,6 +350,14 @@ namespace Menu {
 	return false;
   }
 
+  /** Handle a move event.
+
+	@param currentPos  A current mouse cursor or swiping position.
+	@param startPos    A position of start dragging.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
   bool Menu::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos) {
 	const auto re = items.rend();
 	for (auto ri = items.rbegin(); ri != re; ++ri) {
@@ -218,6 +368,14 @@ namespace Menu {
 	return false;
   }
 
+  /** Process the event sent from the window.
+
+	@param engine The engine object.
+	@param e      The window event.
+
+	@retval true  The event was processed.
+	@retval false The event was ignored.
+  */
   bool Menu::ProcessWindowEvent(Engine& engine, const Event& e) {
 	const int windowWidth = engine.GetWindow().GetWidth();
 	const int windowHeight = engine.GetWindow().GetHeight();
@@ -264,7 +422,14 @@ namespace Menu {
 	return false;
   }
 
+  /** Add a menu item.
+
+	@param p  A menu item that is added to this object.
+  */
   void Menu::Add(MenuItem::Pointer p) { items.push_back(p); }
+
+  /** Clear all menu item.
+  */
   void Menu::Clear() { items.clear(); }
 
 } // namespace Menu
