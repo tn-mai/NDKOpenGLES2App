@@ -27,9 +27,9 @@ namespace SunnySideUp {
 	typedef std::function<bool(const Vector2F&, MouseButton)> ClickEventHandler;
 	typedef std::function<bool(const Vector2F&, const Vector2F&)> MoveEventHandler;
 
-	MenuItem() : lt(0, 0), wh(0, 0) {}
+	MenuItem() : lt(0, 0), wh(0, 0), isActive(true){}
 	virtual ~MenuItem() = 0;
-	virtual void Draw(Renderer&, Vector2F) const {}
+	virtual void Draw(Renderer&, Vector2F, float) const {}
 	virtual void Update(float) {}
 
 	virtual bool OnClick(const Vector2F& currentPos, MouseButton button) {
@@ -50,6 +50,9 @@ namespace SunnySideUp {
 	  wh = size;
 	}
 	bool OnRegion(const Vector2F& pos) const {
+	  if (!isActive) {
+		return false;
+	  }
 	  if (pos.x < lt.x || pos.x > lt.x + wh.x) {
 		return false;
 	  } else if (pos.y < lt.y || pos.y > lt.y + wh.y) {
@@ -57,10 +60,12 @@ namespace SunnySideUp {
 	  }
 	  return true;
 	}
+	float GetAlpha() const { return isActive ? 1.0f : 0.25f };
 
 	Vector2F lt, wh; ///< Active area.
 	ClickEventHandler clickHandler;
 	MoveEventHandler mouseMoveHandler;
+	bool isActive;
   };
   inline MenuItem::~MenuItem() = default;
 
@@ -76,7 +81,7 @@ namespace SunnySideUp {
 	  color = Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * s));
 	}
 	virtual ~TextMenuItem() {}
-	virtual void Draw(Renderer& r, Vector2F offset) const {
+	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const {
 	  offset += pos;
 	  float scale;
 	  if (scaleTick < 1.0f) {
@@ -86,7 +91,9 @@ namespace SunnySideUp {
 	  }
 	  scale *= baseScale;
 	  const float w = r.GetStringWidth(label) * scale * 0.5f;
-	  r.AddString(offset.x - w, offset.y, scale, color, label);
+	  Color4B c = color;
+	  c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
+	  r.AddString(offset.x - w, offset.y, scale, c, label);
 	}
 	virtual void Update(float tick) {
 	  if (flags & FLAG_ZOOM_ANIMATION) {
@@ -126,10 +133,11 @@ namespace SunnySideUp {
 	  SetRegion(Vector2F(0, 0), Vector2F(1, 1));
 	}
 	virtual ~Menu() {}
-	virtual void Draw(Renderer& r, Vector2F offset) const {
+	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const {
 	  offset += pos;
+	  alpha *= GetAlpha();
 	  for (auto& e : items) {
-		e->Draw(r, offset);
+		e->Draw(r, offset, alpha);
 	  }
 	}
 	virtual void Update(float tick) {
@@ -220,10 +228,11 @@ namespace SunnySideUp {
 	  SetRegion(Vector2F(0, 0), Vector2F(1, 1));
 	}
 	virtual ~CarouselMenu() {}
-	virtual void Draw(Renderer& r, Vector2F offset) const {
+	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const {
 	  offset += pos;
+	  alpha *= GetAlpha();
 	  for (auto& e : renderingList) {
-		e->Draw(r, offset);
+		e->Draw(r, offset, alpha);
 	  }
 	}
 	virtual void Update(float tick) {
@@ -425,7 +434,6 @@ namespace SunnySideUp {
 			return false;
 		  }
 		  rootMenu.Clear();
-		  rootMenu.Add(MenuItem::Pointer(new TextMenuItem("REDORD", Vector2F(0.25f, 0.9f), 1.0f)));
 		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6));
 		  for (int i = 0; i < 8; ++i) {
 			std::ostringstream ss;
@@ -439,7 +447,14 @@ namespace SunnySideUp {
 			};
 			pCarouselMenu->Add(pItem);
 		  }
+		  MenuItem::Pointer pRecordItem(new TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f));
+		  pRecordItem->clickHandler = [this, pCarouselMenu](const Vector2F&, MouseButton) -> bool {
+			isActive = false;
+			pCarouselMenu->isActive = false;
+			return true;
+		  };
 		  rootMenu.Add(pCarouselMenu);
+		  rootMenu.Add(pRecordItem);
 		  return true;
 		};
 		rootMenu.Add(pTouchMeItem);
@@ -613,7 +628,7 @@ namespace SunnySideUp {
 	virtual void Draw(Engine& engine) {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
-		rootMenu.Draw(r, Vector2F(0, 0));
+		rootMenu.Draw(r, Vector2F(0, 0), 1.0f);
 	  }
 	  r.Render(&objList[0], &objList[0] + objList.size());
 	}
