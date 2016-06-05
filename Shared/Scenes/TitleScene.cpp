@@ -60,7 +60,7 @@ namespace SunnySideUp {
 	  }
 	  return true;
 	}
-	float GetAlpha() const { return isActive ? 1.0f : 0.25f };
+	float GetAlpha() const { return isActive ? 1.0f : 0.25f; };
 
 	Vector2F lt, wh; ///< Active area.
 	ClickEventHandler clickHandler;
@@ -72,7 +72,11 @@ namespace SunnySideUp {
   /** A text menu item.
   */
   struct TextMenuItem : public MenuItem {
-	TextMenuItem(const char* str, const Vector2F& p, float s) : pos(p), baseScale(s), scaleTick(0), flags(0) {
+	static const uint8_t FLAG_ZOOM_ANIMATION = 0x01;
+	static const uint8_t FLAG_ALPHA_ANIMATION = 0x02;
+	static const uint8_t FLAG_SHADOW = 0x04;
+
+	TextMenuItem(const char* str, const Vector2F& p, float s, int flg = FLAG_SHADOW) : pos(p), baseScale(s), scaleTick(0), flags(flg) {
 	  const size_t len = std::min(sizeof(label) - 1, strlen(str));
 	  std::copy(str, str + len, label);
 	  label[len] = '\0';
@@ -93,6 +97,10 @@ namespace SunnySideUp {
 	  const float w = r.GetStringWidth(label) * scale * 0.5f;
 	  Color4B c = color;
 	  c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
+	  if (flags & FLAG_SHADOW) {
+		const Color4B shadowColor(c.r / 4, c.g / 4, c.b / 4, c.a / 2);
+		r.AddString(offset.x - w + 0.0075f, offset.y + 0.01f, scale, shadowColor, label);
+	  }
 	  r.AddString(offset.x - w, offset.y, scale, c, label);
 	}
 	virtual void Update(float tick) {
@@ -112,9 +120,6 @@ namespace SunnySideUp {
 		scaleTick = 0.0f;
 	  }
 	}
-
-	static const uint8_t FLAG_ZOOM_ANIMATION = 0x01;
-	static const uint8_t FLAG_ALPHA_ANIMATION = 0x02;
 
 	Vector2F pos;
 	Color4B color;
@@ -426,14 +431,41 @@ namespace SunnySideUp {
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
-		std::shared_ptr<TextMenuItem> pTouchMeItem(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f));
-		pTouchMeItem->SetFlag(TextMenuItem::FLAG_ZOOM_ANIMATION);
-		pTouchMeItem->SetRegion(Vector2F(0, 0), Vector2F(1, 1));
-		pTouchMeItem->clickHandler = [this, &r](const Vector2F&, MouseButton) -> bool {
-		  if (r.GetCurrentFilterMode() != Renderer::FILTERMODE_NONE) {
-			return false;
+		pRecordView.reset(new Menu());
+		{
+		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("BEST RECORDS", Vector2F(0.5f, 0.05f), 1.0f));
+		  pTitleLabel->color = Color4B(255, 240, 32, 255);
+		  pRecordView->Add(pTitleLabel);
+
+		  for (int i = 0; i < 8; ++i) {
+			char  buf[32];
+			if (auto e = SaveData::GetBestRecord(i)) {
+			  const int msec = static_cast<int>(e->time % 1000);
+			  const int min = static_cast<int>(e->time / 1000 / 60);
+			  const int sec = static_cast<int>((e->time / 1000) % 60);
+			  snprintf(buf, 32, "%d %02d:%02d.%03d", i + 1, min, sec, msec);
+			} else {
+			  snprintf(buf, 32, "%d --:--.---", i + 1);
+			}
+			pRecordView->Add(MenuItem::Pointer(new TextMenuItem(buf, Vector2F(0.5f, 0.15f + static_cast<float>(i) * 0.075f), 1.0f)));
 		  }
-		  rootMenu.Clear();
+
+		  std::shared_ptr<TextMenuItem> pReturnItem(new TextMenuItem("RETURN", Vector2F(0.25f, 0.9f), 1.0f));
+		  pReturnItem->color = Color4B(240, 64, 32, 255);
+		  pReturnItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
+			rootMenu.Clear();
+			rootMenu.Add(pLevelSelect);
+			return true;
+		  };
+		  pRecordView->Add(pReturnItem);
+		}
+
+		pLevelSelect.reset(new Menu());
+		{
+		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("SELECT LEVEL", Vector2F(0.5f, 0.1f), 1.0f));
+		  pTitleLabel->color = Color4B(250, 192, 128, 255);
+		  pLevelSelect->Add(pTitleLabel);
+
 		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6));
 		  for (int i = 0; i < 8; ++i) {
 			std::ostringstream ss;
@@ -447,14 +479,26 @@ namespace SunnySideUp {
 			};
 			pCarouselMenu->Add(pItem);
 		  }
-		  MenuItem::Pointer pRecordItem(new TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f));
-		  pRecordItem->clickHandler = [this, pCarouselMenu](const Vector2F&, MouseButton) -> bool {
-			isActive = false;
-			pCarouselMenu->isActive = false;
+		  pLevelSelect->Add(pCarouselMenu);
+
+		  std::shared_ptr<TextMenuItem> pRecordItem(new TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f));
+		  pRecordItem->color = Color4B(240, 64, 32, 255);
+		  pRecordItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
+			rootMenu.Clear();
+			rootMenu.Add(pRecordView);
 			return true;
 		  };
-		  rootMenu.Add(pCarouselMenu);
-		  rootMenu.Add(pRecordItem);
+		  pLevelSelect->Add(pRecordItem);
+		}
+
+		std::shared_ptr<TextMenuItem> pTouchMeItem(new TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f, TextMenuItem::FLAG_ZOOM_ANIMATION));
+		pTouchMeItem->SetRegion(Vector2F(0, 0), Vector2F(1, 1));
+		pTouchMeItem->clickHandler = [this, &r](const Vector2F&, MouseButton) -> bool {
+		  if (r.GetCurrentFilterMode() != Renderer::FILTERMODE_NONE) {
+			return false;
+		  }
+		  rootMenu.Clear();
+		  rootMenu.Add(pLevelSelect);
 		  return true;
 		};
 		rootMenu.Add(pTouchMeItem);
@@ -641,6 +685,8 @@ namespace SunnySideUp {
 	bool loaded;
 
 	Menu rootMenu;
+	std::shared_ptr<Menu> pRecordView;
+	std::shared_ptr<Menu> pLevelSelect;
 	int selectedLevel;
 
 	float cloudRot;
