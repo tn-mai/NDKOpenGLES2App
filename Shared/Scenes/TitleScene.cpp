@@ -227,8 +227,8 @@ namespace SunnySideUp {
   /** Multiple menu item container.
   */
   struct CarouselMenu : public MenuItem {
-	CarouselMenu(const Vector2F& p, int size, int top)
-	  : pos(p), windowSize(size), topOfWindow(top), hasDragging(false), moveY(0)
+	CarouselMenu(const Vector2F& p, int size, int top, float s)
+	  : pos(p), windowSize(size), topOfWindow(top), scale(s), moveY(0), hasDragging(false)
 	{
 	  SetRegion(Vector2F(0, 0), Vector2F(1, 1));
 	}
@@ -267,7 +267,7 @@ namespace SunnySideUp {
 		} else {
 		  pItem->color = Color4B(240, 240, 240, 255);
 		}
-		pItem->baseScale = (alpha * alpha) * 1.5f;
+		pItem->baseScale = (alpha * alpha) * scale;
 		pItem->pos.y = std::sin(theta) * 0.25f;
 		renderingList.push_back(pItem);
 	  }
@@ -313,6 +313,7 @@ namespace SunnySideUp {
 	std::vector<MenuItem::Pointer> renderingList;
 	int windowSize;
 	int topOfWindow;
+	float scale;
 	float moveY;
 	bool hasDragging;
   };
@@ -433,7 +434,7 @@ namespace SunnySideUp {
 
 		pRecordView.reset(new Menu());
 		{
-		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("BEST RECORDS", Vector2F(0.5f, 0.05f), 1.0f));
+		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("BEST RECORDS", Vector2F(0.5f, 0.05f), 1.25f));
 		  pTitleLabel->color = Color4B(255, 240, 32, 255);
 		  pRecordView->Add(pTitleLabel);
 
@@ -462,11 +463,11 @@ namespace SunnySideUp {
 
 		pLevelSelect.reset(new Menu());
 		{
-		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("SELECT LEVEL", Vector2F(0.5f, 0.1f), 1.0f));
+		  std::shared_ptr<TextMenuItem> pTitleLabel(new TextMenuItem("SELECT LEVEL", Vector2F(0.5f, 0.1f), 1.25f));
 		  pTitleLabel->color = Color4B(250, 192, 128, 255);
 		  pLevelSelect->Add(pTitleLabel);
 
-		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6));
+		  std::shared_ptr<CarouselMenu> pCarouselMenu(new CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6, 2.0f));
 		  for (int i = 0; i < 8; ++i) {
 			std::ostringstream ss;
 			ss << "LEVEL " << (i + 1);
