@@ -23,6 +23,18 @@ namespace Mai {
   public:
 	void IsMouseInWindow(bool b) { isMouseInWindow = b; }
 	bool IsMouseInWindow() const { return isMouseInWindow; }
+	
+	struct MouseInfo {
+	  int16_t x;
+	  int16_t y;
+	  int64_t time;
+	};
+	void SetMouseInfo(int x, int y, int64_t t) {
+	  prevMousePos.x = x;
+	  prevMousePos.y = y;
+	  prevMousePos.time = t;
+	}
+	const MouseInfo& GetPrevMouseInfo() const { return prevMousePos; }
 
   private:
 	std::string parentClassName;
@@ -30,6 +42,7 @@ namespace Mai {
 	EGLNativeWindowType nativeWindow;
 	EGLNativeWindowType parentWindow;
 	EGLNativeDisplayType nativeDisplay;
+	MouseInfo prevMousePos;
 	bool isMouseInWindow;
   };
 

@@ -1,6 +1,8 @@
 #include "Scene.h"
+#include "../Menu.h"
 #include "SaveData.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
+#include <vector>
 
 #ifndef NDEBUG
 //#define SSU_DEBUG_DISPLAY_GYRO
@@ -10,6 +12,45 @@ namespace SunnySideUp {
 
   using namespace Mai;
 
+  /** Title scene.
+
+	+----------+
+	|          | - Touch: Transition to the level selection menu.
+	| SUNNY    |
+	|  SIDE UP |
+	|          |
+	| TOUCH ME |
+	|          |
+	+----------+
+
+	+----------+
+	|   ...    | - Swipe: Select playing level.
+	|  level1  | - Touch: Determine playing level and transition to the main game scene.
+	| LEVEL2   | - Touch on REC icon: Transition to the record viewr.
+	|  level3  |
+	|   ...    | NOTE: Each level includes some courses.
+	|REC)      |
+	+----------+
+
+	+----------+
+	|. .. .. ..| - Swipe: Rotate record list.
+	|2 00:00:00| - Touch on RET icon: Transition to the level selection menu.
+	|3 00:00:00| - Touch on DEL icon: Transition to deleting record menu.
+	|4 00:00:00|
+	|. .. .. ..|
+	|DEL)  (RET|
+	+----------+
+
+	+----------+
+	|DELETE ALL| - Touch on YES icon: Delete all recodes and transition to the level selection menu.
+	| RECORDS? | - Touch on NO icon: transition to the record viewr.
+	|          |
+	|   YES    |
+	|   NO     |
+	|          |
+	+----------+
+
+  */
   class TitleScene : public Scene {
   public:
 	TitleScene()
@@ -85,8 +126,82 @@ namespace SunnySideUp {
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(8, 8 * 4));
 
+		pRecordView.reset(new Menu::Menu());
+		{
+		  std::shared_ptr<Menu::TextMenuItem> pTitleLabel(new Menu::TextMenuItem("BEST RECORDS", Vector2F(0.5f, 0.05f), 1.25f));
+		  pTitleLabel->color = Color4B(255, 240, 32, 255);
+		  pRecordView->Add(pTitleLabel);
+
+		  for (int i = 0; i < 8; ++i) {
+			char  buf[32];
+			if (auto e = SaveData::GetBestRecord(i)) {
+			  const int msec = static_cast<int>(e->time % 1000);
+			  const int min = static_cast<int>(e->time / 1000 / 60);
+			  const int sec = static_cast<int>((e->time / 1000) % 60);
+			  snprintf(buf, 32, "%d %02d:%02d.%03d", i + 1, min, sec, msec);
+			} else {
+			  snprintf(buf, 32, "%d --:--.---", i + 1);
+			}
+			pRecordView->Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.15f + static_cast<float>(i) * 0.075f), 1.0f)));
+		  }
+
+		  std::shared_ptr<Menu::TextMenuItem> pReturnItem(new Menu::TextMenuItem("RETURN", Vector2F(0.25f, 0.9f), 1.0f));
+		  pReturnItem->color = Color4B(240, 64, 32, 255);
+		  pReturnItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
+			rootMenu.Clear();
+			rootMenu.Add(pLevelSelect);
+			rootMenu.inputDisableTimer = 0.25f;
+			return true;
+		  };
+		  pRecordView->Add(pReturnItem);
+		}
+
+		pLevelSelect.reset(new Menu::Menu());
+		{
+		  std::shared_ptr<Menu::TextMenuItem> pTitleLabel(new Menu::TextMenuItem("SELECT LEVEL", Vector2F(0.5f, 0.1f), 1.25f));
+		  pTitleLabel->color = Color4B(250, 192, 128, 255);
+		  pLevelSelect->Add(pTitleLabel);
+
+		  std::shared_ptr<Menu::CarouselMenu> pCarouselMenu(new Menu::CarouselMenu(Vector2F(0.5f, 0.4f), 5, 6, 1.75f));
+		  for (int i = 0; i < 8; ++i) {
+			std::ostringstream ss;
+			ss << "LEVEL " << (i + 1);
+			Menu::MenuItem::Pointer pItem(new Menu::TextMenuItem(ss.str().c_str(), Vector2F(0, 0), 1.0f));
+			pItem->clickHandler = [this, &r, i](const Vector2F&, MouseButton) -> bool {
+			  selectedLevel = i;
+			  r.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
+			  updateFunc = &TitleScene::DoFadeOut;
+			  return true;
+			};
+			pCarouselMenu->Add(pItem);
+		  }
+		  pLevelSelect->Add(pCarouselMenu);
+
+		  std::shared_ptr<Menu::TextMenuItem> pRecordItem(new Menu::TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f));
+		  pRecordItem->color = Color4B(240, 64, 32, 255);
+		  pRecordItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
+			rootMenu.Clear();
+			rootMenu.Add(pRecordView);
+			rootMenu.inputDisableTimer = 0.25f;
+			return true;
+		  };
+		  pLevelSelect->Add(pRecordItem);
+		}
+
+		std::shared_ptr<Menu::TextMenuItem> pTouchMeItem(new Menu::TextMenuItem("TOUCH ME!", Vector2F(0.5f, 0.7f), 1.0f, Menu::TextMenuItem::FLAG_ZOOM_ANIMATION));
+		pTouchMeItem->SetRegion(Vector2F(0, 0), Vector2F(1, 1));
+		pTouchMeItem->clickHandler = [this, &r](const Vector2F&, MouseButton) -> bool {
+		  if (r.GetCurrentFilterMode() != Renderer::FILTERMODE_NONE) {
+			return false;
+		  }
+		  rootMenu.Clear();
+		  rootMenu.Add(pLevelSelect);
+		  rootMenu.inputDisableTimer = 0.25f;
+		  return true;
+		};
+		rootMenu.Add(pTouchMeItem);
+
 		animeNo = 0;
-		scaleTick = 0;
 		cloudRot = 0;
 		loaded = true;
 	  }
@@ -100,6 +215,7 @@ namespace SunnySideUp {
 		objGyro.reset();
 #endif // SSU_DEBUG_DISPLAY_GYRO
 		objList.clear();
+		rootMenu.Clear();
 		loaded = false;
 	  }
 	  status = STATUSCODE_STOPPED;
@@ -110,6 +226,7 @@ namespace SunnySideUp {
 	  for (auto e : objList) {
 		e->Update(tick);
 	  }
+	  rootMenu.Update(tick);
 	  Renderer& r = engine.GetRenderer();
 	  r.Update(tick, eyePos, eyeDir, Vector3F(0, 1, 0));
 
@@ -139,10 +256,6 @@ namespace SunnySideUp {
 	This is the update function called from Update().
 	*/
 	int DoUpdate(Engine& engine, float tick) {
-	  scaleTick += tick;
-	  if (scaleTick > 2.0f) {
-		scaleTick -= 2.0f;
-	  }
 	  cloudRot += tick;
 	  if (cloudRot > 360.0f) {
 		cloudRot -= 360.0f;
@@ -163,6 +276,24 @@ namespace SunnySideUp {
 	  return SCENEID_CONTINUE;
 	}
 
+	/**
+	*/
+	int DoTransitionToLevelSelect(Engine&, float) {
+	  return SCENEID_CONTINUE;
+	}
+
+	/**
+	*/
+	int DoLevelSelect(Engine&, float) {
+	  return SCENEID_CONTINUE;
+	}
+
+	/**
+	*/
+	int DoTransitionToRecordViwer(Engine&, float) {
+	  return SCENEID_CONTINUE;
+	}
+
 	/** Do fade out.
 	
 	Transition to the scene of the start event when the fadeout finished.
@@ -171,6 +302,7 @@ namespace SunnySideUp {
 	int DoFadeOut(Engine& engine, float) {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+		engine.GetCommonData<CommonData>()->level = selectedLevel;
 		r.FadeIn(1.0f);
 		engine.GetAudio().StopBGM();
 		return SCENEID_STARTEVENT;
@@ -179,15 +311,13 @@ namespace SunnySideUp {
 	}
 
 	virtual void ProcessWindowEvent(Engine& engine, const Event& e) {
+	  if (rootMenu.ProcessWindowEvent(engine, e)) {
+		return;
+	  }
+
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 		switch (e.Type) {
-		case Event::EVENT_MOUSE_BUTTON_PRESSED:
-		  if (e.MouseButton.Button == MOUSEBUTTON_LEFT) {
-			r.FadeOut(Color4B(0, 0, 0, 0), 1.0f);
-			updateFunc = &TitleScene::DoFadeOut;
-		  }
-		  break;
 #ifndef NDEBUG
 		case Event::EVENT_KEY_PRESSED:
 		  switch (e.Key.Code) {
@@ -240,15 +370,7 @@ namespace SunnySideUp {
 	virtual void Draw(Engine& engine) {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
-		const char str[] = "TOUCH ME!";
-		float scale;
-		if (scaleTick < 1.0f) {
-		  scale = 1.0f + scaleTick * 0.5f;
-		} else {
-		  scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
-		}
-		const float w = r.GetStringWidth(str) * scale;
-		r.AddString(0.5f - w * 0.5f, 0.7f, scale, Color4B(240, 240, 240, 255), str);
+		rootMenu.Draw(r, Vector2F(0, 0), 1.0f);
 	  }
 	  r.Render(&objList[0], &objList[0] + objList.size());
 	}
@@ -259,7 +381,12 @@ namespace SunnySideUp {
 	Vector3F eyeDir;
 	int animeNo;
 	bool loaded;
-	float scaleTick;
+
+	Menu::Menu rootMenu;
+	std::shared_ptr<Menu::Menu> pRecordView;
+	std::shared_ptr<Menu::Menu> pLevelSelect;
+	int selectedLevel;
+
 	float cloudRot;
 	int (TitleScene::*updateFunc)(Engine&, float);
 

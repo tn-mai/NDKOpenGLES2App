@@ -170,7 +170,7 @@ namespace Mai {
 		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
 		  float timestamp = 0.0f;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) >= 0) {
 			if (timestamp == 0.0f) {
 			  timestamp = event.timestamp;
 			}
@@ -185,7 +185,7 @@ namespace Mai {
 	  case LooperId_Magnet:
 		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) >= 0) {
 			magnet.x = event.magnetic.x;
 			magnet.y = event.magnetic.y;
 			magnet.z = event.magnetic.z;
@@ -196,7 +196,7 @@ namespace Mai {
 	  case LooperId_Gyro:
 		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) >= 0) {
 			GyroFunction(Vector3F(event.vector.x, event.vector.y, event.vector.z), event.timestamp);
 			break;
 		  }
@@ -491,14 +491,21 @@ namespace Mai {
 			const Vector2F curPos(AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0));
 			if ((curPos - touchSwipeState.tapInfo.pos).Length() < TOUCH_SLOP * touchSwipeState.dpFactor) {
 			  Event e;
-			  e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+			  e.Type = Event::EVENT_MOUSE_BUTTON_CLICKED;
 			  e.Time = AMotionEvent_getEventTime(event);
 			  e.MouseButton.Button = MOUSEBUTTON_LEFT;
 			  e.MouseButton.X = curPos.x;
 			  e.MouseButton.Y = curPos.y;
 			  PushEvent(e);
-			  consumed = true;
 			}
+			Event e;
+			e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+			e.Time = AMotionEvent_getEventTime(event);
+			e.MouseButton.Button = MOUSEBUTTON_LEFT;
+			e.MouseButton.X = curPos.x;
+			e.MouseButton.Y = curPos.y;
+			PushEvent(e);
+			consumed = true;
 		  }
 		}
 		break;
@@ -517,13 +524,28 @@ namespace Mai {
 	  }
 	  case AMOTION_EVENT_ACTION_POINTER_DOWN:
 		break;
-	  case AMOTION_EVENT_ACTION_UP:
+	  case AMOTION_EVENT_ACTION_UP: {
+		Event e;
+		e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		e.Time = AMotionEvent_getEventTime(event);
+		e.MouseButton.Button = MOUSEBUTTON_LEFT;
+		e.MouseButton.X = AMotionEvent_getX(event, 0);
+		e.MouseButton.Y = AMotionEvent_getY(event, 0);
+		PushEvent(e);
 		touchSwipeState.dragging = false;
 		consumed = true;
 		return true;
+	  }
 	  case AMOTION_EVENT_ACTION_POINTER_UP: {
 		const int id = AMotionEvent_getPointerId(event, index);
 		if (touchSwipeState.dragInfo.id == id) {
+		  Event e;
+		  e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		  e.Time = AMotionEvent_getEventTime(event);
+		  e.MouseButton.Button = MOUSEBUTTON_LEFT;
+		  e.MouseButton.X = AMotionEvent_getX(event, index);
+		  e.MouseButton.Y = AMotionEvent_getY(event, index);
+		  PushEvent(e);
 		  touchSwipeState.dragging = false;
 		  consumed = true;
 		}

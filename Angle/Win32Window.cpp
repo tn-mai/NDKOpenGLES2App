@@ -217,6 +217,16 @@ namespace Mai {
 	  return Key(0);
 	}
 
+	bool HasClick(int x1, int y1, int64_t time, const Win32Window::MouseInfo& prevInfo) {
+	  if (time - prevInfo.time > 500/* ms */) {
+		return false;
+	  }
+	  const int diffX = x1 - prevInfo.x;
+	  const int diffY = y1 - prevInfo.y;
+	  const int length = std::sqrt(diffX * diffX + diffY * diffY);
+	  return length < 8/* pixel */;
+	}
+
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	  if (message == WM_NCCREATE) {
@@ -348,8 +358,9 @@ namespace Mai {
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
 		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_LEFT;
-		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
-		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  event.MouseButton.X = static_cast<int16_t>(LOWORD(lParam));
+		  event.MouseButton.Y = static_cast<int16_t>(HIWORD(lParam));
+		  window->SetMouseInfo(event.MouseButton.X, event.MouseButton.Y, time);
 		  window->PushEvent(event);
 		  break;
 		}
@@ -362,6 +373,11 @@ namespace Mai {
 		  event.MouseButton.Button = MOUSEBUTTON_LEFT;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  if (HasClick(event.MouseButton.X, event.MouseButton.Y, time, window->GetPrevMouseInfo())) {
+			Event eventClick = event;
+			eventClick.Type = Event::EVENT_MOUSE_BUTTON_CLICKED;
+			window->PushEvent(eventClick);
+		  }
 		  window->PushEvent(event);
 		  break;
 		}
@@ -373,8 +389,9 @@ namespace Mai {
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
 		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_RIGHT;
-		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
-		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  event.MouseButton.X = static_cast<int16_t>(LOWORD(lParam));
+		  event.MouseButton.Y = static_cast<int16_t>(HIWORD(lParam));
+		  window->SetMouseInfo(event.MouseButton.X, event.MouseButton.Y, time);
 		  window->PushEvent(event);
 		  break;
 		}
@@ -388,6 +405,11 @@ namespace Mai {
 		  event.MouseButton.Button = MOUSEBUTTON_RIGHT;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  if (HasClick(event.MouseButton.X, event.MouseButton.Y, time, window->GetPrevMouseInfo())) {
+			Event eventClick = event;
+			eventClick.Type = Event::EVENT_MOUSE_BUTTON_CLICKED;
+			window->PushEvent(eventClick);
+		  }
 		  window->PushEvent(event);
 		  break;
 		}
@@ -400,8 +422,9 @@ namespace Mai {
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
 		  event.Time = time;
 		  event.MouseButton.Button = MOUSEBUTTON_MIDDLE;
-		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
-		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  event.MouseButton.X = static_cast<int16_t>(LOWORD(lParam));
+		  event.MouseButton.Y = static_cast<int16_t>(HIWORD(lParam));
+		  window->SetMouseInfo(event.MouseButton.X, event.MouseButton.Y, time);
 		  window->PushEvent(event);
 		  break;
 		}
@@ -415,6 +438,11 @@ namespace Mai {
 		  event.MouseButton.Button = MOUSEBUTTON_MIDDLE;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  if (HasClick(event.MouseButton.X, event.MouseButton.Y, time, window->GetPrevMouseInfo())) {
+			Event eventClick = event;
+			eventClick.Type = Event::EVENT_MOUSE_BUTTON_CLICKED;
+			window->PushEvent(eventClick);
+		  }
 		  window->PushEvent(event);
 		  break;
 		}
@@ -427,8 +455,9 @@ namespace Mai {
 		  event.Type = Event::EVENT_MOUSE_BUTTON_PRESSED;
 		  event.Time = time;
 		  event.MouseButton.Button = (HIWORD(wParam) == XBUTTON1) ? MOUSEBUTTON_BUTTON4 : MOUSEBUTTON_BUTTON5;
-		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
-		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  event.MouseButton.X = static_cast<int16_t>(LOWORD(lParam));
+		  event.MouseButton.Y = static_cast<int16_t>(HIWORD(lParam));
+		  window->SetMouseInfo(event.MouseButton.X, event.MouseButton.Y, time);
 		  window->PushEvent(event);
 		  break;
 		}
@@ -442,6 +471,11 @@ namespace Mai {
 		  event.MouseButton.Button = (HIWORD(wParam) == XBUTTON1) ? MOUSEBUTTON_BUTTON4 : MOUSEBUTTON_BUTTON5;
 		  event.MouseButton.X = static_cast<short>(LOWORD(lParam));
 		  event.MouseButton.Y = static_cast<short>(HIWORD(lParam));
+		  if (HasClick(event.MouseButton.X, event.MouseButton.Y, time, window->GetPrevMouseInfo())) {
+			Event eventClick = event;
+			eventClick.Type = Event::EVENT_MOUSE_BUTTON_CLICKED;
+			window->PushEvent(eventClick);
+		  }
 		  window->PushEvent(event);
 		  break;
 		}
