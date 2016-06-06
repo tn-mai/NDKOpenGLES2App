@@ -20,19 +20,27 @@ class Event;
 */
 namespace Menu {
 
+  /** A moving state of mouse.
+  */
+  enum class MouseMoveState {
+	Begin, ///< Begin mouse cursor moving.
+	Moving, ///< Mouse cursor continues to move.
+	End, ///< End mouse cursor moving.
+  };
+
   /** The base class of any menu item.
   */
   struct MenuItem {
 	typedef std::shared_ptr<MenuItem> Pointer;
 	typedef std::function<bool(const Vector2F&, MouseButton)> ClickEventHandler;
-	typedef std::function<bool(const Vector2F&, const Vector2F&)> MoveEventHandler;
+	typedef std::function<bool(const Vector2F&, const Vector2F&, MouseMoveState)> MoveEventHandler;
 
 	MenuItem();
 	virtual ~MenuItem() = 0;
 	virtual void Draw(Renderer&, Vector2F, float) const {}
 	virtual void Update(float) {}
 	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos);
+	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
 
 	void SetRegion(const Vector2F& pos, const Vector2F& size);
 	bool OnRegion(const Vector2F& pos) const;
@@ -78,7 +86,7 @@ namespace Menu {
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(float tick);
 	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint);
+	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState);
 
 	void Add(MenuItem::Pointer p);
 	void Clear();
@@ -103,7 +111,7 @@ namespace Menu {
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(float tick);
 	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos);
+	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
 
 	bool ProcessWindowEvent(Engine& engine, const Event& e);
 	void Add(MenuItem::Pointer p);
@@ -113,6 +121,7 @@ namespace Menu {
 	std::vector<MenuItem::Pointer> items;
 	Vector2F dragStartPoint;
 	float inputDisableTimer;
+	MouseMoveState mouseMoveState;
 	MenuItem::Pointer pActiveItem;
   };
 

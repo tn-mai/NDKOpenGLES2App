@@ -18,6 +18,9 @@
 #define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
+#else
+#define LOGI(...)
+#define LOGE(...)
 #endif // NDEBUG
 
 namespace Mai {
@@ -63,13 +66,14 @@ namespace Menu {
 
 	@param currentPos  A current mouse cursor or swiping position.
 	@param startPos    A position of start dragging.
+	@param state       A state of mouse moving.
 
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool MenuItem::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos) {
+  bool MenuItem::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState state) {
 	if (mouseMoveHandler) {
-	  return mouseMoveHandler(currentPos, startPos);
+	  return mouseMoveHandler(currentPos, startPos, state);
 	}
 	return false;
   }
@@ -274,29 +278,40 @@ namespace Menu {
   */
   bool CarouselMenu::OnClick(const Vector2F& currentPos, MouseButton button) {
 	const int containerSize = static_cast<int>(items.size());
-	if (!hasDragging) {
-	  const int center = windowSize / 2;
-	  return items[(topOfWindow + center) % containerSize]->OnClick(currentPos, button);
-	}
-	topOfWindow = (topOfWindow - static_cast<int>(moveY * 10.0f) + containerSize) % containerSize;
-	hasDragging = false;
-	moveY *= 10.0f;
-	moveY -= static_cast<float>(static_cast<int>(moveY));
-	moveY *= 0.1f;
-	return true;
+	const int center = windowSize / 2;
+	return items[(topOfWindow + center) % containerSize]->OnClick(currentPos, button);
+	return false;
   }
 
   /** Handle a move event.
 
 	@param currentPos  A current mouse cursor or swiping position.
 	@param startPos    A position of start dragging.
+	@param state       A state of mouse moving.
 
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool CarouselMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint) {
-	moveY = currentPos.y - dragStartPoint.y;
-	hasDragging = true;
+  bool CarouselMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
+	switch (state) {
+	case MouseMoveState::Begin:
+	  moveY = currentPos.y - dragStartPoint.y;
+	  hasDragging = true;
+	  break;
+	case MouseMoveState::Moving:
+	  moveY = currentPos.y - dragStartPoint.y;
+	  hasDragging = true;
+	  break;
+	case MouseMoveState::End: {
+	  const int containerSize = static_cast<int>(items.size());
+	  topOfWindow = (topOfWindow - static_cast<int>(moveY * 10.0f) + containerSize) % containerSize;
+	  hasDragging = false;
+	  moveY *= 10.0f;
+	  moveY -= static_cast<float>(static_cast<int>(moveY));
+	  moveY *= 0.1f;
+	  break;
+	}
+	}
 	return true;
   }
 
@@ -317,6 +332,7 @@ namespace Menu {
   */
   Menu::Menu()
 	: pos(0, 0)
+	, mouseMoveState(MouseMoveState::End)
   {
 	SetRegion(Vector2F(0, 0), Vector2F(1, 1));
   }
@@ -344,7 +360,7 @@ namespace Menu {
 	  e->Update(tick);
 	}
 	if (inputDisableTimer > 0.0f) {
-	  inputDisableTime = std::max(0.0f, inputDisableTimer - tick);
+	  inputDisableTimer = std::max(0.0f, inputDisableTimer - tick);
 	}
   }
 
@@ -370,15 +386,16 @@ namespace Menu {
 
 	@param currentPos  A current mouse cursor or swiping position.
 	@param startPos    A position of start dragging.
+	@param state       A state of mouse moving.
 
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool Menu::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos) {
+  bool Menu::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState state) {
 	const auto re = items.rend();
 	for (auto ri = items.rbegin(); ri != re; ++ri) {
 	  if ((*ri)->OnRegion(currentPos)) {
-		return (*ri)->OnMouseMove(currentPos, startPos);
+		return (*ri)->OnMouseMove(currentPos, startPos, state);
 	  }
 	}
 	return false;
@@ -402,7 +419,12 @@ namespace Menu {
 	case Event::EVENT_MOUSE_MOVED:
 	  if (pActiveItem) {
 		const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseMove.X, e.MouseMove.Y, windowWidth, windowHeight);
-		return pActiveItem->OnMouseMove(currentPos, dragStartPoint);
+		switch (mouseMoveState) {
+		case MouseMoveState::Begin: mouseMoveState = MouseMoveState::Moving; break;
+		case MouseMoveState::Moving: mouseMoveState = MouseMoveState::Moving; break;
+		case MouseMoveState::End: mouseMoveState = MouseMoveState::Begin; break;
+		}
+		return pActiveItem->OnMouseMove(currentPos, dragStartPoint, mouseMoveState);
 	  }
 	  break;
 	case Event::EVENT_MOUSE_BUTTON_PRESSED: {
@@ -420,12 +442,10 @@ namespace Menu {
 	  }
 	  break;
 	}
-	case Event::EVENT_MOUSE_BUTTON_RELEASED: {
-	  LOGI("EVENT_MOUSE_BUTTON_RELEASED(%d,%d) (%d,%d)", e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
+	case Event::EVENT_MOUSE_BUTTON_CLICKED: {
 	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  if (pActiveItem) {
-		MenuItem::Pointer p(std::move(pActiveItem));
-		if (p->OnClick(currentPos, e.MouseButton.Button)) {
+		if (pActiveItem->OnClick(currentPos, e.MouseButton.Button)) {
 		  return true;
 		}
 	  }
@@ -435,6 +455,18 @@ namespace Menu {
 		  if ((*ri)->OnRegion(currentPos)) {
 			return (*ri)->OnClick(currentPos, e.MouseButton.Button);
 		  }
+		}
+	  }
+	  break;
+	}
+	case Event::EVENT_MOUSE_BUTTON_RELEASED: {
+	  LOGI("EVENT_MOUSE_BUTTON_RELEASED(%d,%d) (%d,%d)", e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
+	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
+	  if (pActiveItem) {
+		MenuItem::Pointer p(std::move(pActiveItem));
+		mouseMoveState = MouseMoveState::End;
+		if (p->OnMouseMove(currentPos, dragStartPoint, mouseMoveState)) {
+		  return true;
 		}
 	  }
 	  break;
