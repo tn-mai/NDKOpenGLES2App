@@ -491,14 +491,21 @@ namespace Mai {
 			const Vector2F curPos(AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0));
 			if ((curPos - touchSwipeState.tapInfo.pos).Length() < TOUCH_SLOP * touchSwipeState.dpFactor) {
 			  Event e;
-			  e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+			  e.Type = Event::EVENT_MOUSE_BUTTON_CLICKED;
 			  e.Time = AMotionEvent_getEventTime(event);
 			  e.MouseButton.Button = MOUSEBUTTON_LEFT;
 			  e.MouseButton.X = curPos.x;
 			  e.MouseButton.Y = curPos.y;
 			  PushEvent(e);
-			  consumed = true;
 			}
+			Event e;
+			e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+			e.Time = AMotionEvent_getEventTime(event);
+			e.MouseButton.Button = MOUSEBUTTON_LEFT;
+			e.MouseButton.X = curPos.x;
+			e.MouseButton.Y = curPos.y;
+			PushEvent(e);
+			consumed = true;
 		  }
 		}
 		break;
@@ -517,13 +524,28 @@ namespace Mai {
 	  }
 	  case AMOTION_EVENT_ACTION_POINTER_DOWN:
 		break;
-	  case AMOTION_EVENT_ACTION_UP:
+	  case AMOTION_EVENT_ACTION_UP: {
+		Event e;
+		e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		e.Time = AMotionEvent_getEventTime(event);
+		e.MouseButton.Button = MOUSEBUTTON_LEFT;
+		e.MouseButton.X = AMotionEvent_getX(event, 0);
+		e.MouseButton.Y = AMotionEvent_getY(event, 0);
+		PushEvent(e);
 		touchSwipeState.dragging = false;
 		consumed = true;
 		return true;
+	  }
 	  case AMOTION_EVENT_ACTION_POINTER_UP: {
 		const int id = AMotionEvent_getPointerId(event, index);
 		if (touchSwipeState.dragInfo.id == id) {
+		  Event e;
+		  e.Type = Event::EVENT_MOUSE_BUTTON_RELEASED;
+		  e.Time = AMotionEvent_getEventTime(event);
+		  e.MouseButton.Button = MOUSEBUTTON_LEFT;
+		  e.MouseButton.X = AMotionEvent_getX(event, index);
+		  e.MouseButton.Y = AMotionEvent_getY(event, index);
+		  PushEvent(e);
 		  touchSwipeState.dragging = false;
 		  consumed = true;
 		}

@@ -76,6 +76,7 @@ namespace Mai {
 	  EVENT_KEY_RELEASED,          // A key was released
 	  EVENT_MOUSE_WHEEL_MOVED,     // The mouse wheel was scrolled
 	  EVENT_MOUSE_BUTTON_PRESSED,  // A mouse button was pressed
+	  EVENT_MOUSE_BUTTON_CLICKED,  // A mouse button was clicked
 	  EVENT_MOUSE_BUTTON_RELEASED, // A mouse button was released
 	  EVENT_MOUSE_MOVED,           // The mouse cursor moved
 	  EVENT_MOUSE_ENTERED,         // The mouse cursor entered the area of the window
