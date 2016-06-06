@@ -7,6 +7,18 @@
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
 
+#ifndef NDEBUG
+#ifdef __ANDROID__
+#include <android/log.h>
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "Mai::Menu", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "Mai::Menu", __VA_ARGS__))
+#else
+#include <stdio.h>
+#define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#endif // __ANDROID__
+#endif // NDEBUG
+
 namespace Mai {
 
 namespace Menu {
@@ -377,8 +389,8 @@ namespace Menu {
 	@retval false The event was ignored.
   */
   bool Menu::ProcessWindowEvent(Engine& engine, const Event& e) {
-	const int windowWidth = engine.GetWindow().GetWidth();
-	const int windowHeight = engine.GetWindow().GetHeight();
+	const int windowWidth = engine.GetRenderer().Width();
+	const int windowHeight = engine.GetRenderer().Height();
 	switch (e.Type) {
 	case Event::EVENT_MOUSE_MOVED:
 	  if (pActiveItem) {
@@ -387,6 +399,7 @@ namespace Menu {
 	  }
 	  break;
 	case Event::EVENT_MOUSE_BUTTON_PRESSED: {
+	  LOGI("EVENT_MOUSE_BUTTON_PRESSED(%d,%d) (%d,%d)", e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  if (OnRegion(currentPos)) {
 		dragStartPoint = currentPos;
@@ -401,6 +414,7 @@ namespace Menu {
 	  break;
 	}
 	case Event::EVENT_MOUSE_BUTTON_RELEASED: {
+	  LOGI("EVENT_MOUSE_BUTTON_RELEASED(%d,%d) (%d,%d)", e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  if (pActiveItem) {
 		MenuItem::Pointer p(std::move(pActiveItem));
