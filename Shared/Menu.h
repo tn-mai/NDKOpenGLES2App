@@ -112,6 +112,7 @@ namespace Menu {
 	Vector2F pos;
 	std::vector<MenuItem::Pointer> items;
 	Vector2F dragStartPoint;
+	float inputDisableTimer;
 	MenuItem::Pointer pActiveItem;
   };
 

@@ -150,6 +150,7 @@ namespace SunnySideUp {
 		  pReturnItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
 			rootMenu.Clear();
 			rootMenu.Add(pLevelSelect);
+			rootMenu.inputDisableTimer = 0.25f;
 			return true;
 		  };
 		  pRecordView->Add(pReturnItem);
@@ -181,6 +182,7 @@ namespace SunnySideUp {
 		  pRecordItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
 			rootMenu.Clear();
 			rootMenu.Add(pRecordView);
+			rootMenu.inputDisableTimer = 0.25f;
 			return true;
 		  };
 		  pLevelSelect->Add(pRecordItem);
@@ -194,6 +196,7 @@ namespace SunnySideUp {
 		  }
 		  rootMenu.Clear();
 		  rootMenu.Add(pLevelSelect);
+		  rootMenu.inputDisableTimer = 0.25f;
 		  return true;
 		};
 		rootMenu.Add(pTouchMeItem);

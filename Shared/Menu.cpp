@@ -6,6 +6,7 @@
 #include "Event.h"
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
+#include <algorithm>
 
 #ifndef NDEBUG
 #ifdef __ANDROID__
@@ -342,6 +343,9 @@ namespace Menu {
 	for (auto& e : items) {
 	  e->Update(tick);
 	}
+	if (inputDisableTimer > 0.0f) {
+	  inputDisableTime = std::max(0.0f, inputDisableTimer - tick);
+	}
   }
 
   /** Handle a click event.
@@ -389,6 +393,9 @@ namespace Menu {
 	@retval false The event was ignored.
   */
   bool Menu::ProcessWindowEvent(Engine& engine, const Event& e) {
+	if (inputDisableTimer > 0.0f) {
+	  return false;
+	}
 	const int windowWidth = engine.GetRenderer().Width();
 	const int windowHeight = engine.GetRenderer().Height();
 	switch (e.Type) {
