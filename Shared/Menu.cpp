@@ -252,7 +252,7 @@ namespace Menu {
 		pItem->color = Color4B(240, 240, 240, 255);
 	  }
 	  pItem->baseScale = (alpha * alpha) * scale;
-	  pItem->pos.y = std::sin(theta) * 0.25f;
+	  pItem->pos.y = std::sin(theta) * 0.15f * scale;
 	  renderingList.push_back(pItem);
 	}
 	std::sort(

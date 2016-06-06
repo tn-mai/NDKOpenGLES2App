@@ -162,7 +162,7 @@ namespace SunnySideUp {
 		  pTitleLabel->color = Color4B(250, 192, 128, 255);
 		  pLevelSelect->Add(pTitleLabel);
 
-		  std::shared_ptr<Menu::CarouselMenu> pCarouselMenu(new Menu::CarouselMenu(Vector2F(0.5f, 0.5f), 5, 6, 2.0f));
+		  std::shared_ptr<Menu::CarouselMenu> pCarouselMenu(new Menu::CarouselMenu(Vector2F(0.5f, 0.4f), 5, 6, 1.75f));
 		  for (int i = 0; i < 8; ++i) {
 			std::ostringstream ss;
 			ss << "LEVEL " << (i + 1);
