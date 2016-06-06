@@ -170,7 +170,7 @@ namespace Mai {
 		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
 		  float timestamp = 0.0f;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) >= 0) {
 			if (timestamp == 0.0f) {
 			  timestamp = event.timestamp;
 			}
@@ -185,7 +185,7 @@ namespace Mai {
 	  case LooperId_Magnet:
 		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) >= 0) {
 			magnet.x = event.magnetic.x;
 			magnet.y = event.magnetic.y;
 			magnet.z = event.magnetic.z;
@@ -196,7 +196,7 @@ namespace Mai {
 	  case LooperId_Gyro:
 		if (sensor[sensorIndex]) {
 		  ASensorEvent event;
-		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) > 0) {
+		  while (ASensorEventQueue_getEvents(sensorEventQueue[sensorIndex], &event, 1) >= 0) {
 			GyroFunction(Vector3F(event.vector.x, event.vector.y, event.vector.z), event.timestamp);
 			break;
 		  }
