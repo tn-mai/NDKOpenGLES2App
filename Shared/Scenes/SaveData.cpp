@@ -219,6 +219,7 @@ bool SetNewRecord(const Mai::Window& window, int level, int64_t recordTime) {
 */
 void DeleteAll(const Mai::Window& window) {
   window.DeleteUserFile(recordFilename);
+  bestRecords.clear();
 }
 
 } // namespace SaveData;
