@@ -64,6 +64,8 @@ namespace Menu {
 	virtual ~TextMenuItem() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(float tick);
+	void SetText(const char*);
+	const char* GetText() const;
 	int GetFlag() const;
 	void SetFlag(int f);
 	void ClearFlag(int f);

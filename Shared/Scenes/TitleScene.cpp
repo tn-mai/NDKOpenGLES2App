@@ -154,6 +154,52 @@ namespace SunnySideUp {
 			return true;
 		  };
 		  pRecordView->Add(pReturnItem);
+
+		  std::shared_ptr<Menu::TextMenuItem> pClearItem(new Menu::TextMenuItem("CLEAR", Vector2F(0.75f, 0.9f), 1.0f));
+		  pClearItem->color = Color4B(32, 64, 240, 255);
+		  pClearItem->clickHandler = [this, &engine](const Vector2F&, MouseButton) -> bool {
+			std::shared_ptr<Menu::TextMenuItem> pLabelItem(new Menu::TextMenuItem("CLARE RECORD?", Vector2F(0.5f, 0.25f), 1.0f));
+			pLabelItem->color = Color4B(32, 64, 240, 255);
+			std::shared_ptr<Menu::TextMenuItem> pYesItem(new Menu::TextMenuItem(" YES ", Vector2F(0.5f, 0.4f), 2.0f));
+			pYesItem->clickHandler = [this, &engine](const Vector2F&, MouseButton) -> bool {
+			  SaveData::DeleteAll(engine.GetWindow());
+			  char  buf[] = "0 --:--.---";
+			  for (int i = 0; i < 8; ++i) {
+				buf[0] = '1' + i;
+				std::shared_ptr<Menu::TextMenuItem> p = std::static_pointer_cast<Menu::TextMenuItem>(pRecordView->items[i + 1]);
+				p->SetText(buf);
+			  }
+			  std::shared_ptr<Menu::TextMenuItem> pLabel0Item(new Menu::TextMenuItem("CLEAR", Vector2F(0.5f, 0.45f), 1.0f));
+			  std::shared_ptr<Menu::TextMenuItem> pLabel1Item(new Menu::TextMenuItem("ALL RECORDS", Vector2F(0.5f, 0.55f), 1.0f));
+			  pLabel1Item->SetRegion(Vector2F(0, 0), Vector2F(1, 1));
+			  pLabel1Item->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
+				rootMenu.Clear();
+				rootMenu.Add(pRecordView);
+				rootMenu.inputDisableTimer = 0.25f;
+				return true;
+			  };
+			  rootMenu.Clear();
+			  rootMenu.Add(pLabel0Item);
+			  rootMenu.Add(pLabel1Item);
+			  rootMenu.inputDisableTimer = 0.25f;
+			  return true;
+			};
+			std::shared_ptr<Menu::TextMenuItem> pNoItem(new Menu::TextMenuItem(" NO ", Vector2F(0.5f, 0.6f), 2.0f));
+			pNoItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
+			  rootMenu.Clear();
+			  rootMenu.Add(pRecordView);
+			  rootMenu.inputDisableTimer = 0.25f;
+			  return true;
+			};
+
+			rootMenu.Clear();
+			rootMenu.Add(pLabelItem);
+			rootMenu.Add(pYesItem);
+			rootMenu.Add(pNoItem);
+			rootMenu.inputDisableTimer = 0.25f;
+			return true;
+		  };
+		  pRecordView->Add(pClearItem);
 		}
 
 		pLevelSelect.reset(new Menu::Menu());
