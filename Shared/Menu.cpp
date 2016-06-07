@@ -123,12 +123,8 @@ namespace Menu {
   TextMenuItem::TextMenuItem(const char* str, const Vector2F& p, float s, int flg)
 	: pos(p), baseScale(s), scaleTick(0), flags(flg)
   {
-	const size_t len = std::min(sizeof(label) - 1, strlen(str));
-	std::copy(str, str + len, label);
-	label[len] = '\0';
-	wh = Vector2F(static_cast<float>(len) * 0.1f * baseScale, baseScale * 0.1f);
-	lt = pos - wh * 0.5f;
-	color = Color4B(240, 240, 240, static_cast<uint8_t>(255.0f * s));
+	SetText(str);
+	color = Color4B(240, 240, 240, 255);
   }
 
   /** Render the object.
@@ -168,6 +164,24 @@ namespace Menu {
 	  }
 	}
   }
+
+  /** Set text.
+
+	@param str A text for showing.
+  */
+  void TextMenuItem::SetText(const char* str) {
+	const size_t len = std::min(sizeof(label) - 1, strlen(str));
+	std::copy(str, str + len, label);
+	label[len] = '\0';
+	wh = Vector2F(static_cast<float>(len) * 0.1f * baseScale, baseScale * 0.1f);
+	lt = pos - wh * 0.5f;
+  }
+
+  /** Get text.
+
+	@return The text striing.
+  */
+  const char* TextMenuItem::GetText() const { return label; }
 
   /** Get the flags.
 
