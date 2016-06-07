@@ -124,7 +124,7 @@ bool PrepareSaveData(const Mai::Window& window) {
   if (recordCount) {
 	bestRecords.resize(recordCount);
 	for (size_t i = 0; i < recordCount; ++i) {
-	  Record record;
+	  Record& record = bestRecords[i];
 	  record.time = static_cast<int64_t>(GetValue(p, 8));
 	  record.level = static_cast<int16_t>(GetValue(p, 2));
 	  record.year = static_cast<int16_t>(GetValue(p, 2));
@@ -133,7 +133,7 @@ bool PrepareSaveData(const Mai::Window& window) {
 	  record.hour = static_cast<int8_t>(GetValue(p, 1));
 	  record.minit = static_cast<int8_t>(GetValue(p, 1));
 	  record.second = static_cast<int8_t>(GetValue(p, 1));
-	  LOGI("lv:%d time:%03.3f %d/%02d/%02d %02d:%02d", record.level, static_cast<float>(record.time) / 1000.0f, record.year + 1970, record.month, record.day, record.hour, record.minit);
+	  LOGI("lv:%d time:%03.3f %d/%02d/%02d %02d:%02d", record.level, static_cast<float>(record.time) / 1000.0f, record.year + 1900, record.month + 1, record.day, record.hour, record.minit);
 	}
 	std::sort(bestRecords.begin(), bestRecords.end(), [](const Record& lhs, const Record& rhs) { return lhs.level < rhs.level; });
 	const auto end = bestRecords.end();
