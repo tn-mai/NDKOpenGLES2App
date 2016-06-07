@@ -213,6 +213,14 @@ bool SetNewRecord(const Mai::Window& window, int level, int64_t recordTime) {
   return false;
 }
 
+/** Delete the record file.
+
+  @param window      The window object.
+*/
+void DeleteAll(const Mai::Window& window) {
+  window.DeleteUserFile(recordFilename);
+}
+
 } // namespace SaveData;
 
 } // namespace SunnySideUp

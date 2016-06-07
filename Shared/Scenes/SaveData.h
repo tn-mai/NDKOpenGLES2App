@@ -28,6 +28,7 @@ struct Record {
 bool PrepareSaveData(const Mai::Window&);
 boost::optional<Record> GetBestRecord(int level);
 bool SetNewRecord(const Mai::Window&, int level, int64_t time);
+void DeleteAll(const Mai::Window&);
 
 } // namespace SaveData
 

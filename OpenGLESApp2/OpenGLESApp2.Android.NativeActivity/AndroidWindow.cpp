@@ -376,6 +376,23 @@ namespace Mai {
 	return true;
   }
 
+  /** Delete the user file.
+
+	@param filename  The name of the user file.
+
+	@retval true  Success to delete the user data.
+	@retval false Failure to delete the user data.
+  */
+  bool AndroidWindow::DeleteUserFile(const char* filename) const {
+	const std::string path = GetAbsoluteSaveDataPath(filename);
+	if (unlink(path.c_str()) == 0) {
+	  LOGI("Delete user file: %s", path.c_str());
+	  return true;
+	}
+	LOGE("ERROR in DeleteUserFile(0x%x): %s", errno, path.c_str());
+	return false;
+  }
+
   void AndroidWindow::CalcFusedOrientation() {
 	const float coeff = 0.02f;
 	const float oneMinusCoeff = 1.0f - coeff;

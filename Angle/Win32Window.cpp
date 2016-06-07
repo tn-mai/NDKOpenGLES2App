@@ -697,5 +697,8 @@ namespace Mai {
   bool Win32Window::LoadUserFile(const char* filename, void* data, size_t size) const {
 	return true;
   }
+  bool Win32Window::DeleteUserFile(const char* filename) const {
+	return true;
+  }
 
 } // namespace Mai
