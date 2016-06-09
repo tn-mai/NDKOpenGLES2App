@@ -21,15 +21,20 @@
 #include "Window.h"
 #include <time.h>
 
+#ifndef NDEBUG
 #ifdef __ANDROID__
 #include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #else
 #include <stdio.h>
 #define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
+#else
+#define LOGI(...)
+#define LOGE(...)
+#endif // NDEBUG
 
 namespace Mai {
 
@@ -320,34 +325,13 @@ namespace Mai {
 	}
 
 	renderer.ClearDebugString();
+#ifndef NDEBUG
 	char buf[32];
-#if 0
-	sprintf(buf, "OX:%1.3f", fusedOrientation.x);
-	renderer.AddDebugString(8, 800 - 16 * 9, buf);
-	sprintf(buf, "OY:%1.3f", fusedOrientation.y);
-	renderer.AddDebugString(8, 800 - 16 * 8, buf);
-	sprintf(buf, "OZ:%1.3f", fusedOrientation.z);
-	renderer.AddDebugString(8, 800 - 16 * 7, buf);
-
-	sprintf(buf, "MX:%1.3f", magnet.x);
-	renderer.AddDebugString(8, 800 - 16 * 6, buf);
-	sprintf(buf, "MY:%1.3f", magnet.y);
-	renderer.AddDebugString(8, 800 - 16 * 5, buf);
-	sprintf(buf, "MZ:%1.3f", magnet.z);
-	renderer.AddDebugString(8, 800 - 16 * 4, buf);
-
-	sprintf(buf, "AX:%1.3f", accel.x);
-	renderer.AddDebugString(8, 800 - 16 * 3, buf);
-	sprintf(buf, "AY:%1.3f", accel.y);
-	renderer.AddDebugString(8, 800 - 16 * 2, buf);
-	sprintf(buf, "AZ:%1.3f", accel.z);
-	renderer.AddDebugString(8, 800 - 16 * 1, buf);
-#endif
 	sprintf(buf, "FPS:%02d", latestFps);
 	renderer.AddDebugString(8, 8, buf);
 	sprintf(buf, "AVG:%02.1f", avgFps);
 	renderer.AddDebugString(8, 24, buf);
-
+#endif // NDEBUG
 	if (pCurrentScene) {
 	  pCurrentScene->Draw(*this);
 	}
