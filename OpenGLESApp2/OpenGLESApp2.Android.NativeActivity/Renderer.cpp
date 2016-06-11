@@ -428,15 +428,17 @@ void Object::Update(float t)
   if (const ::Mai::Mesh* mesh = GetMesh()) {
 	if (!mesh->jointList.empty()) {
 	  if (const Animation* pAnime = pRenderer->GetAnimation(animationPlayer.id.c_str())) {
+		const Matrix4x3 m0 = ToMatrix(rotTrans) * Matrix4x3{
+		  scale.x, 0, 0, 0,
+		  0, scale.y, 0, 0,
+		  0, 0, scale.z, 0,
+		};
 		animationPlayer.pAnime = pAnime;
 		std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
 		UpdateJointRotTrans(rtList, &mesh->jointList[0], &mesh->jointList[0], Mai::RotTrans::Unit());
-		std::transform(rtList.begin(), rtList.end(), bones.begin(), [this](const Mai::RotTrans& rt) {
-		  Matrix4x3 m = ToMatrix(this->rotTrans * rt);
-		  m.SetVector(0, m.GetVector(0) * Vector4F(this->scale.x, this->scale.x, this->scale.x, 1.0f));
-		  m.SetVector(1, m.GetVector(1) * Vector4F(this->scale.y, this->scale.y, this->scale.y, 1.0f));
-		  m.SetVector(2, m.GetVector(2) * Vector4F(this->scale.z, this->scale.z, this->scale.z, 1.0f));
-		  return m;
+		std::transform(rtList.begin(), rtList.end(), bones.begin(), [&m0](const Mai::RotTrans& rt) {
+		  const Matrix4x3 m = ToMatrix(rt);
+		  return m0 * m;
 		});
 	  }
 	}
