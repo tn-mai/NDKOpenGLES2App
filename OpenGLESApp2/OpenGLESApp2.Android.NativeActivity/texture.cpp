@@ -160,6 +160,31 @@ namespace Texture {
 		return p;
 	}
 
+	/** ダミー法線テクスチャを作成する.
+	*/
+	TexturePtr CreateDummyNormal() {
+	  TexturePtr p = std::make_shared<Texture>();
+	  Texture& tex = static_cast<Texture&>(*p);
+	  tex.internalFormat = GL_RGBA;
+	  tex.width = 1;
+	  tex.height = 1;
+	  tex.target = GL_TEXTURE_2D;
+	  glGenTextures(1, &tex.texId);
+	  glBindTexture(tex.Target(), tex.texId);
+	  static const uint8_t pixels[] = { 0x00, 0x80, 0x00, 0x80 };
+	  glTexImage2D(GL_TEXTURE_2D, 0, tex.InternalFormat(), 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	  const GLenum result = glGetError();
+	  if (result != GL_NO_ERROR) {
+		LOGW("glTexImage2D error 0x%04x", result);
+	  }
+	  glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	  glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	  glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	  glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	  glBindTexture(tex.Target(), 0);
+	  return p;
+	}
+
 	/** ダミーキューブマップを作成する.
 	*/
 	TexturePtr CreateDummyCubeMap() {

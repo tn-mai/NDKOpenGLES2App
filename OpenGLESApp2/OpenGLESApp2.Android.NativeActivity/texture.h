@@ -23,6 +23,7 @@ namespace Texture {
 
 	TexturePtr CreateEmpty2D(int w, int h, GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
 	TexturePtr CreateDummy2D();
+	TexturePtr CreateDummyNormal();
 	TexturePtr CreateDummyCubeMap();
 	TexturePtr LoadKTX(const char*, GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
 }
