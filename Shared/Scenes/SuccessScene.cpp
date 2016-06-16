@@ -6,6 +6,7 @@
 #include "Scene.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <vector>
+#include <random>
 
 namespace SunnySideUp {
 
@@ -65,7 +66,13 @@ namespace SunnySideUp {
 	r.DoesDrawSkybox(false);
 
 	{
-	  auto obj = r.CreateObject("SunnySideUp", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  static const char* const cookingNameList[] = {
+		"SunnySideUp",
+		"OverMedium",
+	  };
+	  boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
+	  const int n = std::uniform_int_distribution<>(0, sizeof(cookingNameList)/sizeof(cookingNameList[0]) - 1)(random);
+	  auto obj = r.CreateObject(cookingNameList[n], Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 	  obj->SetScale(Vector3F(7, 7, 7));
 	  obj->SetTranslation(Vector3F(0, 2.5f, 0));
 	  objList.push_back(obj);

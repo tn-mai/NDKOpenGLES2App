@@ -1860,6 +1860,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/titlelogo.msh", "titlelogo", "titlelogo_nml");
 	LoadFBX("Meshes/rock_collection.msh", "rock_s", "rock_s_nml");
 	LoadFBX("Meshes/landscape.msh", "floor", "floor_nml");
+	LoadFBX("Meshes/OverMedium.msh", "overmedium", "overmedium_nml");
 
 	CreateSkyboxMesh();
 	CreateUnitBoxMesh();
@@ -2387,6 +2388,8 @@ void Renderer::InitTexture()
 	textureList.insert({ "chickenegg_nml", Texture::LoadKTX((texBaseDir + "chickeneggNR.ktx").c_str()) });
 	textureList.insert({ "sunnysideup", Texture::LoadKTX((texBaseDir + "sunnysideup.ktx").c_str()) });
 	textureList.insert({ "sunnysideup_nml", Texture::LoadKTX((texBaseDir + "sunnysideupNR.ktx").c_str()) });
+	textureList.insert({ "overmedium", Texture::LoadKTX("Textures/Common/OverMedium.ktx") });
+	textureList.insert({ "overmedium_nml", Texture::LoadKTX((texBaseDir + "OverMediumNR.ktx").c_str()) });
 	textureList.insert({ "brokenegg", Texture::LoadKTX((texBaseDir + "brokenegg.ktx").c_str()) });
 	textureList.insert({ "brokenegg_nml", Texture::LoadKTX((texBaseDir + "brokeneggNR.ktx").c_str()) });
 	textureList.insert({ "flyingpan", Texture::LoadKTX((texBaseDir + "flyingpan.ktx").c_str()) });

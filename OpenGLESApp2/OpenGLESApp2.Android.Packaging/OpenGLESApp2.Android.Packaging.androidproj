@@ -78,6 +78,7 @@
     <Content Include="assets\Meshes\flyingpan.msh" />
     <Content Include="assets\Meshes\flyingrock.msh" />
     <Content Include="assets\Meshes\landscape.msh" />
+    <Content Include="assets\Meshes\OverMedium.msh" />
     <Content Include="assets\Meshes\rock_collection.msh" />
     <Content Include="assets\Meshes\sphere.msh" />
     <Content Include="assets\Meshes\sunnysideup.msh" />
@@ -153,6 +154,7 @@
     <Content Include="assets\Textures\Adreno\IBL\ibl_sunset_5.ktx" />
     <Content Include="assets\Textures\Adreno\IBL\ibl_sunset_6.ktx" />
     <Content Include="assets\Textures\Adreno\IBL\ibl_sunset_7.ktx" />
+    <Content Include="assets\Textures\Adreno\OverMediumNR.ktx" />
     <Content Include="assets\Textures\Adreno\rock_s.ktx" />
     <Content Include="assets\Textures\Adreno\rock_s_NR.ktx" />
     <Content Include="assets\Textures\Adreno\sphere.ktx" />
@@ -168,6 +170,7 @@
     <Content Include="assets\Textures\Common\font.ktx" />
     <Content Include="assets\Textures\Common\landscape.ktx" />
     <Content Include="assets\Textures\Common\landscapeNR.ktx" />
+    <Content Include="assets\Textures\Common\OverMedium.ktx" />
     <Content Include="assets\Textures\Common\titlelogo.ktx" />
     <Content Include="assets\Textures\Common\titlelogoNR.ktx" />
     <Content Include="assets\Textures\Others\accelerator.ktx" />
@@ -206,6 +209,7 @@
     <Content Include="assets\Textures\Others\IBL\ibl_sunset_5.ktx" />
     <Content Include="assets\Textures\Others\IBL\ibl_sunset_6.ktx" />
     <Content Include="assets\Textures\Others\IBL\ibl_sunset_7.ktx" />
+    <Content Include="assets\Textures\Others\OverMediumNR.ktx" />
     <Content Include="assets\Textures\Others\rock_s.ktx" />
     <Content Include="assets\Textures\Others\rock_s_NR.ktx" />
     <Content Include="assets\Textures\Others\sphere.ktx" />
