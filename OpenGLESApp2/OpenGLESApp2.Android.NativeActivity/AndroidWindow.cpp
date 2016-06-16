@@ -500,7 +500,7 @@ namespace Mai {
 	  }
 	  case AMOTION_EVENT_ACTION_UP: {
 		const int32_t TAP_TIMEOUT = 180 * 1000000;
-		const int32_t TOUCH_SLOP = 8;
+		const int32_t TOUCH_SLOP = 16;
 		const int64_t eventTime = AMotionEvent_getEventTime(event);
 		const int64_t downTime = AMotionEvent_getDownTime(event);
 		if (eventTime - downTime <= TAP_TIMEOUT) {
