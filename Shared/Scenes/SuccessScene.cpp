@@ -68,6 +68,7 @@ namespace SunnySideUp {
 	{
 	  static const char* const cookingNameList[] = {
 		"SunnySideUp",
+		"SunnySideUp01",
 		"OverMedium",
 	  };
 	  boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));

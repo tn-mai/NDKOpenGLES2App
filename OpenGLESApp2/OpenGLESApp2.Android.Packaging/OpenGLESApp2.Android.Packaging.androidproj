@@ -82,6 +82,7 @@
     <Content Include="assets\Meshes\rock_collection.msh" />
     <Content Include="assets\Meshes\sphere.msh" />
     <Content Include="assets\Meshes\sunnysideup.msh" />
+    <Content Include="assets\Meshes\SunnySideUp01.msh" />
     <Content Include="assets\Meshes\TargetCursor.msh" />
     <Content Include="assets\Meshes\titlelogo.msh" />
     <Content Include="assets\Shaders\applyhdr.frag" />
@@ -160,6 +161,7 @@
     <Content Include="assets\Textures\Adreno\sphere.ktx" />
     <Content Include="assets\Textures\Adreno\sphereNR.ktx" />
     <Content Include="assets\Textures\Adreno\sunnysideup.ktx" />
+    <Content Include="assets\Textures\Adreno\SunnySideUp01NR.ktx" />
     <Content Include="assets\Textures\Adreno\sunnysideupNR.ktx" />
     <Content Include="assets\Textures\Adreno\wood.ktx" />
     <Content Include="assets\Textures\Adreno\woodNR.ktx" />
@@ -171,6 +173,7 @@
     <Content Include="assets\Textures\Common\landscape.ktx" />
     <Content Include="assets\Textures\Common\landscapeNR.ktx" />
     <Content Include="assets\Textures\Common\OverMedium.ktx" />
+    <Content Include="assets\Textures\Common\SunnySideUp01.ktx" />
     <Content Include="assets\Textures\Common\titlelogo.ktx" />
     <Content Include="assets\Textures\Common\titlelogoNR.ktx" />
     <Content Include="assets\Textures\Others\accelerator.ktx" />
@@ -215,6 +218,7 @@
     <Content Include="assets\Textures\Others\sphere.ktx" />
     <Content Include="assets\Textures\Others\sphereNR.ktx" />
     <Content Include="assets\Textures\Others\sunnysideup.ktx" />
+    <Content Include="assets\Textures\Others\SunnySideUp01NR.ktx" />
     <Content Include="assets\Textures\Others\sunnysideupNR.ktx" />
     <Content Include="assets\Textures\Others\wood.ktx" />
     <Content Include="assets\Textures\Others\woodNR.ktx" />
