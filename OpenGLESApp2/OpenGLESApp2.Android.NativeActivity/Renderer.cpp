@@ -470,7 +470,7 @@ const ::Mai::Shader* Object::GetShader() const {
   @return timeOfScene‚É‘Î‰‚·‚é‘¾—zŒõü‚ÌŒü‚«.
 */
 Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
-  static const Vector3F baseAxis(1.0f, 0, 0.5f);
+  static const Vector3F baseAxis(0.1f, 0, 1.0f);
   static const Vector3F baseRay(0, -1, 0);
   static const float baseAxisAngle = 20.0f;
   static const Vector3F upAxis(0, 1, 0);
@@ -480,7 +480,7 @@ Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
   switch (timeOfScene) {
   default:
   case TimeOfScene_Noon: return Normalize(Quaternion(axis, degreeToRadian(10.0f)).Apply(noonRay));
-  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(-45.0f)).Apply(noonRay));
+  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(45.0f)).Apply(noonRay));
   case TimeOfScene_Night: return Normalize(Quaternion(axis, degreeToRadian(-10.0f)).Apply(noonRay));
   }
 }
