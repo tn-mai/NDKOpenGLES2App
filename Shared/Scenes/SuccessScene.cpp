@@ -62,7 +62,7 @@ namespace SunnySideUp {
 	objList.reserve(8);
 	Renderer& r = engine.GetRenderer();
 	const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
-	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 100, 300, Vector2F(3, 3 * 4));
+	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 150, 250, Vector2F(3, 3 * 4));
 	r.DoesDrawSkybox(false);
 
 	{
