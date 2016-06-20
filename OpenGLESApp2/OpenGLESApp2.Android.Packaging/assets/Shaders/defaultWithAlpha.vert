@@ -58,11 +58,7 @@ void main()
   mediump vec3 normalW = normalize(m3 * vNormal);
   mediump vec3 tangentW = normalize(m3 * vTangent.xyz);
   mediump vec3 binormalW = normalize(cross(normalW, tangentW)) * vTangent.w;
-  matTBN = mat3(
-	tangentW.x, binormalW.x, normalW.x,
-	tangentW.y, binormalW.y, normalW.y,
-	tangentW.z, binormalW.z, normalW.z
-  );
+  matTBN = mat3(tangentW, binormalW, normalW);
 
   posW = m * vec4(vPosition, 1);
 
