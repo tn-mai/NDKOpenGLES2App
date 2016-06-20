@@ -188,22 +188,22 @@ namespace SunnySideUp {
 	if (hasNewRecord) {
 	  const char str[] = "NEW RECORD!";
 	  const float w = r.GetStringWidth(str) * scale;
-	  r.AddString(0.51f - w * 0.5f, 0.6f, scale, Color4B(20, 10, 10, 128), str);
-	  r.AddString(0.5f - w * 0.5f, 0.6f, scale, Color4B(250, 100, 50, 255), str);
+	  r.AddString(0.51f - w * 0.5f, 0.675f, scale, Color4B(20, 10, 10, 128), str);
+	  r.AddString(0.5f - w * 0.5f, 0.675f, scale, Color4B(250, 100, 50, 255), str);
 	}
 	{
 	  const char str[] = "YOUR TIME IS:";
 	  const float w = r.GetStringWidth(str) * scale;
-	  r.AddString(0.51f - w * 0.5f, 0.675f, scale, Color4B(20, 10, 10, 128), str);
-	  r.AddString(0.5f - w * 0.5f, 0.675f, scale, Color4B(250, 250, 250, 255), str);
+	  r.AddString(0.51f - w * 0.5f, 0.75f, scale, Color4B(20, 10, 10, 128), str);
+	  r.AddString(0.5f - w * 0.5f, 0.75f, scale, Color4B(250, 250, 250, 255), str);
 	}
 	{
 	  const float time = static_cast<float>(engine.GetCommonData<CommonData>()->currentTime) / 1000.0f;
 	  char buf[32];
 	  sprintf(buf, "%03.3fSec", time);
 	  const float w = r.GetStringWidth(buf);
-	  r.AddString(0.51f - w * 0.5f, 0.75f, scale, Color4B(20, 10, 10, 128), buf);
-	  r.AddString(0.5f - w * 0.5f, 0.75f, scale, Color4B(250, 250, 250, 255), buf);
+	  r.AddString(0.51f - w * 0.5f, 0.825f, scale, Color4B(20, 10, 10, 128), buf);
+	  r.AddString(0.5f - w * 0.5f, 0.825f, scale, Color4B(250, 250, 250, 255), buf);
 	}
 	r.Render(&objList[0], &objList[0] + objList.size());
   }
