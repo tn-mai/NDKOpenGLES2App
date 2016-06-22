@@ -36,11 +36,11 @@ namespace Mai {
 
 	SpacePartitioner(const Position3F& min, const Position3F& max, float uy, int /*maxObjects*/)
 	{
-	  cells.resize(std::ceil((max.y - min.y) / uy));
+	  cells.resize(static_cast<size_t>(std::ceil((max.y - min.y) / uy)));
 	  rootRegion.min = min;
 	  rootRegion.max = max;
 	  unitY = uy;
-	  for (int i = 0; i < cells.size(); ++i) {
+	  for (size_t i = 0; i < cells.size(); ++i) {
 		cells[i].region.min = Position3F(min.x, min.y + i * unitY, min.z);
 		cells[i].region.max = Position3F(max.x, min.y + (i + 1) * unitY, max.z);
 	  }

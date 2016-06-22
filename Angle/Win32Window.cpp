@@ -223,7 +223,7 @@ namespace Mai {
 	  }
 	  const int diffX = x1 - prevInfo.x;
 	  const int diffY = y1 - prevInfo.y;
-	  const int length = std::sqrt(diffX * diffX + diffY * diffY);
+	  const int length = static_cast<int>(std::sqrt(diffX * diffX + diffY * diffY));
 	  return length < 8/* pixel */;
 	}
 
