@@ -87,7 +87,7 @@ uint32_t GetMaximumLevel() {
 }
 
 uint32_t GetMaximumCourseNo(uint32_t level) {
-  return 3;
+  return 2;
 }
 
 } // namespace SunnySideUp
