@@ -134,7 +134,7 @@ namespace SunnySideUp {
 
 		  for (int i = 0; i < 8; ++i) {
 			char  buf[32];
-			if (auto e = SaveData::GetBestRecord(i)) {
+			if (auto e = SaveData::GetBestRecord(i, 0)) {
 			  const int msec = static_cast<int>(e->time % 1000);
 			  const int min = static_cast<int>(e->time / 1000 / 60);
 			  const int sec = static_cast<int>((e->time / 1000) % 60);

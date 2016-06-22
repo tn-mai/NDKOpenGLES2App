@@ -5,7 +5,8 @@
   int32_t record count
   [
     int64_t record time
-	int16_t level
+	int8_t level
+	int8_t courseNo
 	int16_t  year
 	int8_t  month
 	int8_t  day
@@ -87,7 +88,8 @@ void WriteSaveData(const Mai::Window& window) {
   SetValue(p, 4, bestRecords.size());
   for (const auto& record : bestRecords) {
 	SetValue(p, 8, record.time);
-	SetValue(p, 2, record.level);
+	SetValue(p, 1, record.level);
+	SetValue(p, 1, record.courseNo);
 	SetValue(p, 2, record.year);
 	SetValue(p, 1, record.month);
 	SetValue(p, 1, record.day);
@@ -126,20 +128,30 @@ bool PrepareSaveData(const Mai::Window& window) {
 	for (size_t i = 0; i < recordCount; ++i) {
 	  Record& record = bestRecords[i];
 	  record.time = static_cast<int64_t>(GetValue(p, 8));
-	  record.level = static_cast<int16_t>(GetValue(p, 2));
+	  record.level = static_cast<int8_t>(GetValue(p, 1));
+	  record.courseNo = static_cast<int8_t>(GetValue(p, 1));
 	  record.year = static_cast<int16_t>(GetValue(p, 2));
 	  record.month = static_cast<int8_t>(GetValue(p, 1));
 	  record.day = static_cast<int8_t>(GetValue(p, 1));
 	  record.hour = static_cast<int8_t>(GetValue(p, 1));
 	  record.minit = static_cast<int8_t>(GetValue(p, 1));
 	  record.second = static_cast<int8_t>(GetValue(p, 1));
-	  LOGI("lv:%d time:%03.3f %d/%02d/%02d %02d:%02d", record.level, static_cast<float>(record.time) / 1000.0f, record.year + 1900, record.month + 1, record.day, record.hour, record.minit);
+	  LOGI("lv:%d-%d time:%03.3f %d/%02d/%02d %02d:%02d", record.level, record.courseNo, static_cast<float>(record.time) / 1000.0f, record.year + 1900, record.month + 1, record.day, record.hour, record.minit);
 	}
-	std::sort(bestRecords.begin(), bestRecords.end(), [](const Record& lhs, const Record& rhs) { return lhs.level < rhs.level; });
+	std::sort(
+	  bestRecords.begin(),
+	  bestRecords.end(),
+	  [](const Record& lhs, const Record& rhs) {
+		if (lhs.level == rhs.level) {
+		  return lhs.courseNo < rhs.courseNo;
+		}
+		return lhs.level < rhs.level;
+	  }
+	);
 	const auto end = bestRecords.end();
 	auto itrStore = bestRecords.begin();
 	for (auto itr = itrStore + 1; itr != end; ++itr) {
-	  if (itr->level != itrStore->level) {
+	  if (itr->level != itrStore->level || itr->courseNo != itrStore->courseNo) {
 		++itrStore;
 		if (itrStore != itr) {
 		  *itrStore = *itr;
@@ -157,13 +169,20 @@ bool PrepareSaveData(const Mai::Window& window) {
 
 /** Get a best record.
 
-  @param level  The target level.
+  @param level     The target level.
+  @param courseNo  The target course number.
 
-  @return Ff the record exist, boost::optional contain a best record for the level.
+  @return If the record exist, boost::optional contain a best record for the level.
           Otherwise boost::none.
 */
-boost::optional<Record> GetBestRecord(int level) {
-  const auto itr = std::find_if(bestRecords.begin(), bestRecords.end(), [level](const Record& e) {return e.level == level; });
+boost::optional<Record> GetBestRecord(int level, int courseNo) {
+  const auto itr = std::find_if(
+	bestRecords.begin(),
+	bestRecords.end(),
+	[level, courseNo](const Record& e) {
+	  return (e.level == level) && (e.courseNo == courseNo);
+	}
+  );
   if (itr == bestRecords.end()) {
 	return boost::none;
   }
@@ -174,22 +193,28 @@ boost::optional<Record> GetBestRecord(int level) {
 
   @param window      The window object.
   @param level       The target level.
+  @param courseNo    The target course number.
   @param recordTime  A new time of the level.
 
   @retval true   The best record was overwritten by the 'recordTime'.
   @retval false  'recordTime' did not exceed the best record.
 */
-bool SetNewRecord(const Mai::Window& window, int level, int64_t recordTime) {
+bool SetNewRecord(const Mai::Window& window, int level, int courseNo, int64_t recordTime) {
   time_t currentTime;
   time(&currentTime);
   const struct tm* pGMT = gmtime(&currentTime);
   if (!pGMT) {
+#ifdef _WIN32
+	LOGE("ERROR in SetNewRecord: gmtime failed(time:%lld)", currentTime);
+#else
 	LOGE("ERROR in SetNewRecord: gmtime failed(time:%ld)", currentTime);
+#endif // __ANDROID__
 	return false;
   }
   Record record;
   record.time = recordTime;
-  record.level = static_cast<int16_t>(level);
+  record.level = static_cast<int8_t>(level);
+  record.courseNo = static_cast<int8_t>(courseNo);
   record.year = static_cast<int16_t>(pGMT->tm_year);
   record.month = static_cast<int8_t>(pGMT->tm_mon);
   record.day = static_cast<int8_t>(pGMT->tm_mday);
@@ -197,7 +222,13 @@ bool SetNewRecord(const Mai::Window& window, int level, int64_t recordTime) {
   record.minit = static_cast<int8_t>(pGMT->tm_min);
   record.second = static_cast<int8_t>(pGMT->tm_sec);
 
-  const auto itr = std::find_if(bestRecords.begin(), bestRecords.end(), [level](const Record& e) {return e.level == level; });
+  const auto itr = std::find_if(
+	bestRecords.begin(),
+	bestRecords.end(),
+	[level, courseNo](const Record& e) {
+	  return (e.level == level) && (e.courseNo == courseNo);
+	}
+  );
   if (itr == bestRecords.end()) {
 	LOGI("Add new record:%lld", recordTime);
 	bestRecords.push_back(record);

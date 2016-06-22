@@ -57,7 +57,7 @@ namespace SunnySideUp {
 	}
 
 	const CommonData* pCommonData = engine.GetCommonData<CommonData>();
-	hasNewRecord = SaveData::SetNewRecord(engine.GetWindow(), pCommonData->level, pCommonData->currentTime);
+	hasNewRecord = SaveData::SetNewRecord(engine.GetWindow(), pCommonData->level, pCommonData->courseNo, pCommonData->currentTime);
 
 	objList.reserve(8);
 	Renderer& r = engine.GetRenderer();

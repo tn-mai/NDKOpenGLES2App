@@ -14,7 +14,8 @@ namespace SaveData {
 
 struct Record {
   int64_t  time;
-  int16_t  level;
+  int8_t  level;
+  int8_t  courseNo;
 
   // GMT when achieved this record.
   int16_t  year;
@@ -26,8 +27,8 @@ struct Record {
 };
 
 bool PrepareSaveData(const Mai::Window&);
-boost::optional<Record> GetBestRecord(int level);
-bool SetNewRecord(const Mai::Window&, int level, int64_t time);
+boost::optional<Record> GetBestRecord(int level, int courseNo);
+bool SetNewRecord(const Mai::Window&, int level, int courseNo, int64_t time);
 void DeleteAll(const Mai::Window&);
 
 } // namespace SaveData
