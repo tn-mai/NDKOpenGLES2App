@@ -348,7 +348,9 @@ namespace SunnySideUp {
 	int DoFadeOut(Engine& engine, float) {
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
-		engine.GetCommonData<CommonData>()->level = selectedLevel;
+		CommonData& commonData = *engine.GetCommonData<CommonData>();
+		commonData.level = selectedLevel;
+		commonData.courseNo = 0;
 		r.FadeIn(1.0f);
 		engine.GetAudio().StopBGM();
 		return SCENEID_STARTEVENT;

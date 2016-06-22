@@ -170,7 +170,11 @@ namespace SunnySideUp {
 	if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 	  r.FadeIn(1.0f);
 	  CommonData& commonData = *engine.GetCommonData<CommonData>();
-	  commonData.level = std::min(commonData.level + 1, GetMaximumLevel());
+	  if (++commonData.courseNo > GetMaximumCourseNo(commonData.level)) {
+		commonData.level = std::min(commonData.level + 1, GetMaximumLevel());
+		commonData.courseNo = 0;
+		return SCENEID_TITLE;
+	  }
 	  return SCENEID_MAINGAME;
 	}
 	return SCENEID_CONTINUE;

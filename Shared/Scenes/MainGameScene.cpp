@@ -436,7 +436,8 @@ namespace SunnySideUp {
 	  pPartitioner.reset(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject));
 
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
-	  const CourseInfo& courseInfo = GetCourseInfo(level, 0);
+	  const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
+	  const CourseInfo& courseInfo = GetCourseInfo(level, courseNo);
 
 	  const TimeOfScene tos = [courseInfo]() {
 		if (courseInfo.hoursOfDay >= 7 && courseInfo.hoursOfDay < 16) {
@@ -761,7 +762,8 @@ namespace SunnySideUp {
 	  r.SetShadowLight(rigidCamera->Position() - shadowDir * 600.0f, shadowDir, 100, 2500, Vector2F(0.5f, 1.0f));
 #else
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
-	  const float radius = (static_cast<float>(GetCourseInfo(level, 0).startHeight) + 10.0f) * 0.5f;
+	  const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
+	  const float radius = (static_cast<float>(GetCourseInfo(level, courseNo).startHeight) + 10.0f) * 0.5f;
 	  r.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.5f, 1.0f / 3.0f));
 #endif
 	  return (this->*updateFunc)(engine, deltaTime);
@@ -1048,6 +1050,14 @@ namespace SunnySideUp {
 		  const std::string s = DigitsToString(pointDecimal, 3, true);
 		  renderer.AddString(baseX - cw * 2.0f, 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
 		  renderer.AddString(baseX + cw0, 0.155f, fontScale, Color4B(255, 255, 255, 255), "Sec");
+		}
+		{
+		  CommonData& commonData = *engine.GetCommonData<CommonData>();
+		  const float pointDecimal = (stopWatch - std::floor(stopWatch)) * 1000.0f;
+		  std::string s = DigitsToString(commonData.level + 1, 1, false);
+		  s += "-";
+		  s += DigitsToString(commonData.courseNo + 1, 1, false);
+		  renderer.AddString(0.05f, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
 		}
 
 		if (countDownTimer > 0.0f) {
