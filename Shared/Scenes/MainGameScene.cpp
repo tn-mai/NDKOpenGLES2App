@@ -438,6 +438,7 @@ namespace SunnySideUp {
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
 	  const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
 	  const CourseInfo& courseInfo = GetCourseInfo(level, courseNo);
+	  random.seed(courseInfo.seed);
 
 	  const TimeOfScene tos = [courseInfo]() {
 		if (courseInfo.hoursOfDay >= 7 && courseInfo.hoursOfDay < 16) {
