@@ -121,10 +121,23 @@ namespace Menu {
 	@param flg The logical sum of FLAG.
   */
   TextMenuItem::TextMenuItem(const char* str, const Vector2F& p, float s, int flg)
-	: pos(p), baseScale(s), scaleTick(0), flags(flg)
+	: pos(p), color(240, 240, 240, 255), baseScale(s), scaleTick(0), flags(flg)
   {
 	SetText(str);
-	color = Color4B(240, 240, 240, 255);
+  }
+
+  /** Constructor.
+
+	@param str A text for showing.
+	@param p   A center position of this object.
+	@param s   A base scale of text.
+	@param c   A color of text.
+	@param flg The logical sum of FLAG.
+  */
+  TextMenuItem::TextMenuItem(const char* str, const Vector2F& p, float s, Color4B c, int flg)
+	: pos(p), color(c), baseScale(s), scaleTick(0), flags(flg)
+  {
+	SetText(str);
   }
 
   /** Render the object.
@@ -135,15 +148,24 @@ namespace Menu {
   */
   void TextMenuItem::Draw(Renderer& r, Vector2F offset, float alpha) const {
 	offset += pos;
-	float scale;
-	if (scaleTick < 1.0f) {
-	  scale = 1.0f + scaleTick * 0.5f;
-	} else {
-	  scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
+	float scale = 1.0f;
+	if (flags & FLAG_ZOOM_ANIMATION) {
+	  if (scaleTick < 1.0f) {
+		scale = 1.0f + scaleTick * 0.5f;
+	  } else {
+		scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
+	  }
 	}
 	scale *= baseScale;
 	const float w = r.GetStringWidth(label) * scale * 0.5f;
 	Color4B c = color;
+	if (flags & FLAG_ALPHA_ANIMATION) {
+	  if (scaleTick < 1.0f) {
+		c.a = static_cast<uint8_t>(c.a * scaleTick);
+	  } else {
+		c.a = static_cast<uint8_t>(c.a * (2.0f - scaleTick));
+	  }
+	}
 	c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
 	if (flags & FLAG_SHADOW) {
 	  const Color4B shadowColor(c.r / 4, c.g / 4, c.b / 4, c.a / 2);
@@ -157,7 +179,7 @@ namespace Menu {
 	@param tick  Second from previous frame.
   */
   void TextMenuItem::Update(float tick) {
-	if (flags & FLAG_ZOOM_ANIMATION) {
+	if (flags & (FLAG_ZOOM_ANIMATION | FLAG_ALPHA_ANIMATION)) {
 	  scaleTick += tick;
 	  if (scaleTick > 2.0f) {
 		scaleTick -= 2.0f;
@@ -203,7 +225,7 @@ namespace Menu {
   */
   void TextMenuItem::ClearFlag(int f) {
 	flags &= ~f;
-	if (!(flags & FLAG_ZOOM_ANIMATION)) {
+	if (!(flags & (FLAG_ZOOM_ANIMATION | FLAG_ALPHA_ANIMATION))) {
 	  scaleTick = 0.0f;
 	}
   }

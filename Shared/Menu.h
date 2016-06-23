@@ -61,6 +61,7 @@ namespace Menu {
 	static const uint8_t FLAG_SHADOW = 0x04;
 
 	TextMenuItem(const char* str, const Vector2F& p, float s, int flg = FLAG_SHADOW);
+	TextMenuItem(const char* str, const Vector2F& p, float s, Color4B c, int flg = FLAG_SHADOW);
 	virtual ~TextMenuItem() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(float tick);
