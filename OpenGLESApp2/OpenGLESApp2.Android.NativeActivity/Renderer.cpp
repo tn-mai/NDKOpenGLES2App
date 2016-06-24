@@ -428,10 +428,12 @@ void Object::Update(float t)
   if (const ::Mai::Mesh* mesh = GetMesh()) {
 	if (!mesh->jointList.empty()) {
 	  if (const Animation* pAnime = pRenderer->GetAnimation(animationPlayer.id.c_str())) {
-		const Matrix4x3 m0 = ToMatrix(rotTrans) * Matrix4x3{
-		  scale.x, 0, 0, 0,
-		  0, scale.y, 0, 0,
-		  0, 0, scale.z, 0,
+		const Matrix4x3 m0 = ToMatrix(rotTrans) * Matrix4x3 {
+		  {
+			scale.x, 0, 0, 0,
+			  0, scale.y, 0, 0,
+			  0, 0, scale.z, 0,
+		  }
 		};
 		animationPlayer.pAnime = pAnime;
 		std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
