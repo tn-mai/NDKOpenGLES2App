@@ -112,6 +112,9 @@ namespace SunnySideUp {
 	  sprintf(buf, "%03.3fSec", time);
 	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.825f), scale, Color4B(250, 250, 250, 255))));
 	}
+	if (pCommonData->courseNo >= GetMaximumCourseNo(pCommonData->level)) {
+	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("LEVEL CLEAR", Vector2F(0.5f, 0.9f), 1.2f * scale, Color4B(100, 100, 250, 255), Menu::TextMenuItem::FLAG_ALPHA_ANIMATION)));
+	}
 
 	loaded = true;
 	status = STATUSCODE_RUNNABLE;
