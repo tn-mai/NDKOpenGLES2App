@@ -1054,7 +1054,6 @@ namespace SunnySideUp {
 		}
 		{
 		  CommonData& commonData = *engine.GetCommonData<CommonData>();
-		  const float pointDecimal = (stopWatch - std::floor(stopWatch)) * 1000.0f;
 		  std::string s = DigitsToString(commonData.level + 1, 1, false);
 		  s += "-";
 		  s += DigitsToString(commonData.courseNo + 1, 1, false);
