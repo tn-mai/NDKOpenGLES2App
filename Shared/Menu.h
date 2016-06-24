@@ -104,6 +104,27 @@ namespace Menu {
 	bool hasDragging;
   };
 
+  /** Swipable menu.
+  */
+  struct SwipableMenu : public MenuItem {
+	explicit SwipableMenu(size_t);
+	virtual ~SwipableMenu() {}
+	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
+	virtual void Update(float tick);
+	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
+	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state);
+
+	void Add(int viewNo, MenuItem::Pointer p);
+	void Claer();
+
+	typedef std::vector<MenuItem::Pointer> ViewType;
+	std::vector<ViewType> viewList;
+	int currentView;
+	float moveX;
+	float accel;
+	bool hasDragging;
+  };
+
   /** Menu container.
 
     Usually, this is used as the root of menu.

@@ -366,6 +366,116 @@ namespace Menu {
 
   /** Constructor.
   */
+  SwipableMenu::SwipableMenu(size_t viewCount)
+	: currentView(0)
+	, moveX(0)
+	, accel(0)
+	, hasDragging(false)
+  {
+	viewList.resize(viewCount);
+  }
+
+  /** Render the object.
+
+	@param  r       A renderer object.
+	@param  offset  A rendering offset.
+	@param  alpha   A text transparency.
+  */
+  void SwipableMenu::Draw(Renderer& r, Vector2F offset, float alpha) const {
+	Vector2F tmpOffset(offset);
+	tmpOffset.x += moveX;
+	alpha *= GetAlpha();
+	for (auto& e : viewList[currentView]) {
+	  e->Draw(r, tmpOffset, alpha);
+	}
+	if (std::abs(moveX) > 0.1f) {
+	  int sideView = currentView + (moveX >= 0.0f ? -1 : 1);
+	  if (sideView < 0) {
+		sideView += viewList.size();
+	  }
+	  Vector2F tmpOffset(offset);
+	  tmpOffset.x += moveX >= 0.0f ? (moveX - 1.0f) : (moveX + 1.0f);
+	  for (auto& e : viewList[sideView]) {
+		e->Draw(r, tmpOffset, alpha);
+	  }
+	}
+  }
+
+  /** Update a object and children.
+
+	@param tick  Second from previous frame.
+  */
+  void SwipableMenu::Update(float tick) {
+	for (auto& e : viewList[currentView]) {
+	  e->Update(tick);
+	}
+  }
+
+  /** Handle a click event.
+
+	@param currentPosition  A position that was used by a click.
+	@param button           A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool SwipableMenu::OnClick(const Vector2F& currentPos, MouseButton button) {
+	const auto re = viewList[currentView].rend();
+	for (auto ri = viewList[currentView].rbegin(); ri != re; ++ri) {
+	  if ((*ri)->OnRegion(currentPos)) {
+		return (*ri)->OnClick(currentPos, button);
+	  }
+	}
+	return false;
+  }
+
+  /** Handle a move event.
+
+	@param currentPos  A current mouse cursor or swiping position.
+	@param startPos    A position of start dragging.
+	@param state       A state of mouse moving.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool SwipableMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
+	switch (state) {
+	case MouseMoveState::Begin:
+	  moveX = currentPos.x - dragStartPoint.x;
+	  accel = accel * 0.5f + moveX;
+	  hasDragging = true;
+	  break;
+	case MouseMoveState::Moving:
+	  moveX = currentPos.x - dragStartPoint.x;
+	  accel = accel * 0.5f + moveX;
+	  hasDragging = true;
+	  break;
+	case MouseMoveState::End: {
+	  hasDragging = false;
+	  break;
+	}
+	}
+	return true;
+  }
+
+  /** Add a menu item.
+
+	@param p  A menu item that is added to this object.
+  */
+  void SwipableMenu::Add(int viewNo, MenuItem::Pointer p) {
+	if (viewNo >= 0 && viewNo < static_cast<int>(viewList.size())) {
+	  viewList[viewNo].push_back(p);
+	}
+  }
+
+  /** Clear all menu item.
+  */
+  void SwipableMenu::Claer() {
+	viewList.clear();
+  }
+
+  /** Constructor.
+  */
   Menu::Menu()
 	: pos(0, 0)
 	, mouseMoveState(MouseMoveState::End)
