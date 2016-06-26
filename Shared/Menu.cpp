@@ -391,14 +391,14 @@ namespace Menu {
 	}
 	const int viewCount = static_cast<int>(viewList.size());
 	{
-	  const Vector2F tmpOffset = offset + Vector2F(moveX - 0.8f, 0);
+	  const Vector2F tmpOffset = offset + Vector2F(moveX - 0.85f, 0);
 	  const int leftView = (currentView - 1 + viewCount) % viewCount;
 	  for (auto& e : viewList[leftView]) {
 		e->Draw(r, tmpOffset, alpha);
 	  }
 	}
 	{
-	  const Vector2F tmpOffset = offset + Vector2F(moveX + 0.8f, 0);
+	  const Vector2F tmpOffset = offset + Vector2F(moveX + 0.85f, 0);
 	  const int rightView = (currentView + 1) % viewCount;
 	  for (auto& e : viewList[rightView]) {
 		e->Draw(r, tmpOffset, alpha);
@@ -414,7 +414,7 @@ namespace Menu {
 	for (auto& e : viewList[currentView]) {
 	  e->Update(tick);
 	}
-	static const float springForce = 0.03125f;
+	const float springForce = 1.0f * tick;
 	if (!hasDragging && (moveX || accel)) {
 	  if (moveX * accel >= 0) {
 		accel += accel >= 0 ? -springForce : springForce;
@@ -426,6 +426,17 @@ namespace Menu {
 		moveX = newX;
 	  } else {
 		moveX = accel = 0;
+	  }
+	  if (moveX > 0.4f) {
+		moveX -= 0.85f + accel;
+		accel += springForce;
+		const int viewCount = static_cast<int>(ViewCount());
+		currentView = (currentView - 1 + viewCount) % viewCount;
+	  } else if (moveX < -0.4f) {
+		moveX += 0.85f - accel;
+		accel -= springForce;
+		const int viewCount = static_cast<int>(ViewCount());
+		currentView = (currentView + 1) % viewCount;
 	  }
 	}
   }
@@ -462,11 +473,13 @@ namespace Menu {
 	case MouseMoveState::Begin:
 	  /* FALLTHROUGH */
 	case MouseMoveState::Moving:
-	  accel = accel * 0.5f + (currentPos.x - dragStartPoint.x) - moveX;
+	  accel = accel * 0.25f + (currentPos.x - dragStartPoint.x) - moveX;
 	  moveX = currentPos.x - dragStartPoint.x;
 	  hasDragging = true;
 	  break;
 	case MouseMoveState::End:
+	  accel = accel * 0.25f + (currentPos.x - dragStartPoint.x) - moveX;
+	  moveX = currentPos.x - dragStartPoint.x;
 	  hasDragging = false;
 	  break;
 	}
