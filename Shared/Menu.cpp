@@ -414,6 +414,20 @@ namespace Menu {
 	for (auto& e : viewList[currentView]) {
 	  e->Update(tick);
 	}
+	static const float springForce = 0.03125f;
+	if (!hasDragging && (moveX || accel)) {
+	  if (moveX * accel >= 0) {
+		accel += accel >= 0 ? -springForce : springForce;
+	  } else {
+		accel += accel >= 0 ? springForce : -springForce;
+	  }
+	  const float newX = moveX + accel;
+	  if (newX * moveX >= 0) {
+		moveX = newX;
+	  } else {
+		moveX = accel = 0;
+	  }
+	}
   }
 
   /** Handle a click event.
@@ -446,19 +460,15 @@ namespace Menu {
   bool SwipableMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
 	switch (state) {
 	case MouseMoveState::Begin:
-	  moveX = currentPos.x - dragStartPoint.x;
-	  accel = accel * 0.5f + moveX;
-	  hasDragging = true;
-	  break;
+	  /* FALLTHROUGH */
 	case MouseMoveState::Moving:
+	  accel = accel * 0.5f + (currentPos.x - dragStartPoint.x) - moveX;
 	  moveX = currentPos.x - dragStartPoint.x;
-	  accel = accel * 0.5f + moveX;
 	  hasDragging = true;
 	  break;
-	case MouseMoveState::End: {
+	case MouseMoveState::End:
 	  hasDragging = false;
 	  break;
-	}
 	}
 	return true;
   }
@@ -493,7 +503,7 @@ namespace Menu {
 	@return The count of item.
   */
   size_t SwipableMenu::ItemCount(int viewNo) const {
-	if (viewNo < 0 || viewNo >= viewList.size()) {
+	if (viewNo < 0 || viewNo >= static_cast<int>(viewList.size())) {
 	  return 0;
 	}
 	return viewList[viewNo].size();
@@ -509,11 +519,11 @@ namespace Menu {
 	@return A pointer object to the item.
   */
   MenuItem::Pointer SwipableMenu::GetItem(int viewNo, int itemNo) const {
-	if (viewNo < 0 || viewNo >= viewList.size()) {
+	if (viewNo < 0 || viewNo >= static_cast<int>(viewList.size())) {
 	  return MenuItem::Pointer();
 	}
 	const ViewType& view = viewList[viewNo];
-	if (itemNo < 0 || itemNo >= view.size()) {
+	if (itemNo < 0 || itemNo >= static_cast<int>(view.size())) {
 	  return MenuItem::Pointer();
 	}
 	return view[itemNo];
