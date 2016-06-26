@@ -559,6 +559,7 @@ namespace Menu {
   */
   Menu::Menu()
 	: pos(0, 0)
+	, inputDisableTimer(0)
 	, mouseMoveState(MouseMoveState::End)
   {
 	SetRegion(Vector2F(0, 0), Vector2F(1, 1));
@@ -651,7 +652,7 @@ namespace Menu {
 		case MouseMoveState::Moving: mouseMoveState = MouseMoveState::Moving; break;
 		case MouseMoveState::End: mouseMoveState = MouseMoveState::Begin; break;
 		}
-		return pActiveItem->OnMouseMove(currentPos, dragStartPoint, mouseMoveState);
+		return MenuItem::Pointer(pActiveItem)->OnMouseMove(currentPos, dragStartPoint, mouseMoveState);
 	  }
 	  break;
 	case Event::EVENT_MOUSE_BUTTON_PRESSED: {
@@ -672,7 +673,7 @@ namespace Menu {
 	case Event::EVENT_MOUSE_BUTTON_CLICKED: {
 	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  if (pActiveItem) {
-		if (pActiveItem->OnClick(currentPos, e.MouseButton.Button)) {
+		if (MenuItem::Pointer(pActiveItem)->OnClick(currentPos, e.MouseButton.Button)) {
 		  return true;
 		}
 	  }
@@ -680,7 +681,7 @@ namespace Menu {
 		const auto re = items.rend();
 		for (auto ri = items.rbegin(); ri != re; ++ri) {
 		  if ((*ri)->OnRegion(currentPos)) {
-			return (*ri)->OnClick(currentPos, e.MouseButton.Button);
+			return MenuItem::Pointer(*ri)->OnClick(currentPos, e.MouseButton.Button);
 		  }
 		}
 	  }
@@ -710,7 +711,11 @@ namespace Menu {
 
   /** Clear all menu item.
   */
-  void Menu::Clear() { items.clear(); }
+  void Menu::Clear() {
+	pActiveItem.reset();
+	items.clear();
+	mouseMoveState = MouseMoveState::End;
+  }
 
 } // namespace Menu
 
