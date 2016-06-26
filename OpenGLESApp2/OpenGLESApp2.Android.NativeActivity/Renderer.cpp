@@ -31,7 +31,7 @@ static const Vector2F referenceViewportSize(480, 800);
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
 
-#define MAX_FONT_RENDERING_COUNT 256
+#define MAX_FONT_RENDERING_COUNT 512
 
 namespace {
 
@@ -868,6 +868,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
 void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str, float uw) {
   const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / (sizeof(FontVertex) * 4);
   if (strlen(str) > freeCount) {
+	LOGI("buffer over in AddString: %s", str);
 	return;
   }
   std::vector<FontVertex> vertecies;

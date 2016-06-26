@@ -137,18 +137,20 @@ namespace SunnySideUp {
 		  pSwipableView->SetRegion(Vector2F(0.0f, 0.0f), Vector2F(1.0f, 0.8f));
 		  pRecordView->Add(pSwipableView);
 		  for (int i = 0; i < levelCount; ++i) {
-			const int courseCount = GetMaximumCourseNo(i) + 1;
 			char  buf[32];
+			snprintf(buf, 32, "LEVEL %d", i + 1);
+			pSwipableView->Add(i, Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.175f), 1.0f)));
+			const int courseCount = GetMaximumCourseNo(i) + 1;
 			for (int j = 0; j < courseCount; ++j) {
 			  if (auto e = SaveData::GetBestRecord(i, j)) {
 				const int msec = static_cast<int>(e->time % 1000);
 				const int min = static_cast<int>(e->time / 1000 / 60);
 				const int sec = static_cast<int>((e->time / 1000) % 60);
-				snprintf(buf, 32, "%d-%d %02d:%02d.%03d", i + 1, j + 1, min, sec, msec);
+				snprintf(buf, 32, "%d %02d:%02d.%03d", j + 1, min, sec, msec);
 			  } else {
-				snprintf(buf, 32, "%d-%d --:--.---", i + 1, j + 1);
+				snprintf(buf, 32, "%d --:--.---", j + 1);
 			  }
-			  pSwipableView->Add(i, Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.15f + static_cast<float>(j) * 0.075f), 1.0f)));
+			  pSwipableView->Add(i, Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.275f + static_cast<float>(j) * 0.075f), 1.0f)));
 			}
 		  }
 
@@ -171,10 +173,15 @@ namespace SunnySideUp {
 			pYesItem->clickHandler = [this, &engine](const Vector2F&, MouseButton) -> bool {
 			  SaveData::DeleteAll(engine.GetWindow());
 			  char  buf[] = "0 --:--.---";
-			  for (int i = 0; i < 8; ++i) {
-				buf[0] = '1' + i;
-				std::shared_ptr<Menu::TextMenuItem> p = std::static_pointer_cast<Menu::TextMenuItem>(pRecordView->items[i + 1]);
-				p->SetText(buf);
+			  std::shared_ptr<Menu::SwipableMenu> pSwipableMenu = std::static_pointer_cast<Menu::SwipableMenu>(pRecordView->items[1]);
+			  const size_t viewCount = pSwipableMenu->ViewCount();
+			  for (int i = 0; i < viewCount; ++i) {
+				const size_t itemCount = pSwipableMenu->ItemCount(i);
+				for (int j = 1; j < itemCount; ++j) {
+				  buf[0] = '0' + j;
+				  std::shared_ptr<Menu::TextMenuItem> p = std::static_pointer_cast<Menu::TextMenuItem>(pSwipableMenu->GetItem(i, j));
+				  p->SetText(buf);
+				}
 			  }
 			  std::shared_ptr<Menu::TextMenuItem> pLabel0Item(new Menu::TextMenuItem("CLEAR", Vector2F(0.5f, 0.45f), 1.0f));
 			  std::shared_ptr<Menu::TextMenuItem> pLabel1Item(new Menu::TextMenuItem("ALL RECORDS", Vector2F(0.5f, 0.55f), 1.0f));

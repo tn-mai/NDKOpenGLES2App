@@ -115,6 +115,10 @@ namespace Menu {
 	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state);
 
 	void Add(int viewNo, MenuItem::Pointer p);
+	size_t ViewCount() const;
+	size_t ItemCount(int viewNo) const;
+	MenuItem::Pointer GetItem(int viewNo, int itemNo) const;
+	MenuItem::Pointer GetItem(int viewNo, int itemNo);
 	void Claer();
 
 	typedef std::vector<MenuItem::Pointer> ViewType;

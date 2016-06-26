@@ -382,20 +382,25 @@ namespace Menu {
 	@param  alpha   A text transparency.
   */
   void SwipableMenu::Draw(Renderer& r, Vector2F offset, float alpha) const {
-	Vector2F tmpOffset(offset);
-	tmpOffset.x += moveX;
-	alpha *= GetAlpha();
-	for (auto& e : viewList[currentView]) {
-	  e->Draw(r, tmpOffset, alpha);
-	}
-	if (std::abs(moveX) > 0.1f) {
-	  int sideView = currentView + (moveX >= 0.0f ? -1 : 1);
-	  if (sideView < 0) {
-		sideView += viewList.size();
+	{
+	  const Vector2F tmpOffset = offset + Vector2F(moveX, 0);
+	  alpha *= GetAlpha();
+	  for (auto& e : viewList[currentView]) {
+		e->Draw(r, tmpOffset, alpha);
 	  }
-	  Vector2F tmpOffset(offset);
-	  tmpOffset.x += moveX >= 0.0f ? (moveX - 1.0f) : (moveX + 1.0f);
-	  for (auto& e : viewList[sideView]) {
+	}
+	const int viewCount = static_cast<int>(viewList.size());
+	{
+	  const Vector2F tmpOffset = offset + Vector2F(moveX - 0.8f, 0);
+	  const int leftView = (currentView - 1 + viewCount) % viewCount;
+	  for (auto& e : viewList[leftView]) {
+		e->Draw(r, tmpOffset, alpha);
+	  }
+	}
+	{
+	  const Vector2F tmpOffset = offset + Vector2F(moveX + 0.8f, 0);
+	  const int rightView = (currentView + 1) % viewCount;
+	  for (auto& e : viewList[rightView]) {
 		e->Draw(r, tmpOffset, alpha);
 	  }
 	}
@@ -472,6 +477,59 @@ namespace Menu {
   */
   void SwipableMenu::Claer() {
 	viewList.clear();
+  }
+
+  /** Get a view count.
+
+	@return The count of view.
+  */
+  size_t SwipableMenu::ViewCount() const { return viewList.size(); }
+
+  /** Get a item count in the view.
+
+	@param  viewNo  A target view number.
+	                It is less than ViewCount();
+
+	@return The count of item.
+  */
+  size_t SwipableMenu::ItemCount(int viewNo) const {
+	if (viewNo < 0 || viewNo >= viewList.size()) {
+	  return 0;
+	}
+	return viewList[viewNo].size();
+  }
+
+  /** Get a item count in the view.
+
+	@param  viewNo  A target view number.
+	                It is less than ViewCount();
+	@param  itemNo  A target item number.
+					It is less than ItemCount();
+
+	@return A pointer object to the item.
+  */
+  MenuItem::Pointer SwipableMenu::GetItem(int viewNo, int itemNo) const {
+	if (viewNo < 0 || viewNo >= viewList.size()) {
+	  return MenuItem::Pointer();
+	}
+	const ViewType& view = viewList[viewNo];
+	if (itemNo < 0 || itemNo >= view.size()) {
+	  return MenuItem::Pointer();
+	}
+	return view[itemNo];
+  }
+
+  /** Get a item count in the view.
+
+	@param  viewNo  A target view number.
+	                It is less than ViewCount();
+	@param  itemNo  A target item number.
+	                It is less than ItemCount();
+
+	@return A pointer object to the item.
+  */
+  MenuItem::Pointer SwipableMenu::GetItem(int viewNo, int itemNo) {
+	return const_cast<const SwipableMenu*>(this)->GetItem(viewNo, itemNo);
   }
 
   /** Constructor.
