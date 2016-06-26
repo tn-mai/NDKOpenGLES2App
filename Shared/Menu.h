@@ -61,6 +61,7 @@ namespace Menu {
 	static const uint8_t FLAG_SHADOW = 0x04;
 
 	TextMenuItem(const char* str, const Vector2F& p, float s, int flg = FLAG_SHADOW);
+	TextMenuItem(const char* str, const Vector2F& p, float s, Color4B c, int flg = FLAG_SHADOW);
 	virtual ~TextMenuItem() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(float tick);
@@ -100,6 +101,31 @@ namespace Menu {
 	int topOfWindow;
 	float scale;
 	float moveY;
+	bool hasDragging;
+  };
+
+  /** Swipable menu.
+  */
+  struct SwipableMenu : public MenuItem {
+	explicit SwipableMenu(size_t);
+	virtual ~SwipableMenu() {}
+	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
+	virtual void Update(float tick);
+	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
+	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state);
+
+	void Add(int viewNo, MenuItem::Pointer p);
+	size_t ViewCount() const;
+	size_t ItemCount(int viewNo) const;
+	MenuItem::Pointer GetItem(int viewNo, int itemNo) const;
+	MenuItem::Pointer GetItem(int viewNo, int itemNo);
+	void Claer();
+
+	typedef std::vector<MenuItem::Pointer> ViewType;
+	std::vector<ViewType> viewList;
+	int currentView;
+	float moveX;
+	float accel;
 	bool hasDragging;
   };
 

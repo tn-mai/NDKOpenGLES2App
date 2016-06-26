@@ -16,8 +16,9 @@ namespace SunnySideUp {
   };
 
   struct CommonData {
-	CommonData() : level(0), currentTime(-1) {}
+	CommonData() : level(0), courseNo(0), currentTime(-1) {}
 	uint32_t level;
+	uint32_t courseNo;
 	int64_t currentTime;
   };
 

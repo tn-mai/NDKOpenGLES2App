@@ -31,7 +31,7 @@ static const Vector2F referenceViewportSize(480, 800);
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
 
-#define MAX_FONT_RENDERING_COUNT 256
+#define MAX_FONT_RENDERING_COUNT 512
 
 namespace {
 
@@ -428,10 +428,12 @@ void Object::Update(float t)
   if (const ::Mai::Mesh* mesh = GetMesh()) {
 	if (!mesh->jointList.empty()) {
 	  if (const Animation* pAnime = pRenderer->GetAnimation(animationPlayer.id.c_str())) {
-		const Matrix4x3 m0 = ToMatrix(rotTrans) * Matrix4x3{
-		  scale.x, 0, 0, 0,
-		  0, scale.y, 0, 0,
-		  0, 0, scale.z, 0,
+		const Matrix4x3 m0 = ToMatrix(rotTrans) * Matrix4x3 {
+		  {
+			scale.x, 0, 0, 0,
+			  0, scale.y, 0, 0,
+			  0, 0, scale.z, 0,
+		  }
 		};
 		animationPlayer.pAnime = pAnime;
 		std::vector<Mai::RotTrans> rtList = animationPlayer.Update(mesh->jointList, t);
@@ -866,6 +868,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
 void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str, float uw) {
   const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / (sizeof(FontVertex) * 4);
   if (strlen(str) > freeCount) {
+	LOGI("buffer over in AddString: %s", str);
 	return;
   }
   std::vector<FontVertex> vertecies;

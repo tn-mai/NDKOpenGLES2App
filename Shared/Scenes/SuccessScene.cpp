@@ -4,6 +4,7 @@
 #include "LevelInfo.h"
 #include "SaveData.h"
 #include "Scene.h"
+#include "../Menu.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <vector>
 #include <random>
@@ -38,6 +39,7 @@ namespace SunnySideUp {
 	bool hasNewRecord;
 	float timer;
 	float cameraRotation;
+	Menu::Menu  rootMenu;
   };
 
   SuccessScene::SuccessScene()
@@ -57,7 +59,7 @@ namespace SunnySideUp {
 	}
 
 	const CommonData* pCommonData = engine.GetCommonData<CommonData>();
-	hasNewRecord = SaveData::SetNewRecord(engine.GetWindow(), pCommonData->level, pCommonData->currentTime);
+	hasNewRecord = SaveData::SetNewRecord(engine.GetWindow(), pCommonData->level, pCommonData->courseNo, pCommonData->currentTime);
 
 	objList.reserve(8);
 	Renderer& r = engine.GetRenderer();
@@ -98,6 +100,22 @@ namespace SunnySideUp {
 	  objList.push_back(obj);
 	}
 
+	float scale = 1.0f;
+	rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("THAT'S YUMMY!", Vector2F(0.5f, 0.25f), scale, Color4B(250, 250, 250, 255))));
+	if (hasNewRecord) {
+	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("NEW RECORD!", Vector2F(0.5f, 0.675f), scale, Color4B(250, 100, 50, 255), Menu::TextMenuItem::FLAG_ALPHA_ANIMATION)));
+	}
+	rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("YOUR TIME IS:", Vector2F(0.5f, 0.75f), scale, Color4B(250, 250, 250, 255))));
+	{
+	  const float time = static_cast<float>(engine.GetCommonData<CommonData>()->currentTime) / 1000.0f;
+	  char buf[32];
+	  sprintf(buf, "%03.3fSec", time);
+	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.825f), scale, Color4B(250, 250, 250, 255))));
+	}
+	if (pCommonData->courseNo >= GetMaximumCourseNo(pCommonData->level)) {
+	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("LEVEL CLEAR", Vector2F(0.5f, 0.9f), 1.2f * scale, Color4B(100, 100, 250, 255), Menu::TextMenuItem::FLAG_ALPHA_ANIMATION)));
+	}
+
 	loaded = true;
 	status = STATUSCODE_RUNNABLE;
 	return true;
@@ -108,6 +126,7 @@ namespace SunnySideUp {
 	  objList.clear();
 	  loaded = false;
 	}
+	rootMenu.Clear();
 	status = STATUSCODE_STOPPED;
 	return true;
   }
@@ -129,6 +148,8 @@ namespace SunnySideUp {
 	for (auto e : objList) {
 	  e->Update(tick);
 	}
+
+	rootMenu.Update(tick);
 
 	const float theta = degreeToRadian<float>(cameraRotation);
 	const float distance = 25;
@@ -170,7 +191,11 @@ namespace SunnySideUp {
 	if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 	  r.FadeIn(1.0f);
 	  CommonData& commonData = *engine.GetCommonData<CommonData>();
-	  commonData.level = std::min(commonData.level + 1, GetMaximumLevel());
+	  if (++commonData.courseNo > GetMaximumCourseNo(commonData.level)) {
+		commonData.level = std::min(commonData.level + 1, GetMaximumLevel());
+		commonData.courseNo = 0;
+		return SCENEID_TITLE;
+	  }
 	  return SCENEID_MAINGAME;
 	}
 	return SCENEID_CONTINUE;
@@ -178,33 +203,7 @@ namespace SunnySideUp {
   
   void SuccessScene::Draw(Engine& engine) {
 	Renderer& r = engine.GetRenderer();
-	float scale = 1.0f;
-	{
-	  const char str[] = "THAT'S YUMMY!";
-	  const float w = r.GetStringWidth(str) * scale;
-	  r.AddString(0.51f - w * 0.5f, 0.26f, scale, Color4B(20, 10, 10, 128), str);
-	  r.AddString(0.5f - w * 0.5f, 0.25f, scale, Color4B(250, 250, 250, 255), str);
-	}
-	if (hasNewRecord) {
-	  const char str[] = "NEW RECORD!";
-	  const float w = r.GetStringWidth(str) * scale;
-	  r.AddString(0.51f - w * 0.5f, 0.675f, scale, Color4B(20, 10, 10, 128), str);
-	  r.AddString(0.5f - w * 0.5f, 0.675f, scale, Color4B(250, 100, 50, 255), str);
-	}
-	{
-	  const char str[] = "YOUR TIME IS:";
-	  const float w = r.GetStringWidth(str) * scale;
-	  r.AddString(0.51f - w * 0.5f, 0.75f, scale, Color4B(20, 10, 10, 128), str);
-	  r.AddString(0.5f - w * 0.5f, 0.75f, scale, Color4B(250, 250, 250, 255), str);
-	}
-	{
-	  const float time = static_cast<float>(engine.GetCommonData<CommonData>()->currentTime) / 1000.0f;
-	  char buf[32];
-	  sprintf(buf, "%03.3fSec", time);
-	  const float w = r.GetStringWidth(buf);
-	  r.AddString(0.51f - w * 0.5f, 0.825f, scale, Color4B(20, 10, 10, 128), buf);
-	  r.AddString(0.5f - w * 0.5f, 0.825f, scale, Color4B(250, 250, 250, 255), buf);
-	}
+	rootMenu.Draw(r, Vector2F(0, 0), 1.0f);
 	r.Render(&objList[0], &objList[0] + objList.size());
   }
 

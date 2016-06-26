@@ -121,10 +121,23 @@ namespace Menu {
 	@param flg The logical sum of FLAG.
   */
   TextMenuItem::TextMenuItem(const char* str, const Vector2F& p, float s, int flg)
-	: pos(p), baseScale(s), scaleTick(0), flags(flg)
+	: pos(p), color(240, 240, 240, 255), baseScale(s), scaleTick(0), flags(flg)
   {
 	SetText(str);
-	color = Color4B(240, 240, 240, 255);
+  }
+
+  /** Constructor.
+
+	@param str A text for showing.
+	@param p   A center position of this object.
+	@param s   A base scale of text.
+	@param c   A color of text.
+	@param flg The logical sum of FLAG.
+  */
+  TextMenuItem::TextMenuItem(const char* str, const Vector2F& p, float s, Color4B c, int flg)
+	: pos(p), color(c), baseScale(s), scaleTick(0), flags(flg)
+  {
+	SetText(str);
   }
 
   /** Render the object.
@@ -135,15 +148,24 @@ namespace Menu {
   */
   void TextMenuItem::Draw(Renderer& r, Vector2F offset, float alpha) const {
 	offset += pos;
-	float scale;
-	if (scaleTick < 1.0f) {
-	  scale = 1.0f + scaleTick * 0.5f;
-	} else {
-	  scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
+	float scale = 1.0f;
+	if (flags & FLAG_ZOOM_ANIMATION) {
+	  if (scaleTick < 1.0f) {
+		scale = 1.0f + scaleTick * 0.5f;
+	  } else {
+		scale = 1.5f - (scaleTick - 1.0f) * 0.5f;
+	  }
 	}
 	scale *= baseScale;
 	const float w = r.GetStringWidth(label) * scale * 0.5f;
 	Color4B c = color;
+	if (flags & FLAG_ALPHA_ANIMATION) {
+	  if (scaleTick < 1.0f) {
+		c.a = static_cast<uint8_t>(c.a * scaleTick);
+	  } else {
+		c.a = static_cast<uint8_t>(c.a * (2.0f - scaleTick));
+	  }
+	}
 	c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
 	if (flags & FLAG_SHADOW) {
 	  const Color4B shadowColor(c.r / 4, c.g / 4, c.b / 4, c.a / 2);
@@ -157,7 +179,7 @@ namespace Menu {
 	@param tick  Second from previous frame.
   */
   void TextMenuItem::Update(float tick) {
-	if (flags & FLAG_ZOOM_ANIMATION) {
+	if (flags & (FLAG_ZOOM_ANIMATION | FLAG_ALPHA_ANIMATION)) {
 	  scaleTick += tick;
 	  if (scaleTick > 2.0f) {
 		scaleTick -= 2.0f;
@@ -203,7 +225,7 @@ namespace Menu {
   */
   void TextMenuItem::ClearFlag(int f) {
 	flags &= ~f;
-	if (!(flags & FLAG_ZOOM_ANIMATION)) {
+	if (!(flags & (FLAG_ZOOM_ANIMATION | FLAG_ALPHA_ANIMATION))) {
 	  scaleTick = 0.0f;
 	}
   }
@@ -344,8 +366,200 @@ namespace Menu {
 
   /** Constructor.
   */
+  SwipableMenu::SwipableMenu(size_t viewCount)
+	: currentView(0)
+	, moveX(0)
+	, accel(0)
+	, hasDragging(false)
+  {
+	viewList.resize(viewCount);
+  }
+
+  /** Render the object.
+
+	@param  r       A renderer object.
+	@param  offset  A rendering offset.
+	@param  alpha   A text transparency.
+  */
+  void SwipableMenu::Draw(Renderer& r, Vector2F offset, float alpha) const {
+	{
+	  const Vector2F tmpOffset = offset + Vector2F(moveX, 0);
+	  alpha *= GetAlpha();
+	  for (auto& e : viewList[currentView]) {
+		e->Draw(r, tmpOffset, alpha);
+	  }
+	}
+	const int viewCount = static_cast<int>(viewList.size());
+	{
+	  const Vector2F tmpOffset = offset + Vector2F(moveX - 0.85f, 0);
+	  const int leftView = (currentView - 1 + viewCount) % viewCount;
+	  for (auto& e : viewList[leftView]) {
+		e->Draw(r, tmpOffset, alpha);
+	  }
+	}
+	{
+	  const Vector2F tmpOffset = offset + Vector2F(moveX + 0.85f, 0);
+	  const int rightView = (currentView + 1) % viewCount;
+	  for (auto& e : viewList[rightView]) {
+		e->Draw(r, tmpOffset, alpha);
+	  }
+	}
+  }
+
+  /** Update a object and children.
+
+	@param tick  Second from previous frame.
+  */
+  void SwipableMenu::Update(float tick) {
+	for (auto& e : viewList[currentView]) {
+	  e->Update(tick);
+	}
+	const float springForce = 1.0f * tick;
+	if (!hasDragging && (moveX || accel)) {
+	  if (moveX * accel >= 0) {
+		accel += accel >= 0 ? -springForce : springForce;
+	  } else {
+		accel += accel >= 0 ? springForce : -springForce;
+	  }
+	  const float newX = moveX + accel;
+	  if (newX * moveX >= 0) {
+		moveX = newX;
+	  } else {
+		moveX = accel = 0;
+	  }
+	  if (moveX > 0.4f) {
+		moveX -= 0.85f + accel;
+		accel += springForce;
+		const int viewCount = static_cast<int>(ViewCount());
+		currentView = (currentView - 1 + viewCount) % viewCount;
+	  } else if (moveX < -0.4f) {
+		moveX += 0.85f - accel;
+		accel -= springForce;
+		const int viewCount = static_cast<int>(ViewCount());
+		currentView = (currentView + 1) % viewCount;
+	  }
+	}
+  }
+
+  /** Handle a click event.
+
+	@param currentPosition  A position that was used by a click.
+	@param button           A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool SwipableMenu::OnClick(const Vector2F& currentPos, MouseButton button) {
+	const auto re = viewList[currentView].rend();
+	for (auto ri = viewList[currentView].rbegin(); ri != re; ++ri) {
+	  if ((*ri)->OnRegion(currentPos)) {
+		return (*ri)->OnClick(currentPos, button);
+	  }
+	}
+	return false;
+  }
+
+  /** Handle a move event.
+
+	@param currentPos  A current mouse cursor or swiping position.
+	@param startPos    A position of start dragging.
+	@param state       A state of mouse moving.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool SwipableMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
+	switch (state) {
+	case MouseMoveState::Begin:
+	  /* FALLTHROUGH */
+	case MouseMoveState::Moving:
+	  accel = accel * 0.25f + (currentPos.x - dragStartPoint.x) - moveX;
+	  moveX = currentPos.x - dragStartPoint.x;
+	  hasDragging = true;
+	  break;
+	case MouseMoveState::End:
+	  accel = accel * 0.25f + (currentPos.x - dragStartPoint.x) - moveX;
+	  moveX = currentPos.x - dragStartPoint.x;
+	  hasDragging = false;
+	  break;
+	}
+	return true;
+  }
+
+  /** Add a menu item.
+
+	@param p  A menu item that is added to this object.
+  */
+  void SwipableMenu::Add(int viewNo, MenuItem::Pointer p) {
+	if (viewNo >= 0 && viewNo < static_cast<int>(viewList.size())) {
+	  viewList[viewNo].push_back(p);
+	}
+  }
+
+  /** Clear all menu item.
+  */
+  void SwipableMenu::Claer() {
+	viewList.clear();
+  }
+
+  /** Get a view count.
+
+	@return The count of view.
+  */
+  size_t SwipableMenu::ViewCount() const { return viewList.size(); }
+
+  /** Get a item count in the view.
+
+	@param  viewNo  A target view number.
+	                It is less than ViewCount();
+
+	@return The count of item.
+  */
+  size_t SwipableMenu::ItemCount(int viewNo) const {
+	if (viewNo < 0 || viewNo >= static_cast<int>(viewList.size())) {
+	  return 0;
+	}
+	return viewList[viewNo].size();
+  }
+
+  /** Get a item count in the view.
+
+	@param  viewNo  A target view number.
+	                It is less than ViewCount();
+	@param  itemNo  A target item number.
+					It is less than ItemCount();
+
+	@return A pointer object to the item.
+  */
+  MenuItem::Pointer SwipableMenu::GetItem(int viewNo, int itemNo) const {
+	if (viewNo < 0 || viewNo >= static_cast<int>(viewList.size())) {
+	  return MenuItem::Pointer();
+	}
+	const ViewType& view = viewList[viewNo];
+	if (itemNo < 0 || itemNo >= static_cast<int>(view.size())) {
+	  return MenuItem::Pointer();
+	}
+	return view[itemNo];
+  }
+
+  /** Get a item count in the view.
+
+	@param  viewNo  A target view number.
+	                It is less than ViewCount();
+	@param  itemNo  A target item number.
+	                It is less than ItemCount();
+
+	@return A pointer object to the item.
+  */
+  MenuItem::Pointer SwipableMenu::GetItem(int viewNo, int itemNo) {
+	return const_cast<const SwipableMenu*>(this)->GetItem(viewNo, itemNo);
+  }
+
+  /** Constructor.
+  */
   Menu::Menu()
 	: pos(0, 0)
+	, inputDisableTimer(0)
 	, mouseMoveState(MouseMoveState::End)
   {
 	SetRegion(Vector2F(0, 0), Vector2F(1, 1));
@@ -438,7 +652,7 @@ namespace Menu {
 		case MouseMoveState::Moving: mouseMoveState = MouseMoveState::Moving; break;
 		case MouseMoveState::End: mouseMoveState = MouseMoveState::Begin; break;
 		}
-		return pActiveItem->OnMouseMove(currentPos, dragStartPoint, mouseMoveState);
+		return MenuItem::Pointer(pActiveItem)->OnMouseMove(currentPos, dragStartPoint, mouseMoveState);
 	  }
 	  break;
 	case Event::EVENT_MOUSE_BUTTON_PRESSED: {
@@ -459,7 +673,7 @@ namespace Menu {
 	case Event::EVENT_MOUSE_BUTTON_CLICKED: {
 	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  if (pActiveItem) {
-		if (pActiveItem->OnClick(currentPos, e.MouseButton.Button)) {
+		if (MenuItem::Pointer(pActiveItem)->OnClick(currentPos, e.MouseButton.Button)) {
 		  return true;
 		}
 	  }
@@ -467,7 +681,7 @@ namespace Menu {
 		const auto re = items.rend();
 		for (auto ri = items.rbegin(); ri != re; ++ri) {
 		  if ((*ri)->OnRegion(currentPos)) {
-			return (*ri)->OnClick(currentPos, e.MouseButton.Button);
+			return MenuItem::Pointer(*ri)->OnClick(currentPos, e.MouseButton.Button);
 		  }
 		}
 	  }
@@ -497,7 +711,11 @@ namespace Menu {
 
   /** Clear all menu item.
   */
-  void Menu::Clear() { items.clear(); }
+  void Menu::Clear() {
+	pActiveItem.reset();
+	items.clear();
+	mouseMoveState = MouseMoveState::End;
+  }
 
 } // namespace Menu
 

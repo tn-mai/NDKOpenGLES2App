@@ -436,12 +436,14 @@ namespace SunnySideUp {
 	  pPartitioner.reset(new SpacePartitioner(region.min, region.max, unitRegionSize, maxObject));
 
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
-	  const LevelInfo& levelInfo = GetLevelInfo(level);
+	  const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
+	  const CourseInfo& courseInfo = GetCourseInfo(level, courseNo);
+	  random.seed(courseInfo.seed);
 
-	  const TimeOfScene tos = [levelInfo]() {
-		if (levelInfo.hoursOfDay >= 7 && levelInfo.hoursOfDay < 16) {
+	  const TimeOfScene tos = [courseInfo]() {
+		if (courseInfo.hoursOfDay >= 7 && courseInfo.hoursOfDay < 16) {
 		  return TimeOfScene_Noon;
-		} else if (levelInfo.hoursOfDay >= 16 && levelInfo.hoursOfDay < 19) {
+		} else if (courseInfo.hoursOfDay >= 16 && courseInfo.hoursOfDay < 19) {
 		  return TimeOfScene_Sunset;
 		} else {
 		  return TimeOfScene_Night;
@@ -455,7 +457,7 @@ namespace SunnySideUp {
 		auto obj = renderer.CreateObject("ChickenEgg", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
 		o.SetAnimation(renderer.GetAnimation("Dive"));
-		const Vector3F trans(5, static_cast<GLfloat>(levelInfo.startHeight), 4.5f);
+		const Vector3F trans(5, static_cast<GLfloat>(courseInfo.startHeight), 4.5f);
 		o.SetTranslation(trans);
 		playerRotation = Vector3F(degreeToRadian<float>(0), degreeToRadian<float>(180), degreeToRadian<float>(0));
 		o.SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
@@ -493,11 +495,11 @@ namespace SunnySideUp {
 
 	  {
 		static const size_t posListSize = 5;
-		const std::vector<Position3F> modelRoute = CreateModelRoute(Position3F(5, static_cast<float>(levelInfo.startHeight), 4.5f), objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
+		const std::vector<Position3F> modelRoute = CreateModelRoute(Position3F(5, static_cast<float>(courseInfo.startHeight), 4.5f), objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
 		const auto end = modelRoute.end() - 2;
-		const float step = static_cast<float>(unitObstructsSize) * std::max(1.0f, (4.0f - static_cast<float>(levelInfo.difficulty) * 0.5f));
-		const int density = std::min<int>(posListSize, levelInfo.density);
-		for (float height = static_cast<float>(levelInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= step) {
+		const float step = static_cast<float>(unitObstructsSize) * std::max(1.0f, (4.0f - static_cast<float>(courseInfo.difficulty) * 0.5f));
+		const int density = std::min<int>(posListSize, courseInfo.density);
+		for (float height = static_cast<float>(courseInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= step) {
 		  auto itr = std::upper_bound(modelRoute.begin(), modelRoute.end(), height,
 			[](float h, const Position3F& p) { return h > p.y; }
 		  );
@@ -557,7 +559,7 @@ namespace SunnySideUp {
 		  }
 		}
 	  }
-	  for (float height = static_cast<float>(levelInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= static_cast<float>(unitObstructsSize) * 5) {
+	  for (float height = static_cast<float>(courseInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= static_cast<float>(unitObstructsSize) * 5) {
 		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
 		const float h = RandomFloat(unitObstructsSize * 2) + static_cast<float>(unitObstructsSize) * 0.5f;
@@ -598,7 +600,7 @@ namespace SunnySideUp {
 	  // Add cloud.
 	  {
 		for (int i = 0; i < 5; ++i) {
-		  const int cloudCount = ((i * i / 2 + 1) * levelInfo.cloudage) / levelInfo.maxCloudage;
+		  const int cloudCount = ((i * i / 2 + 1) * courseInfo.cloudage) / courseInfo.maxCloudage;
 		  const int heightMax = 2600 - i * 400;
 		  const int heightMin = heightMax - 400;
 		  const int radiusMax = (i * i + 4) * 25;
@@ -761,7 +763,8 @@ namespace SunnySideUp {
 	  r.SetShadowLight(rigidCamera->Position() - shadowDir * 600.0f, shadowDir, 100, 2500, Vector2F(0.5f, 1.0f));
 #else
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
-	  const float radius = (static_cast<float>(GetLevelInfo(level).startHeight) + 10.0f) * 0.5f;
+	  const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
+	  const float radius = (static_cast<float>(GetCourseInfo(level, courseNo).startHeight) + 10.0f) * 0.5f;
 	  r.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.5f, 1.0f / 3.0f));
 #endif
 	  return (this->*updateFunc)(engine, deltaTime);
@@ -1048,6 +1051,13 @@ namespace SunnySideUp {
 		  const std::string s = DigitsToString(pointDecimal, 3, true);
 		  renderer.AddString(baseX - cw * 2.0f, 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
 		  renderer.AddString(baseX + cw0, 0.155f, fontScale, Color4B(255, 255, 255, 255), "Sec");
+		}
+		{
+		  CommonData& commonData = *engine.GetCommonData<CommonData>();
+		  std::string s = DigitsToString(commonData.level + 1, 1, false);
+		  s += "-";
+		  s += DigitsToString(commonData.courseNo + 1, 1, false);
+		  renderer.AddString(0.05f, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
 		}
 
 		if (countDownTimer > 0.0f) {

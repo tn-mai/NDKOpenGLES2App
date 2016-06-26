@@ -7,10 +7,11 @@
 
 namespace SunnySideUp {
 
+
 /** The level information.
 */
-struct LevelInfo {
-  uint32_t level; ///< The identifier of this level.
+struct CourseInfo {
+  uint64_t seed;
   uint32_t startHeight; ///< The falling starting point for Eggman(2000-?).
   uint8_t hoursOfDay; ///< This affect for the lighting(0-23).
   uint8_t density; ///< The density of the obstacles.
@@ -21,8 +22,16 @@ struct LevelInfo {
   static const uint8_t maxCloudage = 7;
 };
 
-const LevelInfo& GetLevelInfo(uint32_t level);
+/** The level information.
+*/
+struct LevelInfo {
+  uint32_t level; ///< The identifier of this level.
+  CourseInfo courses[4];
+};
+
+const CourseInfo& GetCourseInfo(uint32_t level, uint32_t courseNo);
 uint32_t GetMaximumLevel();
+uint32_t GetMaximumCourseNo(uint32_t level);
 
 } // namespace SunnySideUp
 
