@@ -15,8 +15,8 @@ static const LevelInfo infoArray[] = {
 	1,
 	{
 	  { 101, 2000, noon,   1, 1, 1, "Tutorial 1" },
-	  { 102, 2000, noon,   1, 1, 1, "Tutorial 2" },
-	  { 103, 2500, sunset, 1, 1, 1, "Tutorial 3" },
+	  { 118, 2000, noon,   1, 1, 1, "Tutorial 2" },
+	  { 130, 2500, sunset, 1, 1, 1, "Tutorial 3" },
 	}
   },
   {
