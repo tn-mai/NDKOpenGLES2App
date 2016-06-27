@@ -472,19 +472,25 @@ const ::Mai::Shader* Object::GetShader() const {
   @return timeOfSceneに対応する太陽光線の向き.
 */
 Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
-  static const Vector3F baseAxis(0.1f, 0, 1.0f);
+  static const Vector3F baseAxis(0.25f, 0, -1.0f);
   static const Vector3F baseRay(0, -1, 0);
   static const float baseAxisAngle = 20.0f;
-  static const Vector3F upAxis(0, 1, 0);
+  static const Vector3F rightAxis(1, 0, 0);
   const Vector3F noonRay(Normalize(Quaternion(Normalize(baseAxis), degreeToRadian(baseAxisAngle)).Apply(baseRay)));
-  const Vector3F axis(Normalize(Cross(noonRay, upAxis)));
+  const Vector3F axis(Normalize(Cross(noonRay, rightAxis)));
 
+#if 0
+  static int degree = 15;
+  degree = (degree + 5) % 360;
+  return Normalize(Quaternion(axis, degreeToRadian<float>(degree)).Apply(noonRay));
+#else
   switch (timeOfScene) {
   default:
-  case TimeOfScene_Noon: return Normalize(Quaternion(axis, degreeToRadian(10.0f)).Apply(noonRay));
-  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(45.0f)).Apply(noonRay));
-  case TimeOfScene_Night: return Normalize(Quaternion(axis, degreeToRadian(-10.0f)).Apply(noonRay));
+  case TimeOfScene_Noon: return Normalize(Quaternion(axis, degreeToRadian(30.0f)).Apply(noonRay));
+  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(90.0f)).Apply(noonRay));
+  case TimeOfScene_Night: return Normalize(Quaternion(axis, degreeToRadian(60.0f)).Apply(noonRay));
   }
+#endif
 }
 
 /** コンストラクタ.
