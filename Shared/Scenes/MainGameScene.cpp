@@ -440,17 +440,26 @@ namespace SunnySideUp {
 	  const CourseInfo& courseInfo = GetCourseInfo(level, courseNo);
 	  random.seed(courseInfo.seed);
 
-	  const TimeOfScene tos = [courseInfo]() {
-		if (courseInfo.hoursOfDay >= 7 && courseInfo.hoursOfDay < 16) {
-		  return TimeOfScene_Noon;
-		} else if (courseInfo.hoursOfDay >= 16 && courseInfo.hoursOfDay < 19) {
-		  return TimeOfScene_Sunset;
-		} else {
-		  return TimeOfScene_Night;
-		}
-	  }();
-      renderer.SetTimeOfScene(tos);
-	  renderer.DoesDrawSkybox(false);
+	  // Set a scene lighting information.
+	  {
+		const TimeOfScene tos = [courseInfo]() {
+		  if (courseInfo.hoursOfDay >= 7 && courseInfo.hoursOfDay < 16) {
+			return TimeOfScene_Noon;
+		  } else if (courseInfo.hoursOfDay >= 16 && courseInfo.hoursOfDay < 19) {
+			return TimeOfScene_Sunset;
+		  } else {
+			return TimeOfScene_Night;
+		  }
+		}();
+		renderer.SetTimeOfScene(tos);
+		renderer.DoesDrawSkybox(false);
+
+		const Vector3F shadowDir = GetSunRayDirection(tos);
+		const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
+		const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
+		const float radius = (static_cast<float>(GetCourseInfo(level, courseNo).startHeight) + 10.0f) * 0.5f;
+		renderer.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.5f, 1.0f / 3.0f));
+	  }
 
 	  // The player character.
 	  {
@@ -757,16 +766,6 @@ namespace SunnySideUp {
 	  @param deltaTime  The time from previous frame(unit:sec).
 	*/
 	virtual int Update(Engine& engine, float deltaTime) {
-	  Renderer& r = engine.GetRenderer();
-	  const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
-#if 0
-	  r.SetShadowLight(rigidCamera->Position() - shadowDir * 600.0f, shadowDir, 100, 2500, Vector2F(0.5f, 1.0f));
-#else
-	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
-	  const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
-	  const float radius = (static_cast<float>(GetCourseInfo(level, courseNo).startHeight) + 10.0f) * 0.5f;
-	  r.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.5f, 1.0f / 3.0f));
-#endif
 	  return (this->*updateFunc)(engine, deltaTime);
 	}
 
