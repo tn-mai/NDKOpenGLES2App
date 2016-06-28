@@ -487,8 +487,8 @@ Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
   switch (timeOfScene) {
   default:
   case TimeOfScene_Noon: return Normalize(Quaternion(axis, degreeToRadian(0.0f)).Apply(noonRay));
-  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(90.0f)).Apply(noonRay));
-  case TimeOfScene_Night: return Normalize(Quaternion(axis, degreeToRadian(60.0f)).Apply(noonRay));
+  case TimeOfScene_Sunset: return Normalize(Quaternion(axis, degreeToRadian(75.0f)).Apply(noonRay));
+  case TimeOfScene_Night: return Normalize(Quaternion(axis, degreeToRadian(45.0f)).Apply(noonRay));
   }
 #endif
 }
