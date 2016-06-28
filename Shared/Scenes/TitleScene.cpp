@@ -125,7 +125,7 @@ namespace SunnySideUp {
 #endif // SSU_DEBUG_DISPLAY_GYRO
 
 		const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
-		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 150, 250, Vector2F(10, 8 * 4));
+		r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 100, 250, Vector2F(10, 8 * 4));
 
 		pRecordView.reset(new Menu::Menu());
 		pRecordView->Add(
