@@ -1660,7 +1660,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		-1.0f,              1.0f,              -((500.0f + 0.1f) / (500.0f - 0.1f)), 1,
 		} };
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mP.f);
-	  Matrix4x4 mV = LookAt(Vector3F(0, 0, 10), Vector3F(0, 0, 0), Vector3F(0, 1, 0));
+	  Matrix4x4 mV = LookAt(Position3F(0, 0, 10), Position3F(0, 0, 0), Vector3F(0, 1, 0));
 	  Matrix4x4 mMV = Matrix4x4::Unit();
 	  mMV.Scale(128.0f, 128.0f, 0.0f);
 	  mMV = mV * Matrix4x4::Translation(128, 128 + 8 + 56, 0) * mMV;
