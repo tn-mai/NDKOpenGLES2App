@@ -31,6 +31,8 @@ static const Vector2F referenceViewportSize(480, 800);
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
 
+static const size_t vboBufferSize = sizeof(Vertex) * 1024 * 11;
+static const size_t iboBufferSize = sizeof(GLushort) * 1024 * 10 * 3;
 #define MAX_FONT_RENDERING_COUNT 512
 
 namespace {
@@ -724,7 +726,7 @@ void Renderer::Initialize(const Window& window)
 	{
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 1024 * 10, 0, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, vboBufferSize, 0, GL_STATIC_DRAW);
 		vboEnd = 0;
 
 		glGenBuffers(2, vboFont);
@@ -739,7 +741,7 @@ void Renderer::Initialize(const Window& window)
 
 		glGenBuffers(1, &ibo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * 1024 * 10 * 3, 0, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboBufferSize, 0, GL_STATIC_DRAW);
 		iboEnd = 0;
 #ifdef SHOW_TANGENT_SPACE
 		glGenBuffers(1, &vboTBN);
@@ -749,8 +751,8 @@ void Renderer::Initialize(const Window& window)
 #endif // SHOW_TANGENT_SPACE
 		InitMesh();
 
-		LOGI("VBO: %lu%%", vboEnd * 100 / (sizeof(Vertex) * 1024 * 10));
-		LOGI("IBO: %lu%%", iboEnd * 100 / (sizeof(GLushort) * 1024 * 10 * 3));
+		LOGI("VBO: %03.1f%%", static_cast<float>(vboEnd * 100) / static_cast<float>(vboBufferSize));
+		LOGI("IBO: %03.1f%%", static_cast<float>(iboEnd * 100) / static_cast<float>(iboBufferSize));
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
