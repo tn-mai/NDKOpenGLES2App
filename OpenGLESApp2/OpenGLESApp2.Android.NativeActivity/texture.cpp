@@ -16,6 +16,8 @@
 
 namespace Texture {
 
+  uint64_t totalByteSize = 0;
+
   /** Get the corrected texture filter mode.
 
     @param mipCount  The number of mipmap level.
@@ -100,11 +102,18 @@ namespace Texture {
 		GLenum target;
 		uint16_t width;
 		uint16_t height;
+		uint32_t byteSize;
 
 		Texture() : texId(0) {}
 		virtual ~Texture() {
 			if (texId) {
 				glDeleteTextures(1, &texId);
+				if (totalByteSize < byteSize) {
+					LOGW("Total texture size mismatch: total/current(0x%x/0x%x)", totalByteSize, byteSize);
+					totalByteSize = 0;
+				} else {
+					totalByteSize -= byteSize;
+				}
 			}
 		}
 		virtual GLuint TextureId() const { return texId; }
@@ -127,11 +136,19 @@ namespace Texture {
 		glGenTextures(1, &tex.texId);
 		glBindTexture(tex.Target(), tex.texId);
 		glTexImage2D(GL_TEXTURE_2D, 0, tex.InternalFormat(), tex.width, tex.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		const GLenum result = glGetError();
+		if (result != GL_NO_ERROR) {
+		  LOGW("glTexImage2D error 0x%04x", result);
+		}
 		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, CorrectFilter(1, minFilter));
 		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, CorrectFilter(1, magFilter));
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		tex.byteSize = tex.width * tex.height * 4;
+		totalByteSize += tex.byteSize;
+
 		glBindTexture(tex.Target(), 0);
+		LOGI("Load %s(ID:%x)(TOTAL:%lld).", "Empty2D", tex.texId, totalByteSize);
 		return p;
 	}
 
@@ -144,6 +161,7 @@ namespace Texture {
 		tex.width = 1;
 		tex.height = 1;
 		tex.target = GL_TEXTURE_2D;
+
 		glGenTextures(1, &tex.texId);
 		glBindTexture(tex.Target(), tex.texId);
 		static const uint8_t pixels[] = { 0xF0, 0x40, 0x20, 0xff };
@@ -156,7 +174,11 @@ namespace Texture {
 		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		tex.byteSize = tex.width * tex.height * 4;
+		totalByteSize += tex.byteSize;
+
 		glBindTexture(tex.Target(), 0);
+		LOGI("Load %s(ID:%x)(TOTAL:%lld).", "Dummy2D", tex.texId, totalByteSize);
 		return p;
 	}
 
@@ -181,7 +203,11 @@ namespace Texture {
 	  glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	  glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	  glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	  tex.byteSize = tex.width * tex.height * 4;
+	  totalByteSize += tex.byteSize;
+
 	  glBindTexture(tex.Target(), 0);
+	  LOGI("Load %s(ID:%x)(TOTAL:%lld).", "DummyNormal", tex.texId, totalByteSize);
 	  return p;
 	}
 
@@ -215,12 +241,20 @@ namespace Texture {
 		};
 		for (int faceIndex = 0; faceIndex < 6; ++faceIndex) {
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex, 0, tex.InternalFormat(), 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels[faceIndex]);
+			const GLenum result = glGetError();
+			if (result != GL_NO_ERROR) {
+			  LOGW("glTexImage2D(face:%d) error 0x%04x", faceIndex, result);
+			}
 		}
 		glTexParameteri(tex.Target(), GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		tex.byteSize = tex.width * tex.height * 4 * 6;
+		totalByteSize += tex.byteSize;
+
 		glBindTexture(tex.Target(), 0);
+		LOGI("Load %s(ID:%x)(TOTAL:%lld).", "DummyCubeMap", tex.texId, totalByteSize);
 		return p;
 	}
 
@@ -255,6 +289,7 @@ namespace Texture {
 		tex.width = GetValue(&header.pixelWidth, endianness);
 		tex.height = GetValue(&header.pixelHeight, endianness);
 		tex.target = faceCount == 6 ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
+		tex.byteSize = 0;
 
 		const uint32_t off = GetValue(&header.bytesOfKeyValueData, endianness);
 		file->Seek(file->Position() + off);
@@ -300,6 +335,7 @@ namespace Texture {
 				}
 				pImage += imageSizeWithPadding;
 			}
+			tex.byteSize += imageSizeWithPadding * faceCount;
 			curWidth = std::max(1, curWidth / 2);
 			curHeight = std::max(1, curHeight / 2);
 		}
@@ -307,8 +343,10 @@ namespace Texture {
 		glTexParameteri(tex.Target(), GL_TEXTURE_MAG_FILTER, CorrectFilter(1, magFilter));
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(tex.Target(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		totalByteSize += tex.byteSize;
+
 		glBindTexture(tex.Target(), 0);
-		LOGI("Load %s(ID:%x).", filename, tex.texId);
+		LOGI("Load %s(ID:%x)(TOTAL:%lld).", filename, tex.texId, totalByteSize);
 		return p;
 	}
 }
