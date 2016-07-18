@@ -29,7 +29,11 @@ namespace Mai {
 	std::vector<Animation> animations;
   };
 
+#ifdef SHOW_TANGENT_SPACE
+  ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd, GLuint& ibo, GLintptr& iboEnd, GLuint vboTBN, GLintptr& vboTBNEnd);
+#else
   ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd, GLuint& ibo, GLintptr& iboEnd);
+#endif // SHOW_TANGENT_SPACE
 
 } // namespace Mai
 

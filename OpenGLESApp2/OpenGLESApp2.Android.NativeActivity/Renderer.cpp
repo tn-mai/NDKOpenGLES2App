@@ -277,19 +277,6 @@ namespace {
 
 } // unnamed namespace
 
-struct TBNVertex {
-  TBNVertex(const Position3F& p, Color4B c, const uint8_t* b, const uint8_t* w)
-	: position(p)
-	, color(c)
-	, weight{ w[0], w[1], w[2], w[3] }
-	, boneID{ b[0], b[1], b[2], b[3] }
-  {}
-  Position3F position;
-  Color4B color;
-  GLubyte weight[4];
-  GLubyte boneID[4];
-};
-
 Matrix4x4 LookAt(const Position3F& eyePos, const Position3F& targetPos, const Vector3F& upVector)
 {
   const Vector3F ezVector = (eyePos - targetPos).Normalize();
@@ -757,7 +744,7 @@ void Renderer::Initialize(const Window& window)
 #ifdef SHOW_TANGENT_SPACE
 		glGenBuffers(1, &vboTBN);
 		glBindBuffer(GL_ARRAY_BUFFER, vboTBN);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(TBNVertex) * 1024 * 30, 0, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, vboTBNBufferSize, 0, GL_STATIC_DRAW);
 		vboTBNEnd = 0;
 #endif // SHOW_TANGENT_SPACE
 		InitMesh();
@@ -1375,7 +1362,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
 		const Mesh& mesh = *obj.GetMesh();
-		glDrawArrays(GL_LINES, mesh.vboTBNOffset, mesh.vboTBNCount);
+		if (mesh.vboTBNCount) {
+		  glDrawArrays(GL_LINES, mesh.vboTBNOffset, mesh.vboTBNCount);
+		}
 	  }
 	}
 	glDisableVertexAttribArray(VertexAttribLocation_Color);
@@ -1813,10 +1802,14 @@ namespace {
 	}
 }
 
-void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* normal)
+void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* normal, bool showTBN)
 {
   if (auto pBuf = FileSystem::LoadFile(filename)) {
+#ifdef SHOW_TANGENT_SPACE
+	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd, (showTBN ? vboTBN : 0), vboTBNEnd);
+#else
 	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd);
+#endif // SHOW_TANGENT_SPACE
 	if (result.result == ImportMeshResult::Result::success) {
 	  for (auto m : result.meshes) {
 		const auto itr = textureList.find(diffuse);

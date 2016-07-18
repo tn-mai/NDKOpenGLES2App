@@ -93,7 +93,11 @@ namespace Mai {
 	  ] x (key frame count)
 	] x (animation count)
   */
+#ifdef SHOW_TANGENT_SPACE
+  ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd, GLuint& ibo, GLintptr& iboEnd, GLuint vboTBN, GLintptr& vboTBNEnd)
+#else
   ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd, GLuint& ibo, GLintptr& iboEnd)
+#endif //  SHOW_TANGENT_SPACE
   {
 	const uint8_t* p = &data[0];
 	const uint8_t* pEnd = p + data.size();
@@ -137,11 +141,19 @@ namespace Mai {
 	  }
 	}
 
+#ifdef SHOW_TANGENT_SPACE
+	const Vertex* pVBO = reinterpret_cast<const Vertex*>(reinterpret_cast<const void*>(p));
+#endif // SHOW_TANGENT_SPACE
+
 	glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vboByteSize, p);
 	p += vboByteSize;
 	if (p >= pEnd) {
 	  return ImportMeshResult(ImportMeshResult::Result::invalidVBO);
 	}
+
+#ifdef SHOW_TANGENT_SPACE
+	const GLushort* pIBO = reinterpret_cast<const GLushort*>(reinterpret_cast<const void*>(p));
+#endif // SHOW_TANGENT_SPACE
 
 	std::vector<GLushort>  indices;
 	indices.reserve(iboByteSize / sizeof(GLushort));
@@ -158,6 +170,57 @@ namespace Mai {
 	  }
 	}
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, iboByteSize, &indices[0]);
+
+#ifdef SHOW_TANGENT_SPACE
+	if (vboTBN) {
+	  for (auto& m : result.meshes) {
+		std::vector<GLushort> indexList;
+		indexList.reserve(3000);
+		for (auto mm : m.materialList) {
+		  const GLushort* p = pIBO + (mm.iboOffset - iboEnd) / sizeof(GLushort);
+		  const GLushort* const end = p + mm.iboSize;
+		  indexList.insert(indexList.end(), p, end);
+		}
+		std::sort(indexList.begin(), indexList.end());
+		indexList.erase(std::unique(indexList.begin(), indexList.end()), indexList.end());
+
+		const size_t tbnCount = indexList.size() * 3 * 2;
+		if (vboTBNEnd + tbnCount * sizeof(TBNVertex) < vboTBNBufferSize) {
+		  m.vboTBNOffset = vboTBNEnd / sizeof(TBNVertex);
+		  m.vboTBNCount = tbnCount;
+		} else {
+		  m.vboTBNOffset = 0;
+		  m.vboTBNCount = 0;
+		  continue;
+		}
+
+		static const Color4B red(255, 0, 0, 255), green(0, 255, 0, 255), blue(0, 0, 255, 255);
+		static const float lentgh = 0.2f;
+		std::vector<TBNVertex> tbn;
+		tbn.reserve(tbnCount);
+		for (auto e : indexList) {
+		  const Vertex& v = *(pVBO + e);
+		  const Vector3F t = v.tangent.ToVec3();
+		  const Vector3F b = v.normal.Cross(t).Normalize() * v.tangent.w;
+		  tbn.push_back(TBNVertex(v.position, green, v.boneID, v.weight));
+		  tbn.push_back(TBNVertex(v.position + b * lentgh, green, v.boneID, v.weight));
+		  tbn.push_back(TBNVertex(v.position, red, v.boneID, v.weight));
+		  tbn.push_back(TBNVertex(v.position + t * lentgh, red, v.boneID, v.weight));
+		  tbn.push_back(TBNVertex(v.position, blue, v.boneID, v.weight));
+		  tbn.push_back(TBNVertex(v.position + v.normal * lentgh, blue, v.boneID, v.weight));
+		}
+		glBindBuffer(GL_ARRAY_BUFFER, vboTBN);
+		glBufferSubData(GL_ARRAY_BUFFER, vboTBNEnd, tbn.size() * sizeof(TBNVertex), &tbn[0]);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		vboTBNEnd += tbn.size() * sizeof(TBNVertex);
+	  }
+	} else {
+	  for (auto& m : result.meshes) {
+		m.vboTBNOffset = 0;
+		m.vboTBNCount = 0;
+	  }
+	}
+#endif // SHOW_TANGENT_SPACE
 
 	vboEnd += vboByteSize;
 	iboEnd += iboByteSize;

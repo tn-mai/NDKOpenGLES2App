@@ -162,6 +162,27 @@ namespace Mai {
 	std::string id;
   };
 
+#ifdef SHOW_TANGENT_SPACE
+  /**
+  * 頂点のTBN(Tangent/Bitangent/Normal)確認用の頂点データ.
+  */
+  struct TBNVertex {
+	TBNVertex(const Position3F& p, Color4B c, const uint8_t* b, const uint8_t* w)
+	  : position(p)
+	  , color(c)
+	  , weight{ w[0], w[1], w[2], w[3] }
+	  , boneID{ b[0], b[1], b[2], b[3] }
+	{}
+	Position3F position;
+	Color4B color;
+	GLubyte weight[4];
+	GLubyte boneID[4];
+  };
+
+  /// TBN確認用の頂点データバッファのバイトサイズ.
+  static const size_t vboTBNBufferSize = sizeof(TBNVertex) * 1024 * 11 * 3 * 2;
+#endif // SHOW_TANGENT_SPACE
+
   /**
   * モデルの幾何形状.
   * インデックスバッファ内のデータ範囲を示すオフセットとサイズを保持している.
@@ -170,6 +191,10 @@ namespace Mai {
 	Mesh() {}
 	Mesh(const std::string& name, int32_t offset, int32_t size) : id(name) {
 	  materialList.push_back({ Material(Color4B(255, 255, 255, 255), 0, 1), offset, size});
+#ifdef SHOW_TANGENT_SPACE
+	  vboTBNOffset = 0;
+	  vboTBNCount = 0;
+#endif // SHOW_TANGENT_SPACE
 	}
 	void Draw() const;
 	void SetJoint(const std::vector<std::string>& names, const std::vector<Joint>& joints) {
@@ -451,7 +476,7 @@ namespace Mai {
 	};
 
 	FBOInfo GetFBOInfo(int) const;
-	void LoadFBX(const char* filename, const char* diffuse, const char* normal);
+	void LoadFBX(const char* filename, const char* diffuse, const char* normal, bool showTBN = false);
 	void CreateSkyboxMesh();
 	void CreateUnitBoxMesh();
 	void CreateOctahedronMesh();
