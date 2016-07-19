@@ -50,7 +50,7 @@ void main(void)
   //       Therefore, the object space normal mapping cannot increase efficiency of the shader
   //       that contrary to our expectations :(
   mediump vec3 normal = texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0;
-  mediump vec3 refVector = matTBN * reflect(eyeVectorW, normal.xyz);
+  mediump vec3 refVector = normalize(matTBN * reflect(eyeVectorW, normal.xyz));
 
   // Diffuse
   mediump vec4 irradiance = textureCube(texIBL[2], refVector);
