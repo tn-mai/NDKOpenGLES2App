@@ -187,6 +187,45 @@ namespace Mesh {
   ImportMeshResult ImportMesh(const RawBuffer& data, GLuint& vbo, GLintptr& vboEnd, GLuint& ibo, GLintptr& iboEnd);
 #endif // SHOW_TANGENT_SPACE
 
+  /**
+  * The vertex data structure for Geometry.
+  */
+  struct SimpleVertex {
+	Position3F  position; ///< 頂点座標. 12
+	Vector3F    normal; ///< 頂点ノーマル. 12
+	Vector4F    tangent; ///< 頂点タンジェント. 16
+  };
+
+  /**
+  * The geometry.
+  *
+  * This structure contains only vertex and polygon index.
+  * For example, it can represent the location information.
+  */
+  struct Geometry {
+	size_t GetPolygonCount() const { return indexList.size() / 3; }
+
+	std::string id;
+	std::vector<SimpleVertex> vertexList; /// A collection of all vertices in the geometry.
+	std::vector<GLushort> indexList; /// A collection of index of three vertices of a triangle.
+  };
+
+  /**
+  * The result type of ImportGeometry().
+  *
+  * User can check up a result of importing by referring \e result member.
+  * \e geometryList have a valid data, if the importing is succeeded.
+  *
+  * @sa ImportGeometry()
+  */
+  struct ImportGeometryResult {
+	explicit ImportGeometryResult(Result r) : result(r) {}
+
+	Result result;
+	std::vector<Geometry> geometryList;
+  };
+  ImportGeometryResult ImportGeometry(const RawBuffer& data);
+
 } // namespace Mesh
 } // namespace Mai
 

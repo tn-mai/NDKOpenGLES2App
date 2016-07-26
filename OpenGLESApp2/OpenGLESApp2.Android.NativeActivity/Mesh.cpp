@@ -1,6 +1,7 @@
 #include "Mesh.h"
 #include <GLES2/gl2.h>
 #include <algorithm>
+#include <numeric>
 
 //#define DEBUG_LOG_VERBOSE
 
@@ -345,6 +346,88 @@ namespace Mesh {
 		  }
 		}
 		result.animations.push_back(anm);
+	  }
+	}
+
+	return result;
+  }
+
+  /**
+  * Import tha geometry from MSH data.
+  *
+  * @param data  The MSH data.
+  *
+  * @return If succeeded, ImportGeometryResult::result is \e success.
+  *         Otherwise, it is an error code indicating the cause of the failure.
+  */
+  ImportGeometryResult ImportGeometry(const RawBuffer& data) {
+	const uint8_t* p = &data[0];
+	const uint8_t* pEnd = p + data.size();
+	if (p[0] != 'M' || p[1] != 'S' || p[2] != 'H') {
+	  return ImportGeometryResult(Result::invalidHeader);
+	}
+	p += 3;
+	const int count = *p;
+	p += 1;
+	/*const uint32_t vboOffset = GetValue(p, 4);*/ p += 4;
+	const uint32_t vboByteSize = GetValue(p, 4); p += 4;
+	const uint32_t iboByteSize = GetValue(p, 4); p += 4;
+	if (p >= pEnd) {
+	  return ImportGeometryResult(Result::noData);
+	}
+
+	// Collect the range of index buffer for each geometry.
+	ImportGeometryResult  result(Result::success);
+	std::vector<std::vector<Mesh::MeshMaterial>> materialList;
+	result.geometryList.resize(count);
+	materialList.resize(count);
+	GLuint iboBaseOffset = 0;
+	for (int i = 0; i < count; ++i) {
+	  const uint32_t nameLength = *p++;
+	  result.geometryList[i].id.assign(p, p + nameLength); p += nameLength;
+	  const size_t materialCount = *p++;
+	  p += (4 - (nameLength + 2) % 4) % 4;
+	  materialList[i].resize(materialCount);
+	  for (auto& e : materialList[i]) {
+		e.iboOffset = iboBaseOffset; p += 4;
+		e.iboSize = GetValue(p, 2); p += 2;
+		p += 6; // skip the color, metallic and roughness.
+		iboBaseOffset += e.iboSize * sizeof(GLushort);
+	  }
+	  if (p >= pEnd) {
+		return ImportGeometryResult(Result::invalidMeshInfo);
+	  }
+	}
+
+	const Vertex* pVBO = reinterpret_cast<const Vertex*>(reinterpret_cast<const void*>(p));
+	p += vboByteSize;
+	if (p >= pEnd) {
+	  return ImportGeometryResult(Result::invalidVBO);
+	}
+	const GLushort* pIBO = reinterpret_cast<const GLushort*>(reinterpret_cast<const void*>(p));
+	p += iboByteSize;
+	if (p >= pEnd) {
+	  return ImportGeometryResult(Result::invalidIBO);
+	}
+
+	for (int i = 0; i < count; ++i) {
+	  Geometry& m = result.geometryList[i];
+	  const int32_t indexCount = std::accumulate(materialList[i].cbegin(), materialList[i].cend(), 0, [](int32_t n, const Mesh::MeshMaterial& m) { return n + m.iboSize; });
+	  m.indexList.reserve(indexCount);
+	  for (auto mm : materialList[i]) {
+		const GLushort* p = pIBO + mm.iboOffset / sizeof(GLushort);
+		m.indexList.insert(m.indexList.end(), p, p + mm.iboSize);
+	  }
+	  std::vector<GLushort> tmpIndexList(m.indexList);
+	  std::sort(tmpIndexList.begin(), tmpIndexList.end());
+	  tmpIndexList.erase(std::unique(tmpIndexList.begin(), tmpIndexList.end()), tmpIndexList.end());
+	  m.vertexList.reserve(tmpIndexList.size());
+	  for (auto e : tmpIndexList) {
+		const Vertex& v = *(pVBO + e);
+		m.vertexList.push_back({ v.position, v.normal, v.tangent });
+	  }
+	  for (GLushort i = 0; i < tmpIndexList.size(); ++i) {
+		std::replace(m.indexList.begin(), m.indexList.end(), tmpIndexList[i], i);
 	  }
 	}
 
