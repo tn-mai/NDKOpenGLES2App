@@ -7,8 +7,6 @@
 namespace Mai {
 
   typedef std::vector<uint8_t> RawBuffer;
-  typedef std::vector<Vertex> VertexBuffer;
-  typedef std::vector<GLshort> IndexBuffer;
 
   struct ImportMeshResult {
 	enum class Result {
