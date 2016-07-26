@@ -53,6 +53,7 @@
       <Filter>Scenes</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Menu.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)FixedNum.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scenes">

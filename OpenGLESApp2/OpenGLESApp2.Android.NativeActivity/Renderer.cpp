@@ -1,5 +1,4 @@
 #include "Renderer.h"
-#include "Mesh.h"
 #include "../../Shared/File.h"
 #include "../../Shared/Window.h"
 #include "../../Shared/FontInfo.h"
@@ -292,14 +291,6 @@ Matrix4x4 LookAt(const Position3F& eyePos, const Position3F& targetPos, const Ve
   return m;
 }
 
-/** Draw the elements.
-*/
-void Mesh::Draw() const {
-  for (auto& e : materialList) {
-	glDrawElements(GL_TRIANGLES, e.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(e.iboOffset));
-  }
-}
-
 /** Shaderデストラクタ.
 */
 Shader::~Shader()
@@ -414,7 +405,7 @@ void Object::Update(float t)
   if (!IsValid()) {
 	return;
   }
-  if (const ::Mai::Mesh* mesh = GetMesh()) {
+  if (const Mesh::Mesh* mesh = GetMesh()) {
 	if (!mesh->jointList.empty()) {
 	  if (const Animation* pAnime = pRenderer->GetAnimation(animationPlayer.id.c_str())) {
 		const Matrix4x3 m0 = ToMatrix(rotTrans) * Matrix4x3 {
@@ -441,7 +432,7 @@ void Object::Update(float t)
   @return A pointer to the mesh object if it is exists in the renderer,
           otherwise nullptr.
 */
-const ::Mai::Mesh* Object::GetMesh() const {
+const Mesh::Mesh* Object::GetMesh() const {
   return pRenderer->GetMesh(meshId);
 }
 
@@ -839,7 +830,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureList["ascii"]->TextureId());
   glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
-  const Mesh& mesh = meshList["ascii"];
+  const Mesh::Mesh& mesh = meshList["ascii"];
   float x = pos.x;
   for (const char* p = str; *p; ++p) {
 	Matrix4x4 mMV = Matrix4x4::FromScale(0.5f, 0.5f, 1.0f);
@@ -1275,7 +1266,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		const float roughness = obj.Roughness();
 		glUniform2f(shader.materialMetallicAndRoughness, metallic, roughness);
 
-		const Mesh& mesh = *obj.GetMesh();
+		const Mesh::Mesh& mesh = *obj.GetMesh();
 		{
 			glActiveTexture(GL_TEXTURE0);
 			if (mesh.texDiffuse) {
@@ -1363,7 +1354,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  const Matrix4x3 m = ToMatrix(obj.RotTrans()) * mScale;
 		  glUniform4fv(shader.bones, 3, m.f);
 		}
-		const Mesh& mesh = *obj.GetMesh();
+		const Mesh::Mesh& mesh = *obj.GetMesh();
 		if (mesh.vboTBNCount) {
 		  glDrawArrays(GL_LINES, mesh.vboTBNOffset, mesh.vboTBNCount);
 		}
@@ -1441,7 +1432,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
-	  const Mesh& mesh = meshList["board2D"];
+	  const Mesh::Mesh& mesh = meshList["board2D"];
 
 	  if (useWideBloom) {
 		for (int i = FBO_HDR1; ;) {
@@ -1502,7 +1493,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glActiveTexture(GL_TEXTURE0);
 
 	  glBlendFunc(GL_ONE, GL_ONE);
-	  const Mesh& mesh = meshList["board2D"];
+	  const Mesh::Mesh& mesh = meshList["board2D"];
 	  if (useWideBloom) {
 		for (int i = FBO_HDR4; i > FBO_HDR0; --i) {
 		  const FBOInfo fboInfo = GetFBOInfo(i + 1);
@@ -1808,11 +1799,11 @@ void Renderer::LoadFBX(const char* filename, const char* diffuse, const char* no
 {
   if (auto pBuf = FileSystem::LoadFile(filename)) {
 #ifdef SHOW_TANGENT_SPACE
-	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd, (showTBN ? vboTBN : 0), vboTBNEnd);
+	Mesh::ImportMeshResult result = Mesh::ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd, (showTBN ? vboTBN : 0), vboTBNEnd);
 #else
-	ImportMeshResult result = ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd);
+	Mesh::ImportMeshResult result = Mesh::ImportMesh(*pBuf, vbo, vboEnd, ibo, iboEnd);
 #endif // SHOW_TANGENT_SPACE
-	if (result.result == ImportMeshResult::Result::success) {
+	if (result.result == Mesh::Result::success) {
 	  for (auto m : result.meshes) {
 		const auto itr = textureList.find(diffuse);
 		if (itr != textureList.end()) {
@@ -1914,7 +1905,7 @@ void Renderer::CreateSkyboxMesh()
 		indices.push_back(e + offset);
 	}
 
-	Mesh mesh = Mesh("skybox", iboEnd, indices.size());
+	Mesh::Mesh mesh = Mesh::Mesh("skybox", iboEnd, indices.size());
 	const auto itr = textureList.find("skybox_high");
 	if (itr != textureList.end()) {
 		mesh.texDiffuse = itr->second;
@@ -1970,7 +1961,7 @@ void Renderer::CreateUnitBoxMesh()
 	indices.push_back(offset + i * 3 + 2);
   }
 
-  Mesh mesh = Mesh("unitbox", iboEnd, indices.size());
+  Mesh::Mesh mesh = Mesh::Mesh("unitbox", iboEnd, indices.size());
   const auto itr = textureList.find("dummy");
   if (itr != textureList.end()) {
 	mesh.texDiffuse = itr->second;
@@ -2022,7 +2013,7 @@ void Renderer::CreateOctahedronMesh()
 	}
   }
 
-  Mesh mesh = Mesh("octahedron", iboEnd, indices.size());
+  Mesh::Mesh mesh = Mesh::Mesh("octahedron", iboEnd, indices.size());
   const auto itr = textureList.find("dummy");
   if (itr != textureList.end()) {
 	mesh.texDiffuse = itr->second;
@@ -2063,7 +2054,7 @@ void Renderer::CreateBoardMesh(const char* id, const Vector3F& scale)
 		indices.push_back(e + offset);
 	}
 
-	const Mesh mesh = Mesh(id, iboEnd, indices.size());
+	const Mesh::Mesh mesh = Mesh::Mesh(id, iboEnd, indices.size());
 	meshList.insert({ id, mesh });
 
 	glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
@@ -2118,7 +2109,7 @@ void Renderer::CreateFloorMesh(const char* id, const Vector3F& scale, int subdiv
 	}
   }
 
-  Mesh mesh = Mesh(id, iboEnd, indices.size());
+  Mesh::Mesh mesh = Mesh::Mesh(id, iboEnd, indices.size());
   {
 	const auto itr = textureList.find("floor");
 	if (itr != textureList.end()) {
@@ -2174,7 +2165,7 @@ void Renderer::CreateAsciiMesh(const char* id)
 	  }
 	}
   }
-  const Mesh mesh = Mesh(id, iboEnd, indices.size());
+  const Mesh::Mesh mesh = Mesh::Mesh(id, iboEnd, indices.size());
   meshList.insert({ id, mesh });
 
   glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vertecies.size() * sizeof(Vertex), &vertecies[0]);
@@ -2329,7 +2320,7 @@ void Renderer::CreateCloudMesh(const char* id, const Vector3F& scale)
 	indices.push_back(i + 0 + offset);
   }
 
-  Mesh mesh = Mesh(id, iboEnd, indices.size());
+  Mesh::Mesh mesh = Mesh::Mesh(id, iboEnd, indices.size());
   {
 	const auto itr = textureList.find("cloud");
 	if (itr != textureList.end()) {
@@ -2413,7 +2404,7 @@ void Renderer::InitTexture()
 
 ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName, ShadowCapability sc)
 {
-	Mesh* pMesh = nullptr;
+  Mesh::Mesh* pMesh = nullptr;
 	auto mesh = meshList.find(meshName);
 	if (mesh != meshList.end()) {
 		pMesh = &mesh->second;
@@ -2506,7 +2497,7 @@ Renderer::FilterMode Renderer::GetCurrentFilterMode() const {
   @return A pointer to the mesh object if it exist in the renderer,
           otherwise nullptr.
 */
-const Mesh* Renderer::GetMesh(const std::string& id) const {
+const Mesh::Mesh* Renderer::GetMesh(const std::string& id) const {
   auto itr = meshList.find(id);
   if (itr != meshList.end()) {
 	return &itr->second;

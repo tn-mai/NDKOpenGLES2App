@@ -33,6 +33,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Event.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)File.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)FixedNum.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)FontInfo.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Keyboard.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Matrix.h" />

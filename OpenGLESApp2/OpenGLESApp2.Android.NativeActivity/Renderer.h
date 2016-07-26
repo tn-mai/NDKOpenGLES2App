@@ -1,10 +1,11 @@
 #ifndef MT_RENDERER_H_INCLUDED
 #define MT_RENDERER_H_INCLUDED
 
-#include "texture.h"
 #include "../../Shared/Vector.h"
 #include "../../Shared/Quaternion.h"
 #include "../../Shared/Matrix.h"
+#include "texture.h"
+#include "Mesh.h"
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include <boost/random/mersenne_twister.hpp>
@@ -25,132 +26,6 @@ namespace Mai {
   //#define SHOW_TANGENT_SPACE
 #endif // NDEBUG
 #define USE_HDR_BLOOM
-
-#define VERTEX_TEXTURE_COUNT_MAX (2)
-
-/**
-* 頂点フォーマット
-*/
-  struct Vertex {
-	Position3F  position; ///< 頂点座標. 12
-	GLubyte     weight[4]; ///< 頂点ブレンディングの重み. 255 = 1.0として量子化した値を格納する. 4
-	Vector3F    normal; ///< 頂点ノーマル. 12
-	GLubyte     boneID[4]; ///< 頂点ブレンディングのボーンID. 4
-	Position2S  texCoord[VERTEX_TEXTURE_COUNT_MAX]; ///< ディフューズ(withメタルネス)マップ座標, ノーマル(withラフネス)マップ座標. 8
-	Vector4F    tangent; ///< 頂点タンジェント. 16
-
-	Vertex() {}
-  };
-
-  template<typename T = int16_t, int F = 10, typename U = int32_t>
-  class FixedNum {
-  public:
-	FixedNum() {}
-	constexpr FixedNum(const FixedNum& n) : value(n.value) {}
-	template<typename X> constexpr static FixedNum From(const X& n) { return FixedNum(static_cast<T>(n * fractional)); }
-	template<typename X> constexpr X To() const { return static_cast<X>(value) / fractional; }
-	template<typename X> void Set(const X& n) { value = static_cast<T>(n * fractional); }
-
-	FixedNum& operator+=(FixedNum n) { value += n.value; return *this; }
-	FixedNum& operator-=(FixedNum n) { value -= n.value; return *this; }
-	FixedNum& operator*=(FixedNum n) { U tmp = value * n.value; value = tmp / fractional;  return *this; }
-	FixedNum& operator/=(FixedNum n) { U tmp = value * fractional; tmp /= n.value; value = tmp;  return *this; }
-	constexpr FixedNum operator+(FixedNum n) const { return FixedNum(value) += n; }
-	constexpr FixedNum operator-(FixedNum n) const { return FixedNum(value) -= n; }
-	constexpr FixedNum operator*(FixedNum n) const { return FixedNum(value) *= n; }
-	constexpr FixedNum operator/(FixedNum n) const { return FixedNum(value) /= n; }
-
-	FixedNum operator+=(int n) { value += n * fractional; return *this; }
-	FixedNum operator-=(int n) { value -= n * fractional; return *this; }
-	FixedNum operator*=(int n) { U tmp = value * (n * fractional); value = tmp / fractional;  return *this; }
-	FixedNum operator/=(int n) { U tmp = value * fractional; tmp /= n; value = tmp / fractional;  return *this; }
-	friend constexpr int operator+=(int lhs, FixedNum rhs) { return lhs += rhs.ToInt(); }
-	friend constexpr int operator-=(int lhs, FixedNum rhs) { return lhs -= rhs.ToInt(); }
-	friend constexpr int operator*=(int lhs, FixedNum rhs) { return lhs = (lhs * rhs.value) / rhs.fractional; }
-	friend constexpr int operator/=(int lhs, FixedNum rhs) { return lhs = (lhs * rhs.fractional) / rhs.value; }
-	friend constexpr FixedNum operator+(FixedNum lhs, int rhs) { return FixedNum(lhs) += rhs; }
-	friend constexpr FixedNum operator-(FixedNum lhs, int rhs) { return FixedNum(lhs) -= rhs; }
-	friend constexpr FixedNum operator*(FixedNum lhs, int rhs) { return FixedNum(lhs) *= rhs; }
-	friend constexpr FixedNum operator/(FixedNum lhs, int rhs) { return FixedNum(lhs) /= rhs; }
-	friend constexpr int operator+(int lhs, FixedNum rhs) { return lhs + rhs.ToInt(); }
-	friend constexpr int operator-(int lhs, FixedNum rhs) { return lhs - rhs.ToInt(); }
-	friend constexpr int operator*(int lhs, FixedNum rhs) { return (lhs * rhs) / rhs.fractional; }
-	friend constexpr int operator/(int lhs, FixedNum rhs) { return (lhs  * rhs.fractional) / rhs; }
-
-	static const int fractional = 2 << F;
-
-  private:
-	constexpr FixedNum(int n) : value(n) {}
-	T value;
-  };
-  typedef FixedNum<> Fixed16;
-
-  /**
-  * モデルの材質.
-  */
-  struct Material {
-	Color4B color;
-	Fixed16 metallic;
-	Fixed16 roughness;
-	Material() {}
-	constexpr Material(Color4B c, GLfloat m, GLfloat r) : color(c), metallic(Fixed16::From(m)), roughness(Fixed16::From(r)) {}
-  };
-
-  struct RotTrans {
-	Quaternion rot;
-	Vector3F trans;
-	RotTrans& operator*=(const RotTrans& rhs) {
-	  const Vector3F v = rot.Apply(rhs.trans);
-	  trans = v + trans;
-	  rot *= rhs.rot;
-	  rot.Normalize();
-	  return *this;
-	}
-
-	friend RotTrans operator*(const RotTrans& lhs, const RotTrans& rhs) { return RotTrans(lhs) *= rhs; }
-	friend RotTrans Interporation(const RotTrans& lhs, const RotTrans& rhs, float t) {
-	  return{ Sleap(lhs.rot, rhs.rot, t), lhs.trans * (1.0f - t) + rhs.trans * t };
-	}
-	static const RotTrans& Unit() {
-	  static const RotTrans rt = { Quaternion::Unit(), Vector3F::Unit() };
-	  return rt;
-	}
-  };
-  Matrix4x3 ToMatrix(const RotTrans& rt);
-
-  /**
-	1. 各ジョイントの現在の姿勢を計算する(initialにアニメーション等による行列を掛ける). この行列はジョイントローカルな変換行列となる.
-	2. ジョイントローカルな変換行列に、自身からルートジョイントまでの全ての親の姿勢行列を掛けることで、モデルローカルな変換行列を得る.
-	3. モデルローカルな変換行列に逆バインドポーズ行列を掛け、最終的な変換行列を得る.
-	   この変換行列は、モデルローカル座標系にある頂点をジョイントローカル座標系に移動し、
-	   現在の姿勢によって変換し、再びモデルローカル座標系に戻すという操作を行う.
-
-	逆バインドポーズ行列 = Inverse(初期姿勢行列)
-  */
-  struct Joint {
-	RotTrans invBindPose;
-	RotTrans initialPose;
-	int offChild; ///< 0: no child.
-	int offSibling; ///< 0: no sibling.
-  };
-  typedef std::vector<Joint> JointList;
-
-  struct Animation {
-	struct Element {
-	  RotTrans pose;
-	  GLfloat time;
-	};
-	typedef std::pair<int/* index of the target joint */, std::vector<Element>/* the animation sequence */ > ElementList;
-	typedef std::pair<const Element*, const Element*> ElementPair;
-
-	std::string id;
-	GLfloat totalTime;
-	bool loopFlag;
-	std::vector<ElementList> data;
-
-	ElementPair GetElementByTime(int index, float t) const;
-  };
-
   struct AnimationPlayer {
 	AnimationPlayer() : currentTime(0), pAnime(nullptr) {}
 	void SetAnimation(const Animation* p) { pAnime = p; currentTime = 0.0f; }
@@ -182,43 +57,6 @@ namespace Mai {
   /// TBN確認用の頂点データバッファのバイトサイズ.
   static const size_t vboTBNBufferSize = sizeof(TBNVertex) * 1024 * 11 * 3 * 2;
 #endif // SHOW_TANGENT_SPACE
-
-  /**
-  * モデルの幾何形状.
-  * インデックスバッファ内のデータ範囲を示すオフセットとサイズを保持している.
-  */
-  struct Mesh {
-	Mesh() {}
-	Mesh(const std::string& name, int32_t offset, int32_t size) : id(name) {
-	  materialList.push_back({ Material(Color4B(255, 255, 255, 255), 0, 1), offset, size});
-#ifdef SHOW_TANGENT_SPACE
-	  vboTBNOffset = 0;
-	  vboTBNCount = 0;
-#endif // SHOW_TANGENT_SPACE
-	}
-	void Draw() const;
-	void SetJoint(const std::vector<std::string>& names, const std::vector<Joint>& joints) {
-	  jointNameList = names;
-	  jointList = joints;
-	}
-
-	struct MeshMaterial {
-	  Material material;
-	  int32_t iboOffset;
-	  int32_t iboSize;
-	};
-
-	std::vector<MeshMaterial> materialList;
-	std::string id;
-	std::vector<std::string> jointNameList;
-	JointList jointList;
-	Texture::TexturePtr texDiffuse;
-	Texture::TexturePtr texNormal;
-#ifdef SHOW_TANGENT_SPACE
-	int32_t vboTBNOffset;
-	int32_t vboTBNCount;
-#endif // SHOW_TANGENT_SPACE
-  };
 
   /** シェーダの種類.
   */
@@ -304,7 +142,7 @@ namespace Mai {
   {
   public:
 	Object() : isValid(false) {}
-	Object(Renderer* r, const RotTrans& rt, const ::Mai::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc = ShadowCapability::Enable)
+	Object(Renderer* r, const RotTrans& rt, const Mesh::Mesh* m, const ::Mai::Material& mat, const ::Mai::Shader* s, ShadowCapability sc = ShadowCapability::Enable)
 	  : shadowCapability(sc)
 	  , isValid(m && s)
 	  , pRenderer(r)
@@ -325,7 +163,7 @@ namespace Mai {
 	void SetRoughness(float r) { material.roughness.Set(r); }
 	void SetMetallic(float r) { material.metallic.Set(r); }
 	const ::Mai::RotTrans& RotTrans() const { return rotTrans; }
-	const ::Mai::Mesh* GetMesh() const;
+	const Mesh::Mesh* GetMesh() const;
 	const ::Mai::Shader* GetShader() const;
 	const GLfloat* GetBoneMatirxArray() const { return bones[0].f; }
 	size_t GetBoneCount() const { return bones.size(); }
@@ -396,7 +234,7 @@ namespace Mai {
 	void InitMesh();
 	void InitTexture();
 
-	const Mesh* GetMesh(const std::string& id) const;
+	const Mesh::Mesh* GetMesh(const std::string& id) const;
 	const Shader* GetShader(const std::string& id) const;
 
 	void ClearDebugString() { debugStringList.clear(); }
@@ -541,7 +379,7 @@ namespace Mai {
 #endif // SHOW_TANGENT_SPACE
 
 	std::map<std::string, Shader> shaderList;
-	std::map<std::string, Mesh> meshList;
+	std::map<std::string, Mesh::Mesh> meshList;
 	std::map<std::string, Animation> animationList;
 	std::map<std::string, Texture::TexturePtr> textureList;
 

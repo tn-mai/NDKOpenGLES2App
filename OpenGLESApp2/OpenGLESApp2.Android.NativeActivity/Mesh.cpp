@@ -14,9 +14,13 @@
 #endif // __ANDROID__
 
 namespace Mai {
+namespace Mesh {
 
   namespace {
 
+	/**
+	  Get a uint32_t value from raw memory.
+	*/
 	uint32_t GetValue(const uint8_t* pBuf, size_t size) {
 	  const uint8_t* p = reinterpret_cast<const uint8_t*>(pBuf);
 	  uint32_t result = 0;
@@ -27,6 +31,10 @@ namespace Mai {
 	  }
 	  return result;
 	}
+
+	/**
+	  Get a float value from raw memory.
+	*/
 	float GetFloat(const uint8_t*& pBuf) {
 	  const uint32_t tmp = GetValue(pBuf, 4);
 	  pBuf += 4;
@@ -35,7 +43,8 @@ namespace Mai {
 
   } // unnamed namespace
 
-  /** original mesh file format.
+  /**
+	original mesh file format.
 
 	char[3]           "MSH"
 	uint8_t           mesh count.
@@ -102,7 +111,7 @@ namespace Mai {
 	const uint8_t* p = &data[0];
 	const uint8_t* pEnd = p + data.size();
 	if (p[0] != 'M' || p[1] != 'S' || p[2] != 'H') {
-	  return ImportMeshResult(ImportMeshResult::Result::invalidHeader);
+	  return ImportMeshResult(Result::invalidHeader);
 	}
 	p += 3;
 	const int count = *p;
@@ -111,11 +120,11 @@ namespace Mai {
 	const uint32_t vboByteSize = GetValue(p, 4); p += 4;
 	const uint32_t iboByteSize = GetValue(p, 4); p += 4;
 	if (p >= pEnd) {
-	  return ImportMeshResult(ImportMeshResult::Result::noData);
+	  return ImportMeshResult(Result::noData);
 	}
 
 	GLuint iboBaseOffset = iboEnd;
-	ImportMeshResult  result(ImportMeshResult::Result::success);
+	ImportMeshResult  result(Result::success);
 	result.meshes.reserve(count);
 	for (int i = 0; i < count; ++i) {
 	  Mesh m;
@@ -137,7 +146,7 @@ namespace Mai {
 	  }
 	  result.meshes.push_back(m);
 	  if (p >= pEnd) {
-		return ImportMeshResult(ImportMeshResult::Result::invalidMeshInfo);
+		return ImportMeshResult(Result::invalidMeshInfo);
 	  }
 	}
 
@@ -148,7 +157,7 @@ namespace Mai {
 	glBufferSubData(GL_ARRAY_BUFFER, vboEnd, vboByteSize, p);
 	p += vboByteSize;
 	if (p >= pEnd) {
-	  return ImportMeshResult(ImportMeshResult::Result::invalidVBO);
+	  return ImportMeshResult(Result::invalidVBO);
 	}
 
 #ifdef SHOW_TANGENT_SPACE
@@ -159,14 +168,14 @@ namespace Mai {
 	indices.reserve(iboByteSize / sizeof(GLushort));
 	const uint32_t offsetTmp = vboEnd / sizeof(Vertex);
 	if (offsetTmp > 0xffff) {
-	  return ImportMeshResult(ImportMeshResult::Result::indexOverflow);
+	  return ImportMeshResult(Result::indexOverflow);
 	}
 	const GLushort offset = static_cast<GLushort>(offsetTmp);
 	for (uint32_t i = 0; i < iboByteSize; i += sizeof(GLushort)) {
 	  indices.push_back(*reinterpret_cast<const GLushort*>(p) + offset);
 	  p += sizeof(GLushort);
 	  if (p >= pEnd) {
-		return ImportMeshResult(ImportMeshResult::Result::invalidIBO);
+		return ImportMeshResult(Result::invalidIBO);
 	  }
 	}
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, iboEnd, iboByteSize, &indices[0]);
@@ -240,7 +249,7 @@ namespace Mai {
 	  parentIndexList.resize(boneCount);
 	  for (uint32_t i = 0; i < boneCount; ++i) {
 		if (p >= pEnd) {
-		  return ImportMeshResult(ImportMeshResult::Result::invalidJointInfo);
+		  return ImportMeshResult(Result::invalidJointInfo);
 		}
 		Joint& e = joints[i];
 		e.invBindPose.rot.x = GetFloat(p);
@@ -317,7 +326,7 @@ namespace Mai {
 #endif // DEBUG_LOG_VERBOSE
 		  for (uint32_t bone = 0; bone < boneCount; ++bone) {
 			if (p >= pEnd) {
-			  return ImportMeshResult(ImportMeshResult::Result::invalidAnimationInfo);
+			  return ImportMeshResult(Result::invalidAnimationInfo);
 			}
 			Animation::Element elem;
 			elem.time = time;
@@ -342,4 +351,14 @@ namespace Mai {
 	return result;
   }
 
+  /**
+    Draw the elements.
+  */
+  void Mesh::Draw() const {
+	for (auto& e : materialList) {
+	  glDrawElements(GL_TRIANGLES, e.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(e.iboOffset));
+	}
+  }
+
+} // namespace Mesh
 } // namespace Mai
