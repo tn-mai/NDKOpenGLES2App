@@ -380,6 +380,7 @@ namespace SunnySideUp {
 
 	  Renderer& r = engine.GetRenderer();
 	  if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+		static const float moveSpeed = 10.0f;
 		switch (e.Type) {
 #ifndef NDEBUG
 		case Event::EVENT_KEY_PRESSED:
@@ -397,16 +398,22 @@ namespace SunnySideUp {
 			eyeDir = (Quaternion(eyeDir.Cross(Vector3F(0, 1, 0)), degreeToRadian(-1.0f)).Apply(eyeDir));
 			break;
 		  case KEY_UP:
-			eyePos.y += 1.0f;
+			eyePos.y += moveSpeed;
 			break;
 		  case KEY_DOWN:
-			eyePos.y -= 1.0f;
+			eyePos.y -= moveSpeed;
+			break;
+		  case KEY_R:
+			eyePos += eyeDir * moveSpeed;
+			break;
+		  case KEY_F:
+			eyePos -= eyeDir * moveSpeed;
 			break;
 		  case KEY_LEFT:
-			eyePos -= eyeDir.Cross(Vector3F(0, 1, 0)).Normalize();
+			eyePos -= eyeDir.Cross(Vector3F(0, 1, 0)).Normalize() * moveSpeed;
 			break;
 		  case KEY_RIGHT:
-			eyePos += eyeDir.Cross(Vector3F(0, 1, 0)).Normalize();
+			eyePos += eyeDir.Cross(Vector3F(0, 1, 0)).Normalize() * moveSpeed;
 			break;
 		  case KEY_SPACE: {
 			static const char* const animeNameList[] = {
