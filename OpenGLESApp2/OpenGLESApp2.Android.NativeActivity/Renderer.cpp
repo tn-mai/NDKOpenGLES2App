@@ -2407,14 +2407,14 @@ void Renderer::InitTexture()
 	textureList.insert({ "floor", Texture::LoadKTX("Textures/Common/landscape.ktx") });
 	textureList.insert({ "floor_nml", Texture::LoadKTX("Textures/Common/landscapeNR.ktx") });
 
-	textureList.insert({ "ls_coast", Texture::LoadKTX("Textures/Common/Coast.ktx") });
-	textureList.insert({ "ls_coast_nml", Texture::LoadKTX("Textures/Common/CoastNR.ktx") });
+	textureList.insert({ "ls_coast", Texture::LoadKTX("Textures/Common/coast.ktx") });
+	textureList.insert({ "ls_coast_nml", Texture::LoadKTX("Textures/Common/coastNR.ktx") });
 	textureList.insert({ "building00", Texture::LoadKTX("Textures/Common/building00.ktx") });
-	textureList.insert({ "building00_nml", Texture::LoadKTX((texBaseDir + "/building00NR.ktx").c_str()) });
+	textureList.insert({ "building00_nml", Texture::LoadKTX((texBaseDir + "building00NR.ktx").c_str()) });
 	textureList.insert({ "building01", Texture::LoadKTX("Textures/Common/building01.ktx") });
-	textureList.insert({ "building01_nml", Texture::LoadKTX((texBaseDir + "/building01NR.ktx").c_str()) });
+	textureList.insert({ "building01_nml", Texture::LoadKTX((texBaseDir + "building01NR.ktx").c_str()) });
 	textureList.insert({ "tower00", Texture::LoadKTX("Textures/Common/tower00.ktx") });
-	textureList.insert({ "tower00_nml", Texture::LoadKTX((texBaseDir + "/tower00NR.ktx").c_str()) });
+	textureList.insert({ "tower00_nml", Texture::LoadKTX((texBaseDir + "tower00NR.ktx").c_str()) });
 
 	textureList.insert({ "flyingrock", Texture::LoadKTX((texBaseDir + "flyingrock.ktx").c_str()) });
 	textureList.insert({ "flyingrock_nml", Texture::LoadKTX((texBaseDir + "flyingrockNR.ktx").c_str()) });
