@@ -648,6 +648,7 @@ void Renderer::Initialize(const Window& window)
 	LOG_SHADER_INFO(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS);
 
 	bool hasNVfenceExtension = false;
+	GLenum depthComponentType = GL_DEPTH_COMPONENT16;
 	{
 	  LOGI("GL_EXTENTIONS:");
 	  const char* p = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
@@ -656,6 +657,32 @@ void Renderer::Initialize(const Window& window)
 		LOGI("  %s", e.c_str());
 		if (e == "GL_NV_fence") {
 		  hasNVfenceExtension = true;
+		}
+		if (e == "GL_OES_depth32") {
+		  depthComponentType = GL_DEPTH_COMPONENT32_OES;
+		} else if (depthComponentType != GL_DEPTH_COMPONENT32_OES) {
+		  if (e == "GL_OES_depth24") {
+			depthComponentType = GL_DEPTH_COMPONENT24_OES;
+		  } else if (depthComponentType = GL_DEPTH_COMPONENT24_OES) {
+			if (e == "GL_OES_packed_depth_stencil") {
+			  depthComponentType = GL_DEPTH24_STENCIL8_OES;
+			}
+		  }
+		}
+	  }
+	  static const struct {
+		GLenum id;
+		const char* str;
+	  } depthInfo[] = {
+		{ GL_DEPTH_COMPONENT32_OES, "32" },
+		{ GL_DEPTH_COMPONENT24_OES, "24" },
+		{ GL_DEPTH24_STENCIL8_OES, "24/8" },
+		{ GL_DEPTH_COMPONENT16, "16" },
+	  };
+	  for (const auto& e : depthInfo) {
+		if (e.id == depthComponentType) {
+		  LOGI("Depth buffer precision: %s", e.str);
+		  break;
 		}
 	  }
 	}
@@ -758,7 +785,7 @@ void Renderer::Initialize(const Window& window)
 		glGenFramebuffers(1, fboMainInfo.p);
 		glGenRenderbuffers(1, &depth);
 		glBindRenderbuffer(GL_RENDERBUFFER, depth);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, tex.Width(), tex.Height());
+		glRenderbufferStorage(GL_RENDERBUFFER, depthComponentType, tex.Width(), tex.Height());
 		glBindFramebuffer(GL_FRAMEBUFFER, *fboMainInfo.p);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex.TextureId());
