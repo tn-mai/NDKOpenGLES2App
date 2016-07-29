@@ -2373,6 +2373,7 @@ void Renderer::InitTexture()
 
 	textureList.insert({ "dummyCubeMap", Texture::CreateDummyCubeMap() });
 	textureList.insert({ "dummy", Texture::CreateDummy2D() });
+	textureList.insert({ "dummy_nml", Texture::CreateDummyNormal() });
 	textureList.insert({ "ascii", Texture::LoadKTX("Textures/Common/ascii.ktx") });
 
 #if 1
