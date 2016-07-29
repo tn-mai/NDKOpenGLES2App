@@ -624,7 +624,8 @@ namespace SunnySideUp {
 			auto obj = renderer.CreateObject(
 			  meshNameList[i % (sizeof(meshNameList) / sizeof(meshNameList[0]))],
 			  Material(colorList[i % (sizeof(colorList) / sizeof(colorList[0]))], 0, 0),
-			  "default"
+			  "default",
+			  ShadowCapability::Disable
 			);
 			obj->SetScale(Vector3F(4, 4, 4));
 			obj->SetTranslation(Vector3F(e.position.x * 12.0f, e.position.y * 12.0f, e.position.z * 12.0f));
