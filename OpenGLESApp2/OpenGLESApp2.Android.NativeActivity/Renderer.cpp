@@ -1857,6 +1857,11 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/titlelogo.msh", "titlelogo", "titlelogo_nml");
 	LoadFBX("Meshes/rock_collection.msh", "rock_s", "rock_s_nml");
 	LoadFBX("Meshes/landscape.msh", "floor", "floor_nml");
+	LoadFBX("Meshes/Coast.msh", "ls_coast", "ls_coast_nml");
+	LoadFBX("Meshes/building00.msh", "building00", "building00_nml", true);
+	LoadFBX("Meshes/building01.msh", "building01", "building01_nml", true);
+	LoadFBX("Meshes/tower00.msh", "tower00", "tower00_nml", true);
+	LoadFBX("Meshes/CoastTown.msh", "building01", "building01_nml");
 
 	CreateSkyboxMesh();
 	CreateUnitBoxMesh();
@@ -2376,6 +2381,16 @@ void Renderer::InitTexture()
 //	textureList.insert({ "floor_nml", Texture::LoadKTX((texBaseDir + "floorNR.ktx").c_str()) });
 	textureList.insert({ "floor", Texture::LoadKTX("Textures/Common/landscape.ktx") });
 	textureList.insert({ "floor_nml", Texture::LoadKTX("Textures/Common/landscapeNR.ktx") });
+
+	textureList.insert({ "ls_coast", Texture::LoadKTX("Textures/Common/Coast.ktx") });
+	textureList.insert({ "ls_coast_nml", Texture::LoadKTX("Textures/Common/CoastNR.ktx") });
+	textureList.insert({ "building00", Texture::LoadKTX("Textures/Common/building00.ktx") });
+	textureList.insert({ "building00_nml", Texture::LoadKTX((texBaseDir + "/building00NR.ktx").c_str()) });
+	textureList.insert({ "building01", Texture::LoadKTX("Textures/Common/building01.ktx") });
+	textureList.insert({ "building01_nml", Texture::LoadKTX((texBaseDir + "/building01NR.ktx").c_str()) });
+	textureList.insert({ "tower00", Texture::LoadKTX("Textures/Common/tower00.ktx") });
+	textureList.insert({ "tower00_nml", Texture::LoadKTX((texBaseDir + "/tower00NR.ktx").c_str()) });
+
 	textureList.insert({ "flyingrock", Texture::LoadKTX((texBaseDir + "flyingrock.ktx").c_str()) });
 	textureList.insert({ "flyingrock_nml", Texture::LoadKTX((texBaseDir + "flyingrockNR.ktx").c_str()) });
 	textureList.insert({ "block1", Texture::LoadKTX("Textures/Common/block1.ktx") });
