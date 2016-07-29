@@ -1557,13 +1557,16 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
 	  glActiveTexture(GL_TEXTURE1);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
-	  glActiveTexture(GL_TEXTURE2);
 
+#ifdef USE_HDR_BLOOM
+	  glActiveTexture(GL_TEXTURE2);
 	  if (useWideBloom) {
 		glBindTexture(GL_TEXTURE_2D, textureList["fboHDR0"]->TextureId());
 	  } else {
 		glBindTexture(GL_TEXTURE_2D, textureList["fboHDR1"]->TextureId());
 	  }
+#endif // USE_HDR_BLOOM
+
 	  meshList["board2D"].Draw();
 
 	  Local::glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
