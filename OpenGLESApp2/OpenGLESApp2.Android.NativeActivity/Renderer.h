@@ -26,6 +26,8 @@ namespace Mai {
   //#define SHOW_TANGENT_SPACE
 #endif // NDEBUG
 #define USE_HDR_BLOOM
+//#define USE_ALPHA_TEST_IN_SHADOW_RENDERING
+
   struct AnimationPlayer {
 	AnimationPlayer() : currentTime(0), pAnime(nullptr) {}
 	void SetAnimation(const Animation* p) { pAnime = p; currentTime = 0.0f; }

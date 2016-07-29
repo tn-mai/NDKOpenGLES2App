@@ -2,6 +2,9 @@ precision highp float;
 
 attribute highp   vec3 vPosition;
 attribute mediump vec3 vNormal;
+#ifdef USE_ALPHA_TEST_IN_SHADOW_RENDERING
+attribute mediump vec4 vTexCoord01;
+#endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
 attribute lowp    vec4 vWeight;
 attribute mediump vec4 vBoneID;
 
@@ -9,6 +12,9 @@ uniform mediump vec3 lightDirForShadow;
 uniform highp mat4 matLightForShadow;
 uniform highp vec4 boneMatrices[32 * 3];
 
+#ifdef USE_ALPHA_TEST_IN_SHADOW_RENDERING
+varying mediump vec4 texCoord;
+#endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
 varying highp float depth;
 
 void main()
@@ -31,6 +37,9 @@ void main()
 	mediump vec3 normalW = normalize(mat3(m) * vNormal);
 	mediump float bias = 0.015 * clamp(1.0 - dot(normalW, -lightDirForShadow), 0.3, 1.0);
 
+#ifdef USE_ALPHA_TEST_IN_SHADOW_RENDERING
+	texCoord = SCALE_TEXCOORD(vTexCoord01);
+#endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
 	gl_Position = matLightForShadow * m * vec4(vPosition, 1);
 	depth = gl_Position.z * 0.5 + 0.5 + bias;
 }

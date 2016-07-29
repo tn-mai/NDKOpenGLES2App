@@ -138,6 +138,9 @@ namespace {
 #ifdef USE_HDR_BLOOM
 			  "#define USE_HDR_BLOOM\n"
 #endif // USE_HDR_BLOOM
+#ifdef USE_ALPHA_TEST_IN_SHADOW_RENDERING
+			  "#define USE_ALPHA_TEST_IN_SHADOW_RENDERING\n"
+#endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
 			  "#define SCALE_BONE_WEIGHT(w) ((w) * (1.0 / 255.0))\n"
 			  "#define SCALE_TEXCOORD(c) ((c) * (1.0 / 65535.0))\n"
 			  ;
@@ -1020,7 +1023,12 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glEnableVertexAttribArray(VertexAttribLocation_Normal);
 		glVertexAttribPointer(VertexAttribLocation_Normal, 3, GL_FLOAT, GL_FALSE, stride, offNormal);
 		glDisableVertexAttribArray(VertexAttribLocation_Tangent);
+#ifdef USE_ALPHA_TEST_IN_SHADOW_RENDERING
+		glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
+		glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
+#else
 		glDisableVertexAttribArray(VertexAttribLocation_TexCoord01);
+#endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
 		glEnableVertexAttribArray(VertexAttribLocation_Weight);
 		glVertexAttribPointer(VertexAttribLocation_Weight, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, offWeight);
 		glEnableVertexAttribArray(VertexAttribLocation_BoneID);
@@ -1047,6 +1055,19 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			if (!obj.IsValid() || obj.shadowCapability == ShadowCapability::Disable) {
 				continue;
 			}
+
+#ifdef USE_ALPHA_TEST_IN_SHADOW_RENDERING
+			{
+			  const Mesh::Mesh& mesh = *obj.GetMesh();
+			  glActiveTexture(GL_TEXTURE0);
+			  if (mesh.texDiffuse) {
+				glBindTexture(GL_TEXTURE_2D, mesh.texDiffuse->TextureId());
+			  } else {
+				glBindTexture(GL_TEXTURE_2D, 0);
+			  }
+			}
+#endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
+
 			const size_t boneCount = std::min(obj.GetBoneCount(), static_cast<size_t>(32));
 			if (boneCount) {
 				glUniform4fv(shader.bones, boneCount * 3, obj.GetBoneMatirxArray());
