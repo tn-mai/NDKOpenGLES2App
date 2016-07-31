@@ -80,6 +80,7 @@
     <Content Include="assets\Meshes\Coast.msh" />
     <Content Include="assets\Meshes\CoastTown.msh" />
     <Content Include="assets\Meshes\CoastTownSpace.msh" />
+    <Content Include="assets\Meshes\EggPack.msh" />
     <Content Include="assets\Meshes\flyingpan.msh" />
     <Content Include="assets\Meshes\flyingrock.msh" />
     <Content Include="assets\Meshes\landscape.msh" />
@@ -133,6 +134,7 @@
     <Content Include="assets\Textures\Adreno\building01NR.ktx" />
     <Content Include="assets\Textures\Adreno\chickenegg.ktx" />
     <Content Include="assets\Textures\Adreno\chickeneggNR.ktx" />
+    <Content Include="assets\Textures\Adreno\EggPackNR.ktx" />
     <Content Include="assets\Textures\Adreno\floor.ktx" />
     <Content Include="assets\Textures\Adreno\floorNR.ktx" />
     <Content Include="assets\Textures\Adreno\flyingpan.ktx" />
@@ -182,6 +184,7 @@
     <Content Include="assets\Textures\Common\cloud.ktx" />
     <Content Include="assets\Textures\Common\coast.ktx" />
     <Content Include="assets\Textures\Common\coastNR.ktx" />
+    <Content Include="assets\Textures\Common\EggPack.ktx" />
     <Content Include="assets\Textures\Common\font.ktx" />
     <Content Include="assets\Textures\Common\landscape.ktx" />
     <Content Include="assets\Textures\Common\landscapeNR.ktx" />
@@ -198,6 +201,7 @@
     <Content Include="assets\Textures\Others\building01NR.ktx" />
     <Content Include="assets\Textures\Others\chickenegg.ktx" />
     <Content Include="assets\Textures\Others\chickeneggNR.ktx" />
+    <Content Include="assets\Textures\Others\EggPackNR.ktx" />
     <Content Include="assets\Textures\Others\floor.ktx" />
     <Content Include="assets\Textures\Others\floorNR.ktx" />
     <Content Include="assets\Textures\Others\flyingpan.ktx" />

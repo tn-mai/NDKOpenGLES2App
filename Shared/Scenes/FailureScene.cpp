@@ -160,14 +160,25 @@ namespace SunnySideUp {
 	Renderer& r = engine.GetRenderer();
 	if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 	  r.FadeIn(1.0f);
-	  return SCENEID_MAINGAME;
+	  CommonData& commonData = *engine.GetCommonData<CommonData>();
+	  if (--commonData.remainingEggs > 0) {
+		return SCENEID_MAINGAME;
+	  }
+	  return SCENEID_GAMEOVER;
 	}
 	return SCENEID_CONTINUE;
   }
 
   void FailureScene::Draw(Engine& engine) {
 	Renderer& r = engine.GetRenderer();
-	const char str[] = "IT'S EDIBLE...";
+	const char strContinuable[] = "IT'S EDIBLE...";
+	const char strGameOver[] = "CANNOT EAT IT.";
+	const char* str;
+	if (engine.GetCommonData<CommonData>()->remainingEggs) {
+	  str = strContinuable;
+	} else {
+	  str = strGameOver;
+	}
 	float scale = 1.0f;
 	const float w = r.GetStringWidth(str) * scale;
 	r.AddString(0.51f - w * 0.5f, 0.26f, scale, Color4B(20, 10, 10, 128), str);

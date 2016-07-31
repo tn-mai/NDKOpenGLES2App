@@ -1915,6 +1915,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/building01.msh", "building01", "building01_nml", true);
 	LoadFBX("Meshes/tower00.msh", "tower00", "tower00_nml", true);
 	LoadFBX("Meshes/CoastTown.msh", "building01", "building01_nml");
+	LoadFBX("Meshes/EggPack.msh", "EggPack", "EggPack_nml");
 
 	CreateSkyboxMesh();
 	CreateUnitBoxMesh();
@@ -2444,6 +2445,9 @@ void Renderer::InitTexture()
 	textureList.insert({ "building01_nml", Texture::LoadKTX((texBaseDir + "building01NR.ktx").c_str()) });
 	textureList.insert({ "tower00", Texture::LoadKTX("Textures/Common/tower00.ktx") });
 	textureList.insert({ "tower00_nml", Texture::LoadKTX((texBaseDir + "tower00NR.ktx").c_str()) });
+
+	textureList.insert({ "EggPack", Texture::LoadKTX("Textures/Common/EggPack.ktx") });
+	textureList.insert({ "EggPack_nml", Texture::LoadKTX((texBaseDir + "EggPackNR.ktx").c_str()) });
 
 	textureList.insert({ "flyingrock", Texture::LoadKTX((texBaseDir + "flyingrock.ktx").c_str()) });
 	textureList.insert({ "flyingrock_nml", Texture::LoadKTX((texBaseDir + "flyingrockNR.ktx").c_str()) });

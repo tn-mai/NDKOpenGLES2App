@@ -196,7 +196,10 @@ namespace SunnySideUp {
 		commonData.courseNo = 0;
 		return SCENEID_TITLE;
 	  }
-	  return SCENEID_MAINGAME;
+	  if (--commonData.remainingEggs > 0) {
+		return SCENEID_MAINGAME;
+	  }
+	  return SCENEID_GAMEOVER;
 	}
 	return SCENEID_CONTINUE;
   }
