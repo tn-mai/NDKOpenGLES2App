@@ -663,7 +663,7 @@ void Renderer::Initialize(const Window& window)
 		} else if (depthComponentType != GL_DEPTH_COMPONENT32_OES) {
 		  if (e == "GL_OES_depth24") {
 			depthComponentType = GL_DEPTH_COMPONENT24_OES;
-		  } else if (depthComponentType = GL_DEPTH_COMPONENT24_OES) {
+		  } else if (depthComponentType != GL_DEPTH_COMPONENT24_OES) {
 			if (e == "GL_OES_packed_depth_stencil") {
 			  depthComponentType = GL_DEPTH24_STENCIL8_OES;
 			}
