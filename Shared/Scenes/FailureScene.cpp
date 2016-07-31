@@ -174,7 +174,7 @@ namespace SunnySideUp {
 	const char strContinuable[] = "IT'S EDIBLE...";
 	const char strGameOver[] = "CANNOT EAT IT.";
 	const char* str;
-	if (engine.GetCommonData<CommonData>()->remainingEggs) {
+	if (engine.GetCommonData<CommonData>()->remainingEggs > 1) {
 	  str = strContinuable;
 	} else {
 	  str = strGameOver;
