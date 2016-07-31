@@ -366,6 +366,9 @@ namespace SunnySideUp {
 	@return The number of digiets of the integral part.
   */
   size_t GetNumberOfDigits(float n) {
+	if (n != 0.0f && !std::isnormal(n)) {
+	  return 1;
+	}
 	int64_t i = static_cast<int64_t>(n);
 	size_t num = 1;
 	while (i >= 10) {
@@ -388,6 +391,9 @@ namespace SunnySideUp {
 	const size_t nod = GetNumberOfDigits(n);
 	s.reserve(nod);
 	int32_t nn = static_cast<int32_t>(n);
+	if (n != 0.0f && !std::isnormal(n)) {
+	  nn = 0;
+	}
 	for (size_t i = 0; i < nod; ++i) {
 	  s.push_back(static_cast<char>(nn % 10) + '0');
 	  nn /= 10;
