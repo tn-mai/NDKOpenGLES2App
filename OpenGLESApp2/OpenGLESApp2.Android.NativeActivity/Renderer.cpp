@@ -901,11 +901,13 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
 	vertecies.push_back({ Position2F(curPos.x + w, curPos.y + h), info.rightBottom, color });
 	curPos.x += w;
   }
-  glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
-  glBufferSubData(GL_ARRAY_BUFFER, vboFontEnd, vertecies.size() * sizeof(FontVertex), &vertecies[0]);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()) });
-  vboFontEnd += vertecies.size() * sizeof(FontVertex);
+  if (!vertecies.empty()) {
+	glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
+	glBufferSubData(GL_ARRAY_BUFFER, vboFontEnd, vertecies.size() * sizeof(FontVertex), &vertecies[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()) });
+	vboFontEnd += vertecies.size() * sizeof(FontVertex);
+  }
 }
 
 /** Get string width on screen.
