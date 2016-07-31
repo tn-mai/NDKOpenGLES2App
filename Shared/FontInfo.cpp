@@ -89,6 +89,8 @@ const FontInfo asciiFontInfo[] = {
   FONTINFO(418, 150, 433, 197), // ]
   FONTINFO(433, 150, 468, 197), // ^
   FONTINFO(468, 150, 503, 197), // _
+
+  FONTINFO(0, 197,  36,  252), // Egg
 };
 
 const FontInfo specialFontInfo[] = {
@@ -108,6 +110,9 @@ const FontInfo& GetAsciiFontInfo(int code) {
   if (code >= 'a' && code <= 'z') {
 	code -= 'a' - 'A';
   } else if (code < ' ' || code > '_') {
+	if (code > 0 && code <= 15) {
+	  return asciiFontInfo['_' - ' ' + code];
+	}
     return dummyFontInfo;
   }
   return asciiFontInfo[code - ' '];

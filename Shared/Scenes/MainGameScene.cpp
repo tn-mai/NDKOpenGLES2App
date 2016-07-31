@@ -1117,6 +1117,11 @@ namespace SunnySideUp {
 		  s += DigitsToString(commonData.courseNo + 1, 1, false);
 		  renderer.AddString(0.05f, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
 		}
+		{
+		  CommonData& commonData = *engine.GetCommonData<CommonData>();
+		  const std::string s(std::max(0, std::min(sizeOfEggPack, commonData.remainingEggs - 1)), '\1');
+		  renderer.AddString(0.05f, 0.95f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
+		}
 
 		if (countDownTimer > 0.0f) {
 		  static const char strReady[] = "READY!";

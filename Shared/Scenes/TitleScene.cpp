@@ -448,6 +448,7 @@ namespace SunnySideUp {
 		CommonData& commonData = *engine.GetCommonData<CommonData>();
 		commonData.level = selectedLevel;
 		commonData.courseNo = 0;
+		commonData.remainingEggs = sizeOfEggPack;
 		r.FadeIn(1.0f);
 		engine.GetAudio().StopBGM();
 		return SCENEID_STARTEVENT;

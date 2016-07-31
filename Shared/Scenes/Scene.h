@@ -15,11 +15,14 @@ namespace SunnySideUp {
 	SCENEID_GAMEOVER,
   };
 
+  static const int32_t sizeOfEggPack = 6;
+
   struct CommonData {
-	CommonData() : level(0), courseNo(0), currentTime(-1) {}
+	CommonData() : level(0), courseNo(0), currentTime(-1), remainingEggs(sizeOfEggPack){}
 	uint32_t level;
 	uint32_t courseNo;
 	int64_t currentTime;
+	int32_t remainingEggs;
   };
 
   Mai::ScenePtr CreateTitleScene(Mai::Engine&);
