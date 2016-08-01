@@ -2,6 +2,7 @@
 @file FailureScene.cpp
 */
 #include "Scene.h"
+#include "../Menu.h"
 
 namespace SunnySideUp {
 
@@ -159,6 +160,7 @@ namespace SunnySideUp {
   int FailureScene::DoFadeOut(Engine& engine, float deltaTime) {
 	Renderer& r = engine.GetRenderer();
 	if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+	  engine.GetAudio().PlaySE(Menu::SEID_Confirm, 1.0f);
 	  r.FadeIn(1.0f);
 	  CommonData& commonData = *engine.GetCommonData<CommonData>();
 	  if (--commonData.remainingEggs > 0) {

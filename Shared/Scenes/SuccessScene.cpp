@@ -175,6 +175,7 @@ namespace SunnySideUp {
   int SuccessScene::DoUpdate(Engine& engine, float tick) {
 	timer -= tick;
 	if ((timer <= 0.0f) || hasFinishRequest) {
+	  engine.GetAudio().PlaySE(Menu::SEID_Confirm, 1.0f);
 	  engine.GetRenderer().FadeOut(Color4B(0, 0, 0, 0), 1.0f);
 	  updateFunc = &SuccessScene::DoFadeOut;
 	}
