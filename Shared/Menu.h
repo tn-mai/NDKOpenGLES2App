@@ -84,6 +84,8 @@ namespace Menu {
     This class has virtucal carousel user interface.
   */
   struct CarouselMenu : public MenuItem {
+	typedef std::function<void(int, int)> ChangeEventHandler;
+
 	CarouselMenu(const Vector2F& p, int size, int top, float s);
 	virtual ~CarouselMenu() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
@@ -99,14 +101,18 @@ namespace Menu {
 	std::vector<MenuItem::Pointer> renderingList;
 	int windowSize;
 	int topOfWindow;
+	int prevOffset;
 	float scale;
 	float moveY;
 	bool hasDragging;
+	ChangeEventHandler changeEventHandler;
   };
 
   /** Swipable menu.
   */
   struct SwipableMenu : public MenuItem {
+	typedef std::function<void(int, int)> SwipeEventHandler;
+
 	explicit SwipableMenu(size_t);
 	virtual ~SwipableMenu() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
@@ -127,6 +133,7 @@ namespace Menu {
 	float moveX;
 	float accel;
 	bool hasDragging;
+	SwipeEventHandler swipeEventHandler;
   };
 
   /** Menu container.

@@ -238,7 +238,7 @@ namespace Menu {
 	@param s    A font scale.
   */
   CarouselMenu::CarouselMenu(const Vector2F& p, int size, int top, float s)
-	: pos(p), windowSize(size), topOfWindow(top), scale(s), moveY(0), hasDragging(false)
+	: pos(p), windowSize(size), topOfWindow(top), prevOffset(INT_MAX), scale(s), moveY(0), hasDragging(false)
   {
 	SetRegion(Vector2F(0, 0), Vector2F(1, 1));
   }
@@ -274,6 +274,14 @@ namespace Menu {
 	const float unitTheta = boost::math::constants::pi<float>() * 0.5f / static_cast<float>(windowSize);
 	const float startPos = moveY * 10.0f;
 	const int indexOffset = static_cast<int>(startPos);
+
+	if (prevOffset != INT_MAX && prevOffset != topOfWindow - indexOffset) {
+	  if (changeEventHandler) {
+		changeEventHandler(prevOffset, topOfWindow - indexOffset);
+	  }
+	}
+	prevOffset = topOfWindow - indexOffset;
+
 	const float fract = startPos - static_cast<float>(indexOffset);
 	renderingList.clear();
 	for (int i = 0; i < windowSize; ++i) {
@@ -427,16 +435,22 @@ namespace Menu {
 	  } else {
 		moveX = accel = 0;
 	  }
+	  const int prevView = currentView;
 	  if (moveX > 0.4f) {
-		moveX -= 0.85f + accel;
+		moveX -= 0.81f + accel;
 		accel += springForce;
 		const int viewCount = static_cast<int>(ViewCount());
 		currentView = (currentView - 1 + viewCount) % viewCount;
 	  } else if (moveX < -0.4f) {
-		moveX += 0.85f - accel;
+		moveX += 0.81f - accel;
 		accel -= springForce;
 		const int viewCount = static_cast<int>(ViewCount());
 		currentView = (currentView + 1) % viewCount;
+	  }
+	  if (prevView != currentView) {
+		if (swipeEventHandler) {
+		  swipeEventHandler(prevView, currentView);
+		}
 	  }
 	}
   }
