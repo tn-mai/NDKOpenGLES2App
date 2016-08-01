@@ -211,9 +211,6 @@ namespace SunnySideUp {
 		{
 		  const int levelCount = GetMaximumLevel() + 1;
 		  std::shared_ptr<Menu::SwipableMenu> pSwipableView(new Menu::SwipableMenu(levelCount));
-		  pSwipableView->swipeEventHandler = [&engine](int, int) -> void {
-			engine.GetAudio().PlaySE("pagefeed", 1.0f);
-		  };
 		  pSwipableView->SetRegion(Vector2F(0.0f, 0.0f), Vector2F(1.0f, 0.8f));
 		  pRecordView->Add(pSwipableView);
 		  for (int i = 0; i < levelCount; ++i) {
@@ -304,9 +301,6 @@ namespace SunnySideUp {
 		  pLevelSelect->Add(pTitleLabel);
 
 		  std::shared_ptr<Menu::CarouselMenu> pCarouselMenu(new Menu::CarouselMenu(Vector2F(0.5f, 0.4f), 5, 6, 1.75f));
-		  pCarouselMenu->changeEventHandler = [&engine](int, int) -> void {
-			engine.GetAudio().PlaySE("carousel", 1.0f);
-		  };
 		  for (int i = 0; i < 8; ++i) {
 			std::ostringstream ss;
 			ss << "LEVEL " << (i + 1);
@@ -345,10 +339,6 @@ namespace SunnySideUp {
 		};
 		rootMenu.Add(pTouchMeItem);
 
-		AudioInterface& audio = engine.GetAudio();
-		audio.LoadSE("pagefeed", "Audio/pagefeed.wav");
-		audio.LoadSE("carousel", "Audio/carousel.wav");
-
 		animeNo = 0;
 		cloudRot = 0;
 		loaded = true;
@@ -374,7 +364,7 @@ namespace SunnySideUp {
 	  for (auto e : objList) {
 		e->Update(tick);
 	  }
-	  rootMenu.Update(tick);
+	  rootMenu.Update(engine, tick);
 	  Renderer& r = engine.GetRenderer();
 	  r.Update(tick, eyePos, eyeDir, Vector3F(0, 1, 0));
 

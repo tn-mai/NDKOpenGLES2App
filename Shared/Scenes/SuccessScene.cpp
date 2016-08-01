@@ -149,7 +149,7 @@ namespace SunnySideUp {
 	  e->Update(tick);
 	}
 
-	rootMenu.Update(tick);
+	rootMenu.Update(engine, tick);
 
 	const float theta = degreeToRadian<float>(cameraRotation);
 	const float distance = 25;

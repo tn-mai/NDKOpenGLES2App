@@ -19,6 +19,7 @@
 */
 #include "Engine.h"
 #include "Window.h"
+#include "Menu.h"
 #include <time.h>
 
 #ifndef NDEBUG
@@ -99,9 +100,11 @@ namespace Mai {
 		audio.reset();
 		audio = CreateAudioEngine();
 		InitDisplay();
+		Menu::Initialize(*this);
 		break;
 
 	  case Event::EVENT_TERM_WINDOW:
+		Menu::Finalize(*this);
 		TermDisplay();
 		audio.reset();
 		break;

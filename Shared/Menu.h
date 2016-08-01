@@ -20,6 +20,14 @@ class Event;
 */
 namespace Menu {
 
+  extern const char SEID_PageFeed[];
+  extern const char SEID_Carousel[];
+  extern const char SEID_Confirm[];
+  extern const char SEID_Cancel[];
+
+  void Initialize(Engine&);
+  void Finalize(Engine&);
+
   /** A moving state of mouse.
   */
   enum class MouseMoveState {
@@ -38,8 +46,8 @@ namespace Menu {
 	MenuItem();
 	virtual ~MenuItem() = 0;
 	virtual void Draw(Renderer&, Vector2F, float) const {}
-	virtual void Update(float) {}
-	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
+	virtual void Update(Engine&, float) {}
+	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
 	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
 
 	void SetRegion(const Vector2F& pos, const Vector2F& size);
@@ -64,7 +72,7 @@ namespace Menu {
 	TextMenuItem(const char* str, const Vector2F& p, float s, Color4B c, int flg = FLAG_SHADOW);
 	virtual ~TextMenuItem() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
-	virtual void Update(float tick);
+	virtual void Update(Engine&, float tick);
 	void SetText(const char*);
 	const char* GetText() const;
 	int GetFlag() const;
@@ -89,8 +97,8 @@ namespace Menu {
 	CarouselMenu(const Vector2F& p, int size, int top, float s);
 	virtual ~CarouselMenu() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
-	virtual void Update(float tick);
-	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
+	virtual void Update(Engine& engine, float tick);
+	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
 	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState);
 
 	void Add(MenuItem::Pointer p);
@@ -116,8 +124,8 @@ namespace Menu {
 	explicit SwipableMenu(size_t);
 	virtual ~SwipableMenu() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
-	virtual void Update(float tick);
-	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
+	virtual void Update(Engine& engine, float tick);
+	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
 	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state);
 
 	void Add(int viewNo, MenuItem::Pointer p);
@@ -144,8 +152,8 @@ namespace Menu {
 	Menu();
 	virtual ~Menu() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
-	virtual void Update(float tick);
-	virtual bool OnClick(const Vector2F& currentPos, MouseButton button);
+	virtual void Update(Engine& engine, float tick);
+	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
 	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
 
 	bool ProcessWindowEvent(Engine& engine, const Event& e);

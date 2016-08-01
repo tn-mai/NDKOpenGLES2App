@@ -4,6 +4,7 @@
 #include "Window.h"
 #include "Engine.h"
 #include "Event.h"
+#include "Audio.h"
 #include "../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
 #include <algorithm>
@@ -27,6 +28,32 @@ namespace Mai {
 
 namespace Menu {
 
+  const char SEID_PageFeed[] = "menu.pf";
+  const char SEID_Carousel[] = "menu.cal";
+  const char SEID_Confirm[] = "menu.yes";
+  const char SEID_Cancel[] = "menu.no";
+
+  /**
+	Initialize the menu system.
+
+	@param engine The engine object.
+  */
+  void Initialize(Engine& engine) {
+	AudioInterface& audio = engine.GetAudio();
+	audio.LoadSE(SEID_PageFeed, "Audio/pagefeed.wav");
+	audio.LoadSE(SEID_Carousel, "Audio/carousel.wav");
+	audio.LoadSE(SEID_Confirm, "Audio/confirm.wav");
+  }
+
+  /**
+	Finalize the menu system.
+
+	@param engine The engine object.
+  */
+  void Finalize(Engine& engine) {
+	(void)engine;
+  }
+  
   /** Transform the screen space to the range of 0-1.
 
     @param x  A position of X(pixel).
@@ -55,9 +82,12 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool MenuItem::OnClick(const Vector2F& currentPos, MouseButton button) {
+  bool MenuItem::OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button) {
 	if (clickHandler) {
-	  return clickHandler(currentPos, button);
+	  if (clickHandler(currentPos, button)) {
+		engine.GetAudio().PlaySE(SEID_Confirm, 1.0f);
+		return true;
+	  }
 	}
 	return false;
   }
@@ -176,9 +206,11 @@ namespace Menu {
 
   /** Update a object and children.
 
-	@param tick  Second from previous frame.
+	@param engine The engine object.
+	@param tick   Second from previous frame.
   */
-  void TextMenuItem::Update(float tick) {
+  void TextMenuItem::Update(Engine& engine, float tick) {
+	(void)engine;
 	if (flags & (FLAG_ZOOM_ANIMATION | FLAG_ALPHA_ANIMATION)) {
 	  scaleTick += tick;
 	  if (scaleTick > 2.0f) {
@@ -259,9 +291,10 @@ namespace Menu {
 
   /** Update a object and children.
 
-	@param tick  Second from previous frame.
+	@param engine The engine object.
+	@param tick   Second from previous frame.
   */
-  void CarouselMenu::Update(float tick) {
+  void CarouselMenu::Update(Engine& engine, float tick) {
 	if (!hasDragging) {
 	  if (moveY < 0.0f) {
 		moveY = std::min(0.0f, moveY + tick * 0.5f);
@@ -276,6 +309,7 @@ namespace Menu {
 	const int indexOffset = static_cast<int>(startPos);
 
 	if (prevOffset != INT_MAX && prevOffset != topOfWindow - indexOffset) {
+	  engine.GetAudio().PlaySE(SEID_Carousel, 1.0f);
 	  if (changeEventHandler) {
 		changeEventHandler(prevOffset, topOfWindow - indexOffset);
 	  }
@@ -308,7 +342,7 @@ namespace Menu {
 	);
 
 	for (auto& e : items) {
-	  e->Update(tick);
+	  e->Update(engine, tick);
 	}
   }
 
@@ -320,10 +354,10 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool CarouselMenu::OnClick(const Vector2F& currentPos, MouseButton button) {
+  bool CarouselMenu::OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button) {
 	const int containerSize = static_cast<int>(items.size());
 	const int center = windowSize / 2;
-	return items[(topOfWindow + center) % containerSize]->OnClick(currentPos, button);
+	return items[(topOfWindow + center) % containerSize]->OnClick(engine, currentPos, button);
 	return false;
   }
 
@@ -416,11 +450,12 @@ namespace Menu {
 
   /** Update a object and children.
 
-	@param tick  Second from previous frame.
+	@param engine The engine object.
+	@param tick   Second from previous frame.
   */
-  void SwipableMenu::Update(float tick) {
+  void SwipableMenu::Update(Engine& engine, float tick) {
 	for (auto& e : viewList[currentView]) {
-	  e->Update(tick);
+	  e->Update(engine, tick);
 	}
 	const float springForce = 1.0f * tick;
 	if (!hasDragging && (moveX || accel)) {
@@ -448,6 +483,7 @@ namespace Menu {
 		currentView = (currentView + 1) % viewCount;
 	  }
 	  if (prevView != currentView) {
+		engine.GetAudio().PlaySE(SEID_PageFeed, 1.0f);
 		if (swipeEventHandler) {
 		  swipeEventHandler(prevView, currentView);
 		}
@@ -463,11 +499,11 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool SwipableMenu::OnClick(const Vector2F& currentPos, MouseButton button) {
+  bool SwipableMenu::OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button) {
 	const auto re = viewList[currentView].rend();
 	for (auto ri = viewList[currentView].rbegin(); ri != re; ++ri) {
 	  if ((*ri)->OnRegion(currentPos)) {
-		return (*ri)->OnClick(currentPos, button);
+		return (*ri)->OnClick(engine, currentPos, button);
 	  }
 	}
 	return false;
@@ -595,11 +631,12 @@ namespace Menu {
 
   /** Update a object and children.
 
-	@param tick  Second from previous frame.
+	@param engine The engine object.
+	@param tick   Second from previous frame.
   */
-  void Menu::Update(float tick) {
+  void Menu::Update(Engine& engine, float tick) {
 	for (auto& e : items) {
-	  e->Update(tick);
+	  e->Update(engine, tick);
 	}
 	if (inputDisableTimer > 0.0f) {
 	  inputDisableTimer = std::max(0.0f, inputDisableTimer - tick);
@@ -614,11 +651,11 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool Menu::OnClick(const Vector2F& currentPos, MouseButton button) {
+  bool Menu::OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button) {
 	const auto re = items.rend();
 	for (auto ri = items.rbegin(); ri != re; ++ri) {
 	  if ((*ri)->OnRegion(currentPos)) {
-		return (*ri)->OnClick(currentPos, button);
+		return (*ri)->OnClick(engine, currentPos, button);
 	  }
 	}
 	return false;
@@ -687,7 +724,7 @@ namespace Menu {
 	case Event::EVENT_MOUSE_BUTTON_CLICKED: {
 	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  if (pActiveItem) {
-		if (MenuItem::Pointer(pActiveItem)->OnClick(currentPos, e.MouseButton.Button)) {
+		if (MenuItem::Pointer(pActiveItem)->OnClick(engine, currentPos, e.MouseButton.Button)) {
 		  return true;
 		}
 	  }
@@ -695,7 +732,7 @@ namespace Menu {
 		const auto re = items.rend();
 		for (auto ri = items.rbegin(); ri != re; ++ri) {
 		  if ((*ri)->OnRegion(currentPos)) {
-			return MenuItem::Pointer(*ri)->OnClick(currentPos, e.MouseButton.Button);
+			return MenuItem::Pointer(*ri)->OnClick(engine, currentPos, e.MouseButton.Button);
 		  }
 		}
 	  }
