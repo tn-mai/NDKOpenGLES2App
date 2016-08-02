@@ -105,6 +105,13 @@ namespace Mai {
 	  *deltaRotationVector = Quaternion(gyro, omegaMagnitude *  timeFactor);
 	}
 
+	float NaNInfToZero(float n) {
+	  if (std::isnan(n) || std::isinf(n)) {
+		return 0;
+	  }
+	  return n;
+	}
+
   } // unnamed namespace
 
   int64_t uptimeMillis() {
@@ -218,18 +225,18 @@ namespace Mai {
 	  Event event;
 	  event.Type = Event::EVENT_TILT;
 	  event.Time = uptimeMillis();
-	  event.Tilt.X = fusedOrientation.x;
-	  event.Tilt.Y = fusedOrientation.y;
-	  event.Tilt.Z = fusedOrientation.z;
+	  event.Tilt.X = NaNInfToZero(fusedOrientation.x);
+	  event.Tilt.Y = NaNInfToZero(fusedOrientation.y);
+	  event.Tilt.Z = NaNInfToZero(fusedOrientation.z);
 	  PushEvent(event);
 	  prevOrientation = fusedOrientation;
 	  {
 		Event e;
 		e.Type = Event::EVENT_GYRO;
 		e.Time = uptimeMillis();
-		e.Gyro.X = gyro.x;
-		e.Gyro.Y = gyro.y;
-		e.Gyro.Z = gyro.z;
+		e.Gyro.X = NaNInfToZero(gyro.x);
+		e.Gyro.Y = NaNInfToZero(gyro.y);
+		e.Gyro.Z = NaNInfToZero(gyro.z);
 		PushEvent(e);
 	  }
 	}
