@@ -416,12 +416,14 @@ namespace SunnySideUp {
   public:
 	MainGameScene()
 	  : initialized(false)
+	  , hasTiltWarning(false)
 	  , pPartitioner()
 	  , random(static_cast<uint32_t>(time(nullptr)))
 	  , playerMovement(0, 0, 0)
 	  , playerRotation(0, 0, 0)
 	  , countDownTimer(countDownTimerInitialTime)
 	  , stopWatch(0)
+	  , warningTransparency(0)
 	  , updateFunc(&MainGameScene::DoUpdate)
 	  , debugData()
 	{
@@ -860,6 +862,20 @@ namespace SunnySideUp {
 		  engine.GetAudio().PlaySE(seNameList[prevCount - 1], 1.0f);
 		}
 	  }
+
+	  {
+		const bool prevWarning = hasTiltWarning;
+		hasTiltWarning = playerMovement.Length() >= 15.0f;
+		if (prevWarning != hasTiltWarning) {
+		  warningTransparency = 0.0f;
+		} else if (hasTiltWarning) {
+		  warningTransparency += deltaTime;
+		  while (warningTransparency > 1.0f) {
+			warningTransparency -= 1.0f;
+		  }
+		}
+	  }
+
 	  if (countDownTimer <= 0.0f) {
 		if (objPlayer->Position().y >= goalHeight) {
 		  stopWatch += deltaTime;
@@ -1161,6 +1177,12 @@ namespace SunnySideUp {
 		  const GLbyte a = static_cast<GLbyte>(255.0f * (1.0f - (scale - 2.0f) / 3.0f));
 		  renderer.AddString(0.5f - w, 0.5f - h, scale, Color4B(255, 200, 155, a), str);
 		}
+
+		if (hasTiltWarning) {
+		  static const char strTiltWarning[] = "TURN HORIZONTALLY";
+		  const uint8_t alpha = static_cast<uint8_t>((warningTransparency < 0.5f ? warningTransparency : 1.0f - warningTransparency) * 255.0f * 2.0f);
+		  renderer.AddString(0.5f - renderer.GetStringWidth(strTiltWarning) * 0.4f, 0.75f, 0.8f, Color4B(240, 16, 32, alpha), strTiltWarning);
+		}
 	  }
 	  renderer.Render(&objList[0], &objList[0] + objList.size());
 	}
@@ -1180,6 +1202,7 @@ namespace SunnySideUp {
 
   private:
 	bool initialized;
+	bool hasTiltWarning;
 	std::unique_ptr<SpacePartitioner> pPartitioner;
 	boost::random::mt19937 random;
 	Collision::RigidBodyPtr rigidCamera;
@@ -1189,6 +1212,7 @@ namespace SunnySideUp {
 	Vector3F playerRotation;
 	float countDownTimer;
 	float stopWatch;
+	float warningTransparency;
 	int(MainGameScene::*updateFunc)(Engine&, float);
 
 	std::array<bool, 4> directionKeyDownList;
