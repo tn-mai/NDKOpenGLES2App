@@ -896,7 +896,7 @@ namespace SunnySideUp {
 		rigidCamera->thrust = playerMovement;
 		rigidCamera->thrust.y = 0.0f;
 		if (rigidCamera->accel.y < 0.0f) {
-		  rigidCamera->thrust.y = std::min(-rigidCamera->accel.y, std::max(0.0f, rigidCamera->thrust.Length() * 0.5f));
+		  rigidCamera->thrust.y = std::min(-rigidCamera->accel.y * 0.25f, std::max(0.0f, rigidCamera->thrust.Length() * 0.5f));
 		}
 		playerRotation.x = std::min(0.5f, std::max(-0.5f, playerMovement.z * -0.05f));
 		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * -0.05f));
