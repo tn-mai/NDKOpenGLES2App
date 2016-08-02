@@ -25,6 +25,7 @@ namespace SunnySideUp {
 	static const int eventTime = 30;
 	static const int enableInputTime = eventTime - 5;
 
+	int DoFadeIn(Engine&, float);
 	int DoUpdate(Engine&, float);
 	int DoFadeOut(Engine&, float);
 	int(GameOverScene::*updateFunc)(Engine&, float);
@@ -38,7 +39,7 @@ namespace SunnySideUp {
   };
 
   GameOverScene::GameOverScene()
-	: updateFunc(&GameOverScene::DoUpdate)
+	: updateFunc(&GameOverScene::DoFadeIn)
 	, objList()
 	, loaded(false)
 	, hasFinishRequest(false)
@@ -146,6 +147,21 @@ namespace SunnySideUp {
 	}
 
 	return (this->*updateFunc)(engine, tick);
+  }
+
+  /** Wait fade in.
+
+  Transition to DoUpdate() when the fadein finished.
+  This is the update function called from Update().
+  */
+  int GameOverScene::DoFadeIn(Engine& engine, float tick) {
+	timer -= tick;
+	if (engine.GetRenderer().GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
+	  engine.GetAudio().PlayBGM("Audio/gameover.mp3", 1.0f);
+	  engine.GetAudio().SetBGMLoopFlag(false);
+	  updateFunc = &GameOverScene::DoUpdate;
+	}
+	return SCENEID_CONTINUE;
   }
 
   /** Wait user input.

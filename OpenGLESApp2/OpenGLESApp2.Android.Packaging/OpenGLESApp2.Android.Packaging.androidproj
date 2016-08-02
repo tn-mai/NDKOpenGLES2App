@@ -70,6 +70,7 @@
     <Content Include="assets\Audio\carousel.wav" />
     <Content Include="assets\Audio\confirm.wav" />
     <Content Include="assets\Audio\dive.mp3" />
+    <Content Include="assets\Audio\gameover.mp3" />
     <Content Include="assets\Audio\miss.wav" />
     <Content Include="assets\Audio\pagefeed.wav" />
     <Content Include="assets\Audio\success.wav" />

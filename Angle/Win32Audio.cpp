@@ -25,6 +25,7 @@ public:
   virtual void PlaySE(const char* id, float);
   virtual void PlayBGM(const char* filename, float);
   virtual void StopBGM(float);
+  virtual void SetBGMLoopFlag(bool);
   virtual void Clear();
   virtual void Update(float);
 };
@@ -55,6 +56,9 @@ void AudioImpl::PlayBGM(const char* filename, float) {
 }
 
 void AudioImpl::StopBGM(float) {
+}
+
+void AudioImpl::SetBGMLoopFlag(bool) {
 }
 
 void AudioImpl::Clear() {

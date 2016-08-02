@@ -116,6 +116,7 @@ public:
   virtual void PlaySE(const char* id, float);
   virtual void PlayBGM(const char* filename, float);
   virtual void StopBGM(float);
+  virtual void SetBGMLoopFlag(bool);
   virtual void Clear();
   virtual void Update(float);
 
@@ -515,6 +516,12 @@ void AudioImpl::StopBGM(float fadeoutTimeSec) {
 	  (*bgmPlayer.playInterface)->SetPlayState(bgmPlayer.playInterface, SL_PLAYSTATE_PAUSED);
 	  LOGI("StopBGM: %s", bgmFilename.c_str());
 	}
+  }
+}
+
+void AudioImpl::SetBGMLoopFlag(bool loop) {
+  if (bgmPlayer.player) {
+	(*bgmPlayer.seekInterface)->SetLoop(bgmPlayer.seekInterface, loop ? SL_BOOLEAN_TRUE : SL_BOOLEAN_FALSE, 0, SL_TIME_UNKNOWN);
   }
 }
 
