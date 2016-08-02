@@ -272,7 +272,7 @@ namespace Menu {
   CarouselMenu::CarouselMenu(const Vector2F& p, int size, int top, float s)
 	: pos(p), windowSize(size), topOfWindow(top), prevOffset(INT_MAX), scale(s), moveY(0), hasDragging(false)
   {
-	SetRegion(Vector2F(0, 0), Vector2F(1, 1));
+	SetRegion(p + Vector2F(-0.5f, -0.3f), Vector2F(1.0f, 0.6f));
   }
 
   /** Render the object.
