@@ -707,6 +707,10 @@ namespace SunnySideUp {
 	  audio.LoadSE("bound", "Audio/bound.wav");
 	  audio.LoadSE("success", "Audio/success.wav");
 	  audio.LoadSE("failure", "Audio/miss.wav");
+	  audio.LoadSE("countdown_3", "Audio/countdown_3.wav");
+	  audio.LoadSE("countdown_2", "Audio/countdown_2.wav");
+	  audio.LoadSE("countdown_1", "Audio/countdown_1.wav");
+	  audio.LoadSE("countdown_go", "Audio/countdown_go.wav");
 	  audio.PlayBGM("Audio/dive.mp3", 1.0f);
 	  status = STATUSCODE_RUNNABLE;
 	  initialized = true;
@@ -840,8 +844,21 @@ namespace SunnySideUp {
 #if 1
 	  debugData.MoveCamera(&directionKeyDownList[0]);
 	  //debugCamera.Update(deltaTime, fusedOrientation);
+	  const int prevCount = static_cast<int>(countDownTimer + 1.0f);
 	  if (countDownTimer >= countDownTimerTrailingTime) {
 		countDownTimer -= deltaTime;
+	  }
+	  const int newCount = static_cast<int>(countDownTimer + 1.0f);
+	  if (prevCount != newCount) {
+		static const char* const seNameList[] = {
+		  "countdown_go",
+		  "countdown_1",
+		  "countdown_2",
+		  "countdown_3",
+		};
+		if (prevCount >= 1 && prevCount < sizeof(seNameList)/sizeof(seNameList[0]) + 1) {
+		  engine.GetAudio().PlaySE(seNameList[prevCount - 1], 1.0f);
+		}
 	  }
 	  if (countDownTimer <= 0.0f) {
 		if (objPlayer->Position().y >= goalHeight) {
