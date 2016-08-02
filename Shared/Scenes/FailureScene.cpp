@@ -146,6 +146,7 @@ namespace SunnySideUp {
   int FailureScene::DoUpdate(Engine& engine, float tick) {
 	timer -= tick;
 	if ((timer <= 0.0f) || hasFinishRequest) {
+	  engine.GetAudio().PlaySE(Menu::SEID_Confirm, 1.0f);
 	  engine.GetRenderer().FadeOut(Color4B(0, 0, 0, 0), 1.0f);
 	  updateFunc = &FailureScene::DoFadeOut;
 	}
@@ -160,7 +161,6 @@ namespace SunnySideUp {
   int FailureScene::DoFadeOut(Engine& engine, float deltaTime) {
 	Renderer& r = engine.GetRenderer();
 	if (r.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
-	  engine.GetAudio().PlaySE(Menu::SEID_Confirm, 1.0f);
 	  r.FadeIn(1.0f);
 	  CommonData& commonData = *engine.GetCommonData<CommonData>();
 	  if (--commonData.remainingEggs > 0) {
