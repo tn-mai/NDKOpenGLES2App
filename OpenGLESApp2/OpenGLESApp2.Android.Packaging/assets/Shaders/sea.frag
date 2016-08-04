@@ -57,18 +57,18 @@ mediump float random(mediump vec2 st) {
 mediump vec3 vec_noise(mediump vec2 st) {
   mediump vec2 i = floor(st);
   mediump vec2 f = fract(st);
-  mediump float a = random(i);
-  mediump float b = random(i + vec2(1.0, 0.0));
-  mediump float c = random(i + vec2(0.0, 1.0));
-  mediump float d = random(i + vec2(1.0, 1.0));
+
+  mediump vec4 abcd = vec4(
+	random(i),
+	random(i + vec2(1.0, 0.0)),
+	random(i + vec2(0.0, 1.0)),
+	random(i + vec2(1.0, 1.0))
+  );
+
   mediump vec2 fa = abs(f * 2.0 - 1.0);
-  mediump float ba = mix((b - a), 0.0, fa.x);
-  mediump float dc = mix((d - c), 0.0, fa.x);
-  mediump float ca = mix((c - a), 0.0, fa.y);
-  mediump float db = mix((d - b), 0.0, fa.y);
-  mediump vec3 x = vec3(1.0, mix(ba, dc, f.y), 0.0);
-  mediump vec3 y = vec3(0.0, mix(ca, db, f.x), 1.0);
-  return normalize(cross(y, x));
+  mediump vec4 tmp = mix(abcd.ywzw - abcd.xzxy, vec4(0.0, 0.0, 0.0, 0.0), fa.xxyy);
+  mediump vec2 tmp2 = mix(tmp.xz, tmp.yw, f.yx);
+  return normalize(cross(vec3(0.0, tmp2.y, 1.0), vec3(1.0, tmp2.x, 0.0)));
 }
 
 void main(void)
