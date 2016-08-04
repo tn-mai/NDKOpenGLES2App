@@ -491,7 +491,7 @@ namespace SunnySideUp {
 	  {
 		auto obj = renderer.CreateObject("FlyingPan", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
-		o.SetScale(Vector3F(10, 10, 10));
+		o.SetScale(Vector3F(courseInfo.targetScale, courseInfo.targetScale, courseInfo.targetScale));
 
 		const float theta = degreeToRadian<float>(RandomFloat(360));
 		const float distance = RandomFloat(100);
@@ -506,7 +506,7 @@ namespace SunnySideUp {
 		auto obj = renderer.CreateObject("TargetCursor", Material(Color4B(240, 2, 1, 255), 0, 0), "emission", ShadowCapability::Disable);
 		Object& o = *obj;
 		o.SetAnimation(renderer.GetAnimation("Rotation"));
-		o.SetScale(Vector3F(20, 20, 20));
+		o.SetScale(Vector3F(courseInfo.targetScale, courseInfo.targetScale, courseInfo.targetScale) * 2);
 		o.SetTranslation(objFlyingPan->Position() - Position3F(0, -10, 0));
 		pPartitioner->Insert(obj);
 	  }

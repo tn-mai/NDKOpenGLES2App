@@ -17,6 +17,7 @@ struct CourseInfo {
   uint8_t density; ///< The density of the obstacles.
   uint8_t difficulty; ///< This affect the allocation of the obstacles.
   uint8_t cloudage; ///< The amount of generating cloud(0:no cloud 7:maximum).
+  uint8_t targetScale; ///< The scale of the target area.
   uint8_t description[32]; ///< The description of this level.
 
   static const uint8_t maxCloudage = 7;
