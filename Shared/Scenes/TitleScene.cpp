@@ -157,7 +157,7 @@ namespace SunnySideUp {
 			  );
 			  obj->SetScale(Vector3F(4, 4, 4));
 			  obj->SetTranslation(Vector3F(e.position.x * 12.0f, e.position.y * 12.0f, e.position.z * 12.0f));
-			  const float ryRandomFactor = std::uniform_real_distribution<float>(0.0f, 0.2f)(random);
+			  const float ryRandomFactor = boost::random::uniform_real_distribution<float>(0.0f, 0.2f)(random);
 			  const float ry = std::asin(e.tangent.z / e.tangent.x);// +ryRandomFactor;
 			  obj->SetRotation(degreeToRadian<float>(0), ry, degreeToRadian<float>(0));
 			  objList.push_back(obj);
