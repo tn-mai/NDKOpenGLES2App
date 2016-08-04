@@ -606,6 +606,11 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj);
 	  }
 #endif
+
+	  static const Vector3F landscapeOffset(0, 0, 100);
+	  static const float landscapeScale = 12.5f;
+	  static const Vector3F landscapeScale3(landscapeScale, landscapeScale, landscapeScale);
+
 	  if (auto pBuf = FileSystem::LoadFile("Meshes/CoastTownSpace.msh")) {
 		const auto result = Mesh::ImportGeometry(*pBuf);
 		if (result.result == Mesh::Result::success && !result.geometryList.empty()) {
@@ -636,7 +641,7 @@ namespace SunnySideUp {
 			  ShadowCapability::Disable
 			);
 			obj->SetScale(Vector3F(4, 4, 4));
-			obj->SetTranslation(Vector3F(e.position.x * 12.0f, e.position.y * 12.0f, e.position.z * 12.0f));
+			obj->SetTranslation(Vector3F(e.position.x * landscapeScale, e.position.y * landscapeScale, e.position.z * landscapeScale) + landscapeOffset);
 			const float ry = std::asin(e.tangent.z / e.tangent.x);
 			obj->SetRotation(degreeToRadian<float>(0), ry, degreeToRadian<float>(0));
 			pPartitioner->Insert(obj);
@@ -646,24 +651,27 @@ namespace SunnySideUp {
 	  }
 	  {
 		auto obj = renderer.CreateObject("LandScape.Coast", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
-		obj->SetScale(Vector3F(12, 12, 12));
-		Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0), Vector3F(0, 1, 0), 1000 * 1000 * 1000));
+		obj->SetScale(landscapeScale3);
+		Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0) + landscapeOffset, Vector3F(0, 1, 0), 1000 * 1000 * 1000));
 		p->thrust = Vector3F(0, 9.8f, 0);
 		pPartitioner->Insert(obj, p);
 	  }
 	  {
 		auto obj = renderer.CreateObject("LandScape.Coast.Levee", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
-		obj->SetScale(Vector3F(12, 12, 12));
+		obj->SetScale(landscapeScale3);
+		obj->SetTranslation(landscapeOffset);
 		pPartitioner->Insert(obj);
 	  }
 	  {
 		auto obj = renderer.CreateObject("LandScape.Coast.Flora", Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha", ShadowCapability::Disable);
-		obj->SetScale(Vector3F(12, 12, 12));
+		obj->SetScale(landscapeScale3);
+		obj->SetTranslation(landscapeOffset);
 		pPartitioner->Insert(obj);
 	  }
 	  {
 		auto obj = renderer.CreateObject("LandScape.Coast.Ships", Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha", ShadowCapability::Disable);
-		obj->SetScale(Vector3F(12, 12, 12));
+		obj->SetScale(landscapeScale3);
+		obj->SetTranslation(landscapeOffset);
 		pPartitioner->Insert(obj);
 	  }
 
