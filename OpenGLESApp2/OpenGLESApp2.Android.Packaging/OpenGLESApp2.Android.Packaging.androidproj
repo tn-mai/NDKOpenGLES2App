@@ -123,6 +123,8 @@
     <Content Include="assets\Shaders\reduceLum.vert" />
     <Content Include="assets\Shaders\sample4.frag" />
     <Content Include="assets\Shaders\sample4.vert" />
+    <Content Include="assets\Shaders\sea.frag" />
+    <Content Include="assets\Shaders\sea.vert" />
     <Content Include="assets\Shaders\ShaderPlain.frag" />
     <Content Include="assets\Shaders\ShaderPlain.vert" />
     <Content Include="assets\Shaders\shadow.frag" />
@@ -256,6 +258,7 @@
     <Content Include="res\drawable-mdpi\launchericon.png" />
     <Content Include="res\drawable-xhdpi\launchericon.png" />
     <Content Include="res\drawable-xxhdpi\launchericon.png" />
+    <Content Include="res\values-ja\strings.xml" />
     <Content Include="res\values\strings.xml" />
     <AntBuildXml Include="build.xml" />
     <AndroidManifest Include="AndroidManifest.xml">

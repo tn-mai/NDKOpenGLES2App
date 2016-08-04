@@ -143,6 +143,7 @@ namespace {
 #endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
 			  "#define SCALE_BONE_WEIGHT(w) ((w) * (1.0 / 255.0))\n"
 			  "#define SCALE_TEXCOORD(c) ((c) * (1.0 / 65535.0))\n"
+			  "#define M_PI (3.1415926535897932384626433832795)\n"
 			  ;
 			shader = glCreateShader(shaderType);
 			if (!shader) {
@@ -490,6 +491,7 @@ Renderer::Renderer()
   ,	shadowFar(2000)
   , shadowScale(1, 1)
   , depth(0)
+  , animationTick(0.0)
   , filterMode(FILTERMODE_NONE)
   , filterColor(0, 0, 0, 0)
   , filterTimer(0.0f)
@@ -722,6 +724,7 @@ void Renderer::Initialize(const Window& window)
 	  { ShaderType::Complex3D, "default2D" },
 	  { ShaderType::Complex3D, "cloud" },
 	  { ShaderType::Simple3D, "solidmodel" },
+	  { ShaderType::Simple3D, "sea" },
 	  { ShaderType::Complex3D, "emission" },
 	  { ShaderType::Complex3D, "skybox" },
 	  { ShaderType::Complex3D, "shadow" },
@@ -1249,6 +1252,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	}
 
 	const GLuint cloudProgramId = shaderList["cloud"].program;
+	const GLuint seaProgramId = shaderList["sea"].program;
 	GLuint currentProgramId = 0;
 	const int iblSourceSize = iblSpecularSourceList[timeOfScene].size() - 1;
 	for (const ObjectPtr* itr = begin; itr != end; ++itr) {
@@ -1314,7 +1318,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		}
 		const float metallic = obj.Metallic();
 		const float roughness = obj.Roughness();
-		glUniform2f(shader.materialMetallicAndRoughness, metallic, roughness);
+		if (shader.program == seaProgramId) {
+		  glUniform3f(shader.materialMetallicAndRoughness, metallic, roughness, animationTick);
+		} else {
+		  glUniform2f(shader.materialMetallicAndRoughness, metallic, roughness);
+		}
 
 		const Mesh::Mesh& mesh = *obj.GetMesh();
 		{
@@ -1359,7 +1367,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			const float r = std::min(1.0f, std::max(0.0f, e.material.roughness.To<float>() + roughness));
 			const int index = std::min(iblSourceSize, std::max(0, static_cast<int>(r * static_cast<float>(iblSourceSize) + 0.5f)));
 			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][index]->TextureId());
-			glUniform2f(shader.materialMetallicAndRoughness, m, r);
+			if (shader.program == seaProgramId) {
+			  glUniform3f(shader.materialMetallicAndRoughness, m, r, m > 0.5f ? animationTick * 0.25f : 0.0f);
+			} else {
+			  glUniform2f(shader.materialMetallicAndRoughness, m, r);
+			}
 			glDrawElements(GL_TRIANGLES, e.iboSize, GL_UNSIGNED_SHORT, reinterpret_cast<GLvoid*>(e.iboOffset));
 		}
 	}
@@ -1740,6 +1752,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 void Renderer::Update(float dTime, const Position3F& pos, const Vector3F& dir, const Vector3F& up)
 {
+  animationTick += dTime;
+
   cameraPos = pos;
   cameraDir = dir;
   cameraUp = up;

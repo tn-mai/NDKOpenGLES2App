@@ -166,7 +166,7 @@ namespace SunnySideUp {
 		  }
 		}
 		{
-		  auto obj = r.CreateObject("LandScape.Coast", Material(Color4B(200, 200, 200, 255), 0, 0), "solidmodel");
+		  auto obj = r.CreateObject("LandScape.Coast", Material(Color4B(200, 200, 200, 255), 0, 0), "sea");
 		  obj->SetScale(Vector3F(12, 12, 12));
 		  objList.push_back(obj);
 		}

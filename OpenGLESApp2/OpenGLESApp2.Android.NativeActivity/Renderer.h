@@ -370,6 +370,8 @@ namespace Mai {
 	std::vector<FontRenderingInfo> fontRenderingInfoList;
 	int currentFontBufferNo;
 
+	float animationTick;
+
 	FilterMode filterMode;
 	Color4B filterColor;
 	float filterTimer;

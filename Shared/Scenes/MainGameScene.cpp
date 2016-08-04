@@ -650,7 +650,7 @@ namespace SunnySideUp {
 		}
 	  }
 	  {
-		auto obj = renderer.CreateObject("LandScape.Coast", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
+		auto obj = renderer.CreateObject("LandScape.Coast", Material(Color4B(255, 255, 255, 255), 0, 0), "sea", ShadowCapability::Disable);
 		obj->SetScale(landscapeScale3);
 		Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0) + landscapeOffset, Vector3F(0, 1, 0), 1000 * 1000 * 1000));
 		p->thrust = Vector3F(0, 9.8f, 0);
