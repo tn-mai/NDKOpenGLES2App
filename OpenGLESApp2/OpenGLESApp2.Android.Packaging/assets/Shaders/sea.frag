@@ -54,16 +54,18 @@ mediump float random(mediump vec2 st) {
 #endif
 }
 
+mediump vec4 random4(mediump vec2 st) {
+  const mediump vec2 distorter = vec2(12.9898, 78.233);
+  const mediump float scale = 43758.5453;
+  mediump vec4 tmp = (st.xyxy + vec4(0.0, 0.0, 1.0, 1.0)) * distorter.xyxy;
+  return fract(sin(tmp.xzxz + tmp.yyww) * scale);
+}
+
 mediump vec3 vec_noise(mediump vec2 st) {
   mediump vec2 i = floor(st);
   mediump vec2 f = fract(st);
 
-  mediump vec4 abcd = vec4(
-	random(i),
-	random(i + vec2(1.0, 0.0)),
-	random(i + vec2(0.0, 1.0)),
-	random(i + vec2(1.0, 1.0))
-  );
+  mediump vec4 abcd = random4(i);
 
   mediump vec2 fa = abs(f * 2.0 - 1.0);
   mediump vec4 tmp = mix(abcd.ywzw - abcd.xzxy, vec4(0.0, 0.0, 0.0, 0.0), fa.xxyy);
@@ -75,9 +77,12 @@ void main(void)
 {
   lowp vec3 col = texture2D(texDiffuse, texCoord.xy).rgb * materialColor.rgb;
 
-  mediump vec3 noiseVec = vec_noise(texCoord.xy * 1000.0 + metallicAndRoughness.z);
-  noiseVec += vec_noise(texCoord.xy * 381.0 + vec2(-1.0, 0.9) * metallicAndRoughness.z);
-  noiseVec *= 0.5;
+  //mediump vec3 noiseVec = vec_noise(texCoord.xy * 1000.0 + metallicAndRoughness.z);
+  //noiseVec += vec_noise(texCoord.xy * 381.0 + vec2(-1.0, 0.9) * metallicAndRoughness.z);
+  //noiseVec *= 0.5;
+  const lowp float noiseRot = M_PI * 0.4;
+  mediump vec2 noiseCoord = vec2(dot(texCoord.xy, vec2(cos(noiseRot), -sin(noiseRot))), dot(texCoord.xy, vec2(sin(noiseRot), cos(noiseRot))));
+  mediump vec3 noiseVec = vec_noise(noiseCoord * 383.0 + metallicAndRoughness.z);
 
   // NOTE: This shader uses the object space normal mapping, so the normal is in the object space.
   //       In general, the object space normal mapping is used the pre-transformed light position
@@ -85,7 +90,7 @@ void main(void)
   //       Of course, it cannot pre-transform to the object space.
   //       Therefore, the object space normal mapping cannot increase efficiency of the shader
   //       that contrary to our expectations :(
-  mediump vec3 normal = mix(texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0, noiseVec, dot(col, vec3(-2.0, 1.0, 1.0) * 8.0));
+  mediump vec3 normal = normalize((texture2D(texNormal, texCoord.xy).xyz * 2.0 - 1.0) + noiseVec * max(0.0, dot(col, vec3(-2.0, 1.0, 1.0) * 2.0)));
   mediump vec3 refVector = normalize(matTBN * reflect(eyeVectorW, normal.xyz));
 
   // Diffuse
