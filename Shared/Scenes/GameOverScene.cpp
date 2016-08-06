@@ -36,6 +36,8 @@ namespace SunnySideUp {
 	bool hasFinishRequest;
 	float timer;
 	float cameraRotation;
+	float cameraHeight;
+	float cameraElevationSpeed;
 	Menu::Menu  rootMenu;
   };
 
@@ -46,6 +48,8 @@ namespace SunnySideUp {
 	, hasFinishRequest(false)
 	, timer(static_cast<float>(eventTime))
 	, cameraRotation(180)
+	, cameraHeight(6)
+	, cameraElevationSpeed(1)
   {}
 
   bool GameOverScene::Load(Engine& engine) {
@@ -63,12 +67,19 @@ namespace SunnySideUp {
 	  obj->SetRotation(degreeToRadian(0.0f), degreeToRadian(10.0f), degreeToRadian(5.0f));
 	  objList.push_back(obj);
 	}
+	{
+	  auto obj = r.CreateObject("Building00", Material(Color4B(200, 200, 200, 255), 0, 0), "default", ShadowCapability::Disable);
+	  obj->SetScale(Vector3F(4, 4, 4));
+	  obj->SetTranslation(Vector3F(-450, 15.5f, -580));
+	  obj->SetRotation(degreeToRadian<float>(0), degreeToRadian<float>(70), degreeToRadian<float>(0));
+	  objList.push_back(obj);
+	}
 
 	const Landscape::ObjectList landscapeObjList = Landscape::GetCoast(r, Vector3F(0, 0, 0), 12);
 	objList.insert(objList.end(), landscapeObjList.begin(), landscapeObjList.end());
 	{ // for shadow.
 	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::ShadowOnly);
-	  obj->SetTranslation(Vector3F(objList[0]->Position() + Vector3F(0, -10, 0)));
+	  obj->SetTranslation(Vector3F(objList[0]->Position() + Vector3F(0, -5, 0)));
 	  obj->SetScale(Vector3F(0.01f, 0.01f, 0.01f));
 	  obj->SetRotation(degreeToRadian(-90.0f), 0, 0);
 	  objList.push_back(obj);
@@ -77,7 +88,7 @@ namespace SunnySideUp {
 	rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("GAME OVER", Vector2F(0.5f, 0.25f), 1.2f, Color4B(250, 250, 250, 255))));
 
 	const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
-	r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 160, 240, Vector2F(4, 4 * 4));
+	r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 160, 240, Vector2F(2.0, 1.0f * 4.0f));
 	r.DoesDrawSkybox(false);
 
 	loaded = true;
@@ -117,14 +128,14 @@ namespace SunnySideUp {
 
 	const float theta = degreeToRadian<float>(cameraRotation);
 	static const float distance = 25;
-	static float height = 10;
 	const float x = std::cos(theta) * distance;
 	const float z = std::sin(theta) * distance;
-	const Position3F eyePos(objList[0]->Position() + Vector3F(x, height, z));
+	const Position3F eyePos(objList[0]->Position() + Vector3F(x, cameraHeight, z));
 	const Vector3F dir = objList[0]->Position() - eyePos;
 	engine.GetRenderer().Update(tick, eyePos, dir, Vector3F(0, 1, 0));
 
-	height += tick * 1.0f;
+	cameraElevationSpeed += tick * 0.125f;
+	cameraHeight += tick * cameraElevationSpeed;
 	cameraRotation += tick * 10.0f;
 	while (cameraRotation >= 360.0f) {
 	  cameraRotation -= 360.0f;
