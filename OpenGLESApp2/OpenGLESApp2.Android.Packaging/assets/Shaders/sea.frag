@@ -110,9 +110,10 @@ void main(void)
   const mediump float coef = 1.0 / 256.0;
   mediump vec4 tex = texture2D(texShadow, posForShadow.xy);
   highp float Ex = dot(tex, vec4(1.0, coef, coef * coef, coef * coef * coef));
-  if (Ex < 1.0) {
-	if (posForShadow.z > Ex) {
-	  gl_FragColor.rgb *= 0.6;// exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
-	}
+  if (posForShadow.z > Ex) {
+	// puseudo GL_CLAMP_TO_BORDER effect.
+	const mediump vec2 dims = vec2(SHADOWMAP_MAIN_WIDTH, SHADOWMAP_MAIN_HEIGHT);
+	mediump vec2 f = clamp((dims + 1.0) * 0.5 - abs(dims * (posForShadow.xy - 0.5)), 0.0, 1.0);
+	gl_FragColor.rgb *= 1.0 - 0.4 * f.x * f.y;// exp(-80.0 * clamp(posForShadow.z - Ex, 0.0, 1.0)) * 0.6 + 0.4;
   }
 }

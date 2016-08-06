@@ -466,8 +466,8 @@ namespace SunnySideUp {
 		const Vector3F shadowDir = GetSunRayDirection(tos);
 		const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
 		const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
-		const float radius = (static_cast<float>(GetCourseInfo(level, courseNo).startHeight) + 10.0f) * 0.5f;
-		renderer.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 10, radius * 2.0f, Vector2F(0.5f, 1.0f / 3.0f));
+		const float radius = static_cast<float>(GetCourseInfo(level, courseNo).startHeight) * 0.5f;
+		renderer.SetShadowLight(Position3F(0, radius, 0) - shadowDir * radius, shadowDir, 100, radius * 3.0f, Vector2F(0.5f, 1.0f / 3.0f));
 	  }
 
 	  // The player character.
@@ -607,7 +607,7 @@ namespace SunnySideUp {
 	  }
 #endif
 
-	  const Landscape::ObjectList landscapeObjList = Landscape::GetCoast(renderer, Vector3F(0, 0, 100), 12.5f);
+	  const Landscape::ObjectList landscapeObjList = Landscape::GetCoast(renderer, Vector3F(0, 0, 100), 13.0f);
 	  for (auto& e : landscapeObjList) {
 		pPartitioner->Insert(e);
 	  }
