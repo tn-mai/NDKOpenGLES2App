@@ -2,6 +2,7 @@
 @file GameOverScene.cpp
 */
 #include "Scene.h"
+#include "Landscape.h"
 #include "../Menu.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <vector>
@@ -58,30 +59,13 @@ namespace SunnySideUp {
 
 	{
 	  auto obj = r.CreateObject("EggPack", Material(Color4B(200, 200, 200, 255), 0, 0), "default");
-	  obj->SetTranslation(Vector3F(-360, 20, -550));
-	  obj->SetRotation(0, degreeToRadian(10.0f), 0);
+	  obj->SetTranslation(Vector3F(-391, 16.5f, -634));
+	  obj->SetRotation(degreeToRadian(0.0f), degreeToRadian(10.0f), degreeToRadian(5.0f));
 	  objList.push_back(obj);
 	}
-	{
-	  auto obj = r.CreateObject("LandScape.Coast", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);
-	  obj->SetScale(Vector3F(12, 12, 12));
-	  objList.push_back(obj);
-	}
-	{
-	  auto obj = r.CreateObject("LandScape.Coast.Levee", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
-	  obj->SetScale(Vector3F(12, 12, 12));
-	  objList.push_back(obj);
-	}
-	{
-	  auto obj = r.CreateObject("LandScape.Coast.Flora", Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha", ShadowCapability::Disable);
-	  obj->SetScale(Vector3F(12, 12, 12));
-	  objList.push_back(obj);
-	}
-	{
-	  auto obj = r.CreateObject("LandScape.Coast.Ships", Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha", ShadowCapability::Disable);
-	  obj->SetScale(Vector3F(12, 12, 12));
-	  objList.push_back(obj);
-	}
+
+	const Landscape::ObjectList landscapeObjList = Landscape::GetCoast(r, Vector3F(0, 0, 0), 12);
+	objList.insert(objList.end(), landscapeObjList.begin(), landscapeObjList.end());
 	{ // for shadow.
 	  auto obj = r.CreateObject("ground", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::ShadowOnly);
 	  obj->SetTranslation(Vector3F(objList[0]->Position() + Vector3F(0, -10, 0)));

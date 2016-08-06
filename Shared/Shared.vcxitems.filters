@@ -30,6 +30,9 @@
       <Filter>Scenes</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Menu.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scenes\Landscape.cpp">
+      <Filter>Scenes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine.h" />
@@ -54,6 +57,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Menu.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)FixedNum.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Scenes\Landscape.h">
+      <Filter>Scenes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scenes">

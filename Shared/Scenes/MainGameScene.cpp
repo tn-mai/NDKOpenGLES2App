@@ -2,7 +2,7 @@
 */
 #include "LevelInfo.h"
 #include "Scene.h"
-#include "../File.h"
+#include "Landscape.h"
 #include "../Audio.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
@@ -607,72 +607,9 @@ namespace SunnySideUp {
 	  }
 #endif
 
-	  static const Vector3F landscapeOffset(0, 0, 100);
-	  static const float landscapeScale = 12.5f;
-	  static const Vector3F landscapeScale3(landscapeScale, landscapeScale, landscapeScale);
-
-	  if (auto pBuf = FileSystem::LoadFile("Meshes/CoastTownSpace.msh")) {
-		const auto result = Mesh::ImportGeometry(*pBuf);
-		if (result.result == Mesh::Result::success && !result.geometryList.empty()) {
-		  const Mesh::Geometry& m = result.geometryList[0];
-		  static const char* const meshNameList[] = {
-			"CityBlock00",
-			"CityBlock01",
-			"CityBlock02",
-			"CityBlock03",
-			"CityBlock04",
-			"CityBlock05",
-			"CityBlock06",
-			"CityBlock07",
-		  };
-		  static const Color4B colorList[] = {
-			Color4B(200, 200, 200, 255),
-			Color4B(255, 200, 200, 255),
-			Color4B(200, 255, 200, 255),
-			Color4B(200, 200, 255, 255),
-			Color4B(255, 255, 200, 255),
-		  };
-		  int i = 0;
-		  for (const auto& e : m.vertexList) {
-			auto obj = renderer.CreateObject(
-			  meshNameList[i % (sizeof(meshNameList) / sizeof(meshNameList[0]))],
-			  Material(colorList[i % (sizeof(colorList) / sizeof(colorList[0]))], 0, 0),
-			  "default",
-			  ShadowCapability::Disable
-			);
-			obj->SetScale(Vector3F(4, 4, 4));
-			obj->SetTranslation(Vector3F(e.position.x * landscapeScale, e.position.y * landscapeScale, e.position.z * landscapeScale) + landscapeOffset);
-			const float ry = std::asin(e.tangent.z / e.tangent.x);
-			obj->SetRotation(degreeToRadian<float>(0), ry, degreeToRadian<float>(0));
-			pPartitioner->Insert(obj);
-			++i;
-		  }
-		}
-	  }
-	  {
-		auto obj = renderer.CreateObject("LandScape.Coast", Material(Color4B(255, 255, 255, 255), 0, 0), "sea", ShadowCapability::Disable);
-		obj->SetScale(landscapeScale3);
-		Collision::RigidBodyPtr p(new Collision::PlaneShape(Position3F(0, 0, 0) + landscapeOffset, Vector3F(0, 1, 0), 1000 * 1000 * 1000));
-		p->thrust = Vector3F(0, 9.8f, 0);
-		pPartitioner->Insert(obj, p);
-	  }
-	  {
-		auto obj = renderer.CreateObject("LandScape.Coast.Levee", Material(Color4B(255, 255, 255, 255), 0, 0), "default", ShadowCapability::Disable);
-		obj->SetScale(landscapeScale3);
-		obj->SetTranslation(landscapeOffset);
-		pPartitioner->Insert(obj);
-	  }
-	  {
-		auto obj = renderer.CreateObject("LandScape.Coast.Flora", Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha", ShadowCapability::Disable);
-		obj->SetScale(landscapeScale3);
-		obj->SetTranslation(landscapeOffset);
-		pPartitioner->Insert(obj);
-	  }
-	  {
-		auto obj = renderer.CreateObject("LandScape.Coast.Ships", Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha", ShadowCapability::Disable);
-		obj->SetScale(landscapeScale3);
-		obj->SetTranslation(landscapeOffset);
-		pPartitioner->Insert(obj);
+	  const Landscape::ObjectList landscapeObjList = Landscape::GetCoast(renderer, Vector3F(0, 0, 100), 12.5f);
+	  for (auto& e : landscapeObjList) {
+		pPartitioner->Insert(e);
 	  }
 
 	  // Add cloud.
