@@ -11,13 +11,20 @@
 #include <algorithm>
 #include <random>
 
+#ifndef NDEBUG
 #ifdef __ANDROID__
+#include "android_native_app_glue.h"
+#include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "SSU.MainGame", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "SSU.MainGame", __VA_ARGS__))
 #else
 #define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
+#else
+#define LOGI(...)
+#define LOGE(...)
+#endif // NDEBUG
 
 // if activate this macro, the collision box of obstacles is displayed.
 //#define SSU_DEBUG_DISPLAY_COLLISION_BOX
