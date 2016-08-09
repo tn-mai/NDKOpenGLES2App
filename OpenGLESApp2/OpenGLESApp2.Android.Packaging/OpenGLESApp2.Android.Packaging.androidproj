@@ -99,6 +99,8 @@
     <Content Include="assets\Meshes\sunnysideup.msh" />
     <Content Include="assets\Meshes\SunnySideUp01.msh" />
     <Content Include="assets\Meshes\SunnySideUp02.msh" />
+    <Content Include="assets\Meshes\SunnySideUp03.msh" />
+    <Content Include="assets\Meshes\SunnySideUp04.msh" />
     <Content Include="assets\Meshes\TargetCursor.msh" />
     <Content Include="assets\Meshes\titlelogo.msh" />
     <Content Include="assets\Meshes\tower00.msh" />
@@ -184,6 +186,8 @@
     <Content Include="assets\Textures\Adreno\sphereNR.ktx" />
     <Content Include="assets\Textures\Adreno\SunnySideUp01NR.ktx" />
     <Content Include="assets\Textures\Adreno\SunnySideUp02NR.ktx" />
+    <Content Include="assets\Textures\Adreno\SunnySideUp03NR.ktx" />
+    <Content Include="assets\Textures\Adreno\SunnySideUp04NR.ktx" />
     <Content Include="assets\Textures\Adreno\SunnySideUpNR.ktx" />
     <Content Include="assets\Textures\Adreno\tower00NR.ktx" />
     <Content Include="assets\Textures\Adreno\wood.ktx" />
@@ -204,6 +208,8 @@
     <Content Include="assets\Textures\Common\SunnySideUp.ktx" />
     <Content Include="assets\Textures\Common\SunnySideUp01.ktx" />
     <Content Include="assets\Textures\Common\SunnySideUp02.ktx" />
+    <Content Include="assets\Textures\Common\SunnySideUp03.ktx" />
+    <Content Include="assets\Textures\Common\SunnySideUp04.ktx" />
     <Content Include="assets\Textures\Common\titlelogo.ktx" />
     <Content Include="assets\Textures\Common\titlelogoNR.ktx" />
     <Content Include="assets\Textures\Common\tower00.ktx" />
@@ -253,6 +259,8 @@
     <Content Include="assets\Textures\Others\sphereNR.ktx" />
     <Content Include="assets\Textures\Others\SunnySideUp01NR.ktx" />
     <Content Include="assets\Textures\Others\SunnySideUp02NR.ktx" />
+    <Content Include="assets\Textures\Others\SunnySideUp03NR.ktx" />
+    <Content Include="assets\Textures\Others\SunnySideUp04NR.ktx" />
     <Content Include="assets\Textures\Others\SunnySideUpNR.ktx" />
     <Content Include="assets\Textures\Others\tower00NR.ktx" />
     <Content Include="assets\Textures\Others\wood.ktx" />

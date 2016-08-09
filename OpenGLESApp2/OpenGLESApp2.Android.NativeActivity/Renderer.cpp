@@ -1917,6 +1917,8 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/sunnysideup.msh", "sunnysideup", "sunnysideup_nml");
 	LoadFBX("Meshes/SunnySideUp01.msh", "sunnysideup01", "sunnysideup01_nml");
 	LoadFBX("Meshes/SunnySideUp02.msh", "sunnysideup02", "sunnysideup02_nml");
+	LoadFBX("Meshes/SunnySideUp03.msh", "sunnysideup03", "sunnysideup03_nml");
+	LoadFBX("Meshes/SunnySideUp04.msh", "sunnysideup04", "sunnysideup04_nml");
 	LoadFBX("Meshes/OverMedium.msh", "overmedium", "overmedium_nml");
 	LoadFBX("Meshes/block1.msh", "block1", "block1_nml");
 	LoadFBX("Meshes/flyingpan.msh", "flyingpan", "flyingpan_nml");
@@ -2476,6 +2478,10 @@ void Renderer::InitTexture()
 	textureList.insert({ "sunnysideup01_nml", Texture::LoadKTX((texBaseDir + "SunnySideUp01NR.ktx").c_str()) });
 	textureList.insert({ "sunnysideup02", Texture::LoadKTX("Textures/Common/SunnySideUp02.ktx") });
 	textureList.insert({ "sunnysideup02_nml", Texture::LoadKTX((texBaseDir + "SunnySideUp02NR.ktx").c_str()) });
+	textureList.insert({ "sunnysideup03", Texture::LoadKTX("Textures/Common/SunnySideUp03.ktx") });
+	textureList.insert({ "sunnysideup03_nml", Texture::LoadKTX((texBaseDir + "SunnySideUp03NR.ktx").c_str()) });
+	textureList.insert({ "sunnysideup04", Texture::LoadKTX("Textures/Common/SunnySideUp04.ktx") });
+	textureList.insert({ "sunnysideup04_nml", Texture::LoadKTX((texBaseDir + "SunnySideUp04NR.ktx").c_str()) });
 	textureList.insert({ "overmedium", Texture::LoadKTX("Textures/Common/OverMedium.ktx") });
 	textureList.insert({ "overmedium_nml", Texture::LoadKTX((texBaseDir + "OverMediumNR.ktx").c_str()) });
 	textureList.insert({ "brokenegg", Texture::LoadKTX((texBaseDir + "brokenegg.ktx").c_str()) });

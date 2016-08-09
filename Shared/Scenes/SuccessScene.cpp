@@ -68,7 +68,7 @@ namespace SunnySideUp {
 	r.DoesDrawSkybox(false);
 
 	{
-	  auto obj = r.CreateObject("FlyingPan", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
+	  auto obj = r.CreateObject("FlyingPan", Material(Color4B(200, 200, 200, 255), 0, 0), "default");
 	  obj->SetScale(Vector3F(10, 10, 10));
 	  obj->SetTranslation(Vector3F(0, 1.25f, 0));
 	  objList.push_back(obj);
@@ -78,6 +78,8 @@ namespace SunnySideUp {
 		"SunnySideUp",
 		"SunnySideUp01",
 		"SunnySideUp02",
+		"SunnySideUp03",
+		"SunnySideUp04",
 		"OverMedium",
 	  };
 	  boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
@@ -85,6 +87,7 @@ namespace SunnySideUp {
 	  auto obj = r.CreateObject(cookingNameList[n], Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha");
 	  obj->SetScale(Vector3F(7, 7, 7));
 	  obj->SetTranslation(Vector3F(0, 2.0f, 0));
+	  obj->SetRotation(0, degreeToRadian(std::uniform_real_distribution<float>(0, 360)(random)), 0);
 	  objList.push_back(obj);
 	}
 	{
