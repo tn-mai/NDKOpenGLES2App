@@ -11,8 +11,19 @@
 #include <algorithm>
 #include <random>
 
+#ifdef __ANDROID__
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "SSU.MainGame", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "SSU.MainGame", __VA_ARGS__))
+#else
+#define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#endif // __ANDROID__
+
 // if activate this macro, the collision box of obstacles is displayed.
 //#define SSU_DEBUG_DISPLAY_COLLISION_BOX
+
+// Generate course seed instead of course info, and infinite to play main game.
+//#define SSU_GENERATE_COURSE_SEED
 
 namespace SunnySideUp {
 
@@ -246,6 +257,7 @@ namespace SunnySideUp {
   static const int unitObstructsSize = 100;
   static const int minObstructHeight = goalHeight + 150;
   static const int offsetTopObstructs = -500;
+  static const int goalAreaRadius = 500;
 
   /** De Boor algorithm for B-Spline.
 
@@ -449,7 +461,15 @@ namespace SunnySideUp {
 	  const int level = std::min(GetMaximumLevel(), engine.GetCommonData<CommonData>()->level);
 	  const int courseNo = std::min(GetMaximumCourseNo(level), engine.GetCommonData<CommonData>()->courseNo);
 	  const CourseInfo& courseInfo = GetCourseInfo(level, courseNo);
+#ifdef SSU_GENERATE_COURSE_SEED
+	  static uint64_t debugCourseSeed = 0;
+	  ++debugCourseSeed;
+	  random.seed(debugCourseSeed);
+	  LOGI("Course seed: %lld", debugCourseSeed);
+#else
 	  random.seed(courseInfo.seed);
+	  LOGI("Course seed: %lld", courseInfo.seed);
+#endif // SSU_GENERATE_COURSE_SEED
 
 	  // Set a scene lighting information.
 	  {
@@ -496,7 +516,7 @@ namespace SunnySideUp {
 		o.SetScale(Vector3F(courseInfo.targetScale, courseInfo.targetScale, courseInfo.targetScale));
 
 		const float theta = degreeToRadian<float>(RandomFloat(360));
-		const float distance = RandomFloat(400);
+		const float distance = RandomFloat(goalAreaRadius);
 		const float tx = std::cos(theta) * (distance * 2.0f + 10.0f);
 		const float tz = std::sin(theta) * (distance + 20.0f);
 		o.SetTranslation(Vector3F(tx, 40, tz));
@@ -513,9 +533,10 @@ namespace SunnySideUp {
 		pPartitioner->Insert(obj);
 	  }
 
+	  const Position3F startPosition(5, static_cast<float>(courseInfo.startHeight), 4.5f);
 	  {
 		static const size_t posListSize = 5;
-		const std::vector<Position3F> modelRoute = CreateModelRoute(Position3F(5, static_cast<float>(courseInfo.startHeight), 4.5f), objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
+		const std::vector<Position3F> modelRoute = CreateModelRoute(startPosition, objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
 		const auto end = modelRoute.end() - 2;
 		std::normal_distribution<float> normalDistributer(0, 2);
 		const float step = static_cast<float>(unitObstructsSize) * std::max(1.0f, (4.0f - static_cast<float>(courseInfo.difficulty) * 0.5f));
@@ -602,13 +623,16 @@ namespace SunnySideUp {
 		}
 #endif // NDEBUG
 	  }
+	  // the slate block is generated around the line between the start and the goal.
+	  const Vector3F courseVector = startPosition - objFlyingPan->Position();
 	  for (float height = static_cast<float>(courseInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= static_cast<float>(unitObstructsSize) * 5) {
+		const float h = RandomFloat(unitObstructsSize * 2) + static_cast<float>(unitObstructsSize) * 0.5f;
+		const Position3F pos = objFlyingPan->Position() + courseVector * ((height + h - objFlyingPan->Position().y) / courseVector.y);
 		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
 		Object& o = *obj;
-		const float h = RandomFloat(unitObstructsSize * 2) + static_cast<float>(unitObstructsSize) * 0.5f;
 		const float theta = degreeToRadian<float>(RandomFloat(360));
 		const float distance = RandomFloat(150);
-		const Vector3F trans(std::cos(theta) * distance, height + h, std::sin(theta) * distance);
+		const Vector3F trans(pos.x + std::cos(theta) * distance, height + h, pos.z + std::sin(theta) * distance);
 		o.SetTranslation(trans);
 		const float scale = 5.0f;
 		o.SetScale(Vector3F(scale, scale, scale));
@@ -632,7 +656,7 @@ namespace SunnySideUp {
 	  }
 #endif
 
-	  const Landscape::ObjectList landscapeObjList = Landscape::GetCoast(renderer, Vector3F(0, 0, 100), 13.0f);
+	  const Landscape::ObjectList landscapeObjList = Landscape::GetCoast(renderer, Vector3F(0, 0, 100), 14.0f);
 	  for (auto& e : landscapeObjList) {
 		pPartitioner->Insert(e);
 	  }
@@ -970,6 +994,9 @@ namespace SunnySideUp {
 	  if (renderer.GetCurrentFilterMode() == Renderer::FILTERMODE_NONE) {
 		engine.GetCommonData<CommonData>()->currentTime = static_cast<int64_t>(stopWatch * 1000.0f);
 		renderer.FadeIn(1.0f);
+#ifdef SSU_GENERATE_COURSE_SEED
+		return SCENEID_MAINGAME;
+#else
 		const float scale = objFlyingPan->Scale().x;
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
 		const float distance = std::sqrt(v.x * v.x + v.z * v.z);
@@ -979,6 +1006,7 @@ namespace SunnySideUp {
 		}
 		engine.GetAudio().PlaySE("failure", 1.0f);
 		return SCENEID_FAILURE;
+#endif // SSU_GENERATE_COURSE_SEED
 	  }
 	  return SCENEID_CONTINUE;
 	}
