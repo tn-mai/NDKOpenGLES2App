@@ -244,8 +244,8 @@ namespace SunnySideUp {
   static const float countDownTimerTrailingTime = -1.0f;
   static const int goalHeight = 50;
   static const int unitObstructsSize = 100;
-  static const int minObstructHeight = goalHeight + 100;
-  static const int offsetTopObstructs = -400;
+  static const int minObstructHeight = goalHeight + 150;
+  static const int offsetTopObstructs = -500;
 
   /** De Boor algorithm for B-Spline.
 
@@ -329,9 +329,11 @@ namespace SunnySideUp {
 	  const float tx = center.x + std::cos(theta) * r;
 	  const float tz = center.z + std::sin(theta) * r;
 	  v.emplace_back(p.x + tx, p.y, p.z + tz);
-	  center = Position3F(tx, 0, tz) * (r - range) / r;
+	  Vector3F centerVector(-tx, 0, -tz);
+	  const float cr = std::normal_distribution<float>(1.0f, 1.0f)(random);
+	  center = Position3F(tx, 0, tz) + centerVector * cr;
 	  if (i < count / 2) {
-		range = 100.0f;
+		range = 150.0f;
 	  } else {
 		range = 50.0f;
 	  }
@@ -494,7 +496,7 @@ namespace SunnySideUp {
 		o.SetScale(Vector3F(courseInfo.targetScale, courseInfo.targetScale, courseInfo.targetScale));
 
 		const float theta = degreeToRadian<float>(RandomFloat(360));
-		const float distance = RandomFloat(100);
+		const float distance = RandomFloat(400);
 		const float tx = std::cos(theta) * (distance * 2.0f + 10.0f);
 		const float tz = std::sin(theta) * (distance + 20.0f);
 		o.SetTranslation(Vector3F(tx, 40, tz));
@@ -515,6 +517,7 @@ namespace SunnySideUp {
 		static const size_t posListSize = 5;
 		const std::vector<Position3F> modelRoute = CreateModelRoute(Position3F(5, static_cast<float>(courseInfo.startHeight), 4.5f), objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
 		const auto end = modelRoute.end() - 2;
+		std::normal_distribution<float> normalDistributer(0, 2);
 		const float step = static_cast<float>(unitObstructsSize) * std::max(1.0f, (4.0f - static_cast<float>(courseInfo.difficulty) * 0.5f));
 		const int density = std::min<int>(posListSize, courseInfo.density);
 		for (float height = static_cast<float>(courseInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= step) {
@@ -545,7 +548,7 @@ namespace SunnySideUp {
 			  Object& o = *obj;
 			  const Vector3F trans = posList[j];
 			  o.SetTranslation(trans);
-			  const float scale = 12;
+			  const float scale = 12.0f + normalDistributer(random);
 			  o.SetScale(Vector3F(scale, scale, scale));
 			  const float rx = degreeToRadian<float>(RandomFloat(30));
 			  const float ry = degreeToRadian<float>(RandomFloat(360));
@@ -576,6 +579,28 @@ namespace SunnySideUp {
 			}
 		  }
 		}
+#ifndef NDEBUG
+		const float actualGoalHeight = objFlyingPan->Position().y + static_cast<float>(goalHeight);
+		for (float height = static_cast<float>(courseInfo.startHeight); height > actualGoalHeight; height -= 50.0f) {
+		  auto itr = std::lower_bound(modelRoute.begin(), modelRoute.end(), height,
+			[](const Position3F& p, float h) { return p.y >= h; }
+		  );
+		  if (itr == modelRoute.end() || itr == modelRoute.begin()) {
+			continue;
+		  }
+		  const Position3F& pos0 = *(itr - 1); // higher equal pos1
+		  const Position3F& pos1 = *itr; // lower equal pos0
+		  const Vector3F axis((pos1 - pos0));
+		  const Vector3F trans = Vector3F(pos0) + axis * ((pos0.y - height) / (pos0.y - pos1.y));
+
+		  auto obj = renderer.CreateObject("Sphere", Material(Color4B(200, 200, 200, 255), 0, 0), "default");
+		  Object& o = *obj;
+		  o.SetTranslation(trans);
+		  const float scale = 2.0f;
+		  o.SetScale(Vector3F(scale, scale, scale));
+		  pPartitioner->Insert(obj);
+		}
+#endif // NDEBUG
 	  }
 	  for (float height = static_cast<float>(courseInfo.startHeight + offsetTopObstructs); height > static_cast<float>(minObstructHeight); height -= static_cast<float>(unitObstructsSize) * 5) {
 		auto obj = renderer.CreateObject("block1", Material(Color4B(255, 255, 255, 255), 0, 0), "default");
@@ -1143,7 +1168,7 @@ namespace SunnySideUp {
 	  }
 	}
 	template<typename T>
-	float RandomFloat(T n) { return static_cast<float>(random() % n); }
+	float RandomFloat(T n) { return static_cast<float>(std::uniform_int_distribution<>(0, static_cast<int>(n))(random)); }
 
   private:
 	bool initialized;
