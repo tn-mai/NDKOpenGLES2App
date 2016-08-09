@@ -24,7 +24,7 @@ namespace SunnySideUp {
 	virtual void ProcessWindowEvent(Engine&, const Event&);
   private:
 	static const int eventTime = 30;
-	static const int enableInputTime = eventTime - 5;
+	static const int enableInputTime = eventTime - 3;
 
 	int DoFadeIn(Engine&, float);
 	int DoUpdate(Engine&, float);
