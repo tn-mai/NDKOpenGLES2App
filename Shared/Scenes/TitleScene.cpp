@@ -80,7 +80,7 @@ namespace SunnySideUp {
 		Renderer& r = engine.GetRenderer();
 
 		static const TimeOfScene sceneIncidence[] = {
-		  TimeOfScene_Noon, TimeOfScene_Noon,
+		  TimeOfScene_Noon, TimeOfScene_Noon, TimeOfScene_Noon, TimeOfScene_Noon,
 		  TimeOfScene_Sunset, TimeOfScene_Sunset, TimeOfScene_Sunset,
 		  TimeOfScene_Night,
 		};
