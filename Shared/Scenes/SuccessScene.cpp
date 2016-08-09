@@ -77,11 +77,12 @@ namespace SunnySideUp {
 	  static const char* const cookingNameList[] = {
 		"SunnySideUp",
 		"SunnySideUp01",
+		"SunnySideUp02",
 		"OverMedium",
 	  };
 	  boost::random::mt19937 random(static_cast<uint32_t>(time(nullptr)));
 	  const int n = std::uniform_int_distribution<>(0, sizeof(cookingNameList) / sizeof(cookingNameList[0]) - 1)(random);
-	  auto obj = r.CreateObject(cookingNameList[n], Material(Color4B(255, 255, 255, 255), 0, 0), "defaultWithAlpha");
+	  auto obj = r.CreateObject(cookingNameList[n], Material(Color4B(200, 200, 200, 255), 0, 0), "defaultWithAlpha");
 	  obj->SetScale(Vector3F(7, 7, 7));
 	  obj->SetTranslation(Vector3F(0, 2.0f, 0));
 	  objList.push_back(obj);
