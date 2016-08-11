@@ -1122,8 +1122,8 @@ namespace SunnySideUp {
 		  const float n = std::abs(rigidCamera->accel.y) * 3.6f;
 		  const float nod = static_cast<float>(GetNumberOfDigits(n));
 		  const std::string s = DigitsToString(n, 3, false);
-		  renderer.AddString(baseX - cw * nod, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
-		  renderer.AddString(baseX, 0.055f, fontScale, Color4B(255, 255, 255, 255), "Km/h");
+		  renderer.AddString(baseX - cw * nod, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), Renderer::FONTOPTION_OUTLINE, uw);
+		  renderer.AddString(baseX, 0.055f, fontScale, Color4B(255, 255, 255, 255), "Km/h", Renderer::FONTOPTION_OUTLINE);
 		}
 
 		{
@@ -1133,39 +1133,39 @@ namespace SunnySideUp {
 		  }
 		  const float nod = static_cast<float>(GetNumberOfDigits(y));
 		  const std::string s = DigitsToString(y, 4, false);
-		  renderer.AddString(baseX - cw * (nod - 1.0f), 0.1f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
-		  renderer.AddString(baseX + cw0, 0.105f, fontScale, Color4B(255, 255, 255, 255), "M");
+		  renderer.AddString(baseX - cw * (nod - 1.0f), 0.1f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), Renderer::FONTOPTION_OUTLINE, uw);
+		  renderer.AddString(baseX + cw0, 0.105f, fontScale, Color4B(255, 255, 255, 255), "M", Renderer::FONTOPTION_OUTLINE);
 		}
 
 		{
 		  const float nod = static_cast<float>(GetNumberOfDigits(stopWatch));
 		  const std::string s = DigitsToString(stopWatch, 3, false);
-		  renderer.AddString(baseX - cw * (nod + 2.5f), 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
-		  renderer.AddString(baseX - cw * 2.5f, 0.15f, fontScale, Color4B(255, 255, 255, 255), ".");
+		  renderer.AddString(baseX - cw * (nod + 2.5f), 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), Renderer::FONTOPTION_OUTLINE, uw);
+		  renderer.AddString(baseX - cw * 2.5f, 0.15f, fontScale, Color4B(255, 255, 255, 255), ".", Renderer::FONTOPTION_OUTLINE);
 		}
 		{
 		  const float pointDecimal = (stopWatch - std::floor(stopWatch)) * 1000.0f;
 		  const std::string s = DigitsToString(pointDecimal, 3, true);
-		  renderer.AddString(baseX - cw * 2.0f, 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
-		  renderer.AddString(baseX + cw0, 0.155f, fontScale, Color4B(255, 255, 255, 255), "Sec");
+		  renderer.AddString(baseX - cw * 2.0f, 0.15f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), Renderer::FONTOPTION_OUTLINE, uw);
+		  renderer.AddString(baseX + cw0, 0.155f, fontScale, Color4B(255, 255, 255, 255), "Sec", Renderer::FONTOPTION_OUTLINE);
 		}
 		{
 		  CommonData& commonData = *engine.GetCommonData<CommonData>();
 		  std::string s = DigitsToString(commonData.level + 1, 1, false);
 		  s += "-";
 		  s += DigitsToString(commonData.courseNo + 1, 1, false);
-		  renderer.AddString(0.05f, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
+		  renderer.AddString(0.05f, 0.05f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), Renderer::FONTOPTION_OUTLINE, uw);
 		}
 		{
 		  CommonData& commonData = *engine.GetCommonData<CommonData>();
 		  const std::string s(std::max(0, std::min(sizeOfEggPack, commonData.remainingEggs - 1)), static_cast<char>(EMOJIFONTID_EGG));
-		  renderer.AddString(0.05f, 0.95f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
+		  renderer.AddString(0.05f, 0.95f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), Renderer::FONTOPTION_KEEPCOLOR, uw);
 		}
 
 		if (countDownTimer > 0.0f) {
 		  static const char strReady[] = "READY!";
 		  static const char* const strNumber[] = { "1", "2", "3" };
-		  renderer.AddString(0.5f - renderer.GetStringWidth(strReady), 0.3f, 2.0f, Color4B(255, 240, 200, 255), strReady);
+		  renderer.AddString(0.5f - renderer.GetStringWidth(strReady), 0.3f, 2.0f, Color4B(255, 240, 200, 255), strReady, Renderer::FONTOPTION_OUTLINE);
 		  if (countDownTimer < countDownTimerStartTime) {
 			const int index = static_cast<int>(countDownTimer);
 			float dummy;
@@ -1173,7 +1173,7 @@ namespace SunnySideUp {
 			const float w = renderer.GetStringWidth(strNumber[index]) * 0.5f * scale;
 			const float h = renderer.GetStringHeight(strNumber[index]) * 0.5f * scale;
 			const GLbyte a = static_cast<GLbyte>(255.0f * (2.0f - scale * 0.5f));
-			renderer.AddString(0.5f - w, 0.5f - h, scale, Color4B(255, 255, 255, a), strNumber[index]);
+			renderer.AddString(0.5f - w, 0.5f - h, scale, Color4B(255, 255, 255, a), strNumber[index], Renderer::FONTOPTION_OUTLINE);
 		  }
 		} else if (countDownTimer > countDownTimerTrailingTime) {
 		  static const char str[] = "GO!";
@@ -1181,7 +1181,7 @@ namespace SunnySideUp {
 		  const float w = renderer.GetStringWidth(str) * 0.5f * scale;
 		  const float h = renderer.GetStringHeight(str) * 0.5f * scale;
 		  const GLbyte a = static_cast<GLbyte>(255.0f * (1.0f - (scale - 2.0f) / 3.0f));
-		  renderer.AddString(0.5f - w, 0.5f - h, scale, Color4B(255, 200, 155, a), str);
+		  renderer.AddString(0.5f - w, 0.5f - h, scale, Color4B(255, 200, 155, a), str, Renderer::FONTOPTION_OUTLINE);
 		}
 
 		if (hasTiltWarning) {

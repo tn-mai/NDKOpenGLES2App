@@ -67,6 +67,7 @@ namespace Menu {
 	static const uint8_t FLAG_ZOOM_ANIMATION = 0x01;
 	static const uint8_t FLAG_ALPHA_ANIMATION = 0x02;
 	static const uint8_t FLAG_SHADOW = 0x04;
+	static const uint8_t FLAG_OUTLINE = 0x08;
 
 	TextMenuItem(const char* str, const Vector2F& p, float s, int flg = FLAG_SHADOW);
 	TextMenuItem(const char* str, const Vector2F& p, float s, Color4B c, int flg = FLAG_SHADOW);

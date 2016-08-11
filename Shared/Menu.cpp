@@ -197,7 +197,10 @@ namespace Menu {
 	  }
 	}
 	c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
-	r.AddString(offset.x - w, offset.y, scale, c, label, flags & FLAG_SHADOW ? Renderer::FONTOPTION_DROPSHADOW : Renderer::FONTOPTION_NONE);
+	const int options =
+	  (flags & FLAG_SHADOW ? Renderer::FONTOPTION_DROPSHADOW : Renderer::FONTOPTION_NONE) |
+	  (flags & FLAG_OUTLINE ? Renderer::FONTOPTION_OUTLINE : Renderer::FONTOPTION_NONE);
+	r.AddString(offset.x - w, offset.y, scale, c, label, options);
   }
 
   /** Update a object and children.

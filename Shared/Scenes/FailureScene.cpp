@@ -183,8 +183,7 @@ namespace SunnySideUp {
 	}
 	float scale = 1.0f;
 	const float w = r.GetStringWidth(str) * scale;
-	r.AddString(0.51f - w * 0.5f, 0.26f, scale, Color4B(20, 10, 10, 128), str);
-	r.AddString(0.5f - w * 0.5f, 0.25f, scale, Color4B(200, 200, 200, 255), str);
+	r.AddString(0.5f - w * 0.5f, 0.25f, scale, Color4B(200, 200, 200, 255), str, Renderer::FONTOPTION_OUTLINE | Renderer::FONTOPTION_DROPSHADOW);
 	r.Render(&objList[0], &objList[0] + objList.size());
   }
 

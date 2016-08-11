@@ -105,16 +105,16 @@ namespace SunnySideUp {
 	}
 
 	float scale = 1.0f;
-	rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("THAT'S YUMMY!", Vector2F(0.5f, 0.25f), scale, Color4B(250, 250, 250, 255))));
+	rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("THAT'S YUMMY!", Vector2F(0.5f, 0.25f), scale, Color4B(250, 250, 250, 255), Menu::TextMenuItem::FLAG_SHADOW | Menu::TextMenuItem::FLAG_OUTLINE)));
 	if (hasNewRecord) {
-	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("NEW RECORD!", Vector2F(0.5f, 0.675f), scale, Color4B(250, 100, 50, 255), Menu::TextMenuItem::FLAG_ALPHA_ANIMATION)));
+	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("NEW RECORD!", Vector2F(0.5f, 0.675f), 1.2f * scale, Color4B(250, 100, 50, 255), Menu::TextMenuItem::FLAG_ALPHA_ANIMATION)));
 	}
-	rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("YOUR TIME IS:", Vector2F(0.5f, 0.75f), scale, Color4B(250, 250, 250, 255))));
+	rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("YOUR TIME IS:", Vector2F(0.5f, 0.75f), scale, Color4B(250, 250, 250, 255), Menu::TextMenuItem::FLAG_SHADOW | Menu::TextMenuItem::FLAG_OUTLINE)));
 	{
 	  const float time = static_cast<float>(engine.GetCommonData<CommonData>()->currentTime) / 1000.0f;
 	  char buf[32];
 	  sprintf(buf, "%03.3fSec", time);
-	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.825f), scale, Color4B(250, 250, 250, 255))));
+	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem(buf, Vector2F(0.5f, 0.825f), scale, Color4B(250, 250, 250, 255), Menu::TextMenuItem::FLAG_SHADOW | Menu::TextMenuItem::FLAG_OUTLINE)));
 	}
 	if (pCommonData->courseNo >= GetMaximumCourseNo(pCommonData->level)) {
 	  rootMenu.Add(Menu::MenuItem::Pointer(new Menu::TextMenuItem("LEVEL CLEAR", Vector2F(0.5f, 0.9f), 1.2f * scale, Color4B(100, 100, 250, 255), Menu::TextMenuItem::FLAG_ALPHA_ANIMATION)));
