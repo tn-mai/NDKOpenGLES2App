@@ -26,6 +26,11 @@ struct FontVertex {
   Color4B  color;
 };
 
+enum EmojiFontId {
+  EMOJIFONTID_EGG = 0x80,
+};
+static const size_t EMOJIFONTID_Max = 1;
+
 enum SpecialFontId {
   SPECIALFONTID_READY,
   SPECIALFONTID_3,

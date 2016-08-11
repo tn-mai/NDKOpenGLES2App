@@ -22,75 +22,109 @@ GLushort FontInfo::GetHeight() const {
 const FontInfo dummyFontInfo = FONTINFO(0, 0, 0, 0);
 
 const FontInfo asciiFontInfo[] = {
-  FONTINFO(0, 0, 20, 0), // (space)
-  FONTINFO(0, 0, 20, 52), // !
-  FONTINFO(20, 0, 50, 52), // " 
-  FONTINFO(50, 0, 72, 52), // #
-  FONTINFO(72, 0, 92, 52), // $
-  FONTINFO(92, 0, 130, 52), // %
-  FONTINFO(130, 0, 160, 52), // &
-  FONTINFO(160, 0, 174, 52), // '
-  FONTINFO(174, 0, 188, 52), // (
-  FONTINFO(188, 0, 202, 52), // )
-  FONTINFO(202, 0, 224, 52), // *
-  FONTINFO(225, 0, 248, 52), // +
-  FONTINFO(248, 0, 264, 52), // ,
-  FONTINFO(264, 0, 297, 52), // -
-  FONTINFO(297, 0, 314, 52), // .
-  FONTINFO(314, 0, 344, 52), // /
+  FONTINFO(488, 4, 510,  50), // (space)
+  FONTINFO(2,   4,  22,  50), // !
+  FONTINFO(26,  4,  50,  50), // " 
+  FONTINFO(58,  4,  80,  50), // #
+  FONTINFO(84,  4, 104,  50), // $
+  FONTINFO(108, 4, 144,  50), // %
+  FONTINFO(150, 4, 174,  50), // &
+  FONTINFO(178, 4, 194,  50), // '
+  FONTINFO(196, 4, 212,  50), // (
+  FONTINFO(216, 4, 232,  50), // )
+  FONTINFO(236, 4, 256,  50), // *
+  FONTINFO(260, 4, 284,  50), // +
+  FONTINFO(288, 4, 304,  50), // ,
+  FONTINFO(308, 4, 338,  50), // -
+  FONTINFO(342, 4, 360,  50), // .
+  FONTINFO(362, 4, 390,  50), // /
 
-  FONTINFO(  0, 55, 35,  101), // 0
-  FONTINFO( 35, 55, 54,  101), // 1
-  FONTINFO( 54, 55, 80,  101), // 2 
-  FONTINFO( 80, 55, 110, 101), // 3
-  FONTINFO(110, 55, 143, 101), // 4
-  FONTINFO(143, 55, 171, 101), // 5
-  FONTINFO(171, 55, 199, 101), // 6
-  FONTINFO(199, 55, 229, 101), // 7
-  FONTINFO(229, 55, 257, 101), // 8
-  FONTINFO(257, 55, 286, 101), // 9
-  FONTINFO(286, 55, 303, 101), // ;
-  FONTINFO(303, 55, 321, 101), // ;
-  FONTINFO(321, 55, 355, 101), // <
-  FONTINFO(355, 55, 391, 101), // =
-  FONTINFO(391, 55, 424, 101), // >
-  FONTINFO(424, 55, 452, 101), // ?
+  FONTINFO(  2, 96, 36,  138), // 0
+  FONTINFO( 38, 96, 60,  138), // 1
+  FONTINFO( 62, 96, 90,  138), // 2 
+  FONTINFO( 91, 96, 120, 138), // 3
+  FONTINFO(122, 96, 154, 138), // 4
+  FONTINFO(158, 96, 185, 138), // 5
+  FONTINFO(188, 96, 216, 138), // 6
+  FONTINFO(219, 96, 248, 138), // 7
+  FONTINFO(251, 96, 278, 138), // 8
+  FONTINFO(282, 96, 310, 138), // 9
+  FONTINFO( 40, 52,  58,  98), // ;
+  FONTINFO( 62, 52,  80,  98), // ;
+  FONTINFO( 86, 52, 114,  98), // <
+  FONTINFO(120, 52, 153,  98), // =
+  FONTINFO(158, 52, 188,  98), // >
+  FONTINFO(192, 52, 219,  98), // ?
 
-  FONTINFO(  0, 101,  26, 142), // @
-  FONTINFO( 26, 101,  60, 142), // A
-  FONTINFO( 60, 101,  96, 142), // B
-  FONTINFO( 96, 101, 130, 142), // C
-  FONTINFO(130, 101, 162, 142), // D
-  FONTINFO(162, 101, 190, 142), // E
-  FONTINFO(190, 101, 218, 142), // F
-  FONTINFO(218, 101, 254, 142), // G
-  FONTINFO(254, 101, 293, 142), // H
-  FONTINFO(293, 101, 312, 142), // I
-  FONTINFO(312, 101, 342, 142), // J
-  FONTINFO(342, 101, 379, 142), // K
-  FONTINFO(379, 101, 405, 142), // L
-  FONTINFO(405, 101, 444, 142), // M
-  FONTINFO(444, 101, 472, 142), // N
-  FONTINFO(472, 101, 507, 142), // O
+  FONTINFO(220,  52, 248,  98), // @
+  FONTINFO(312,  98, 346, 140), // A
+  FONTINFO(348,  98, 384, 140), // B
+  FONTINFO(387,  98, 420, 140), // C
+  FONTINFO(422,  98, 453, 140), // D
+  FONTINFO(456,  98, 484, 140), // E
+  FONTINFO(  2, 140,  30, 182), // F
+  FONTINFO( 34, 140,  68, 182), // G
+  FONTINFO( 70, 140, 108, 182), // H
+  FONTINFO(110, 140, 132, 182), // I
+  FONTINFO(134, 140, 162, 182), // J
+  FONTINFO(166, 140, 200, 182), // K
+  FONTINFO(204, 140, 230, 182), // L
+  FONTINFO(234, 140, 270, 182), // M
+  FONTINFO(274, 140, 300, 182), // N
+  FONTINFO(302, 140, 336, 182), // O
 
-  FONTINFO(  0, 150,  36,  197), // P
-  FONTINFO( 36, 150,  75,  197), // Q
-  FONTINFO( 75, 150, 111,  197), // R
-  FONTINFO(111, 150, 138,  197), // S
-  FONTINFO(138, 150, 170,  197), // T
-  FONTINFO(170, 150, 201, 197), // U
-  FONTINFO(201, 150, 230, 197), // V
-  FONTINFO(230, 150, 279, 197), // W
-  FONTINFO(279, 150, 314, 197), // X
-  FONTINFO(314, 150, 349, 197), // Y
-  FONTINFO(349, 150, 377, 197), // Z
-  FONTINFO(377, 150, 395, 197), // [
-  FONTINFO(395, 150, 418, 197), // '\'
-  FONTINFO(418, 150, 433, 197), // ]
-  FONTINFO(433, 150, 468, 197), // ^
-  FONTINFO(468, 150, 503, 197), // _
+  FONTINFO(340, 140, 374, 182), // P
+  FONTINFO(378, 140, 413, 182), // Q
+  FONTINFO(416, 140, 452, 182), // R
+  FONTINFO(455, 140, 480, 182), // S
+  FONTINFO(  2, 182,  34, 224), // T
+  FONTINFO( 36, 182,  66, 224), // U
+  FONTINFO( 70, 182,  98, 224), // V
+  FONTINFO(100, 182, 146, 224), // W
+  FONTINFO(150, 182, 182, 224), // X
+  FONTINFO(186, 182, 218, 224), // Y
+  FONTINFO(222, 182, 249, 224), // Z
+  FONTINFO(324,  52, 341,  98), // [
+  FONTINFO(346,  52, 366,  98), // '\'
+  FONTINFO(341,  52, 324,  98), // ]
+  FONTINFO(252,  52, 282,  98), // ^
+  FONTINFO(287,  52, 319,  98), // _
 
-  FONTINFO(0, 197,  36,  252), // Egg
+  FONTINFO(393,   4, 409,  50), // `
+  FONTINFO(312,  98, 346, 140), // A
+  FONTINFO(348,  98, 384, 140), // B
+  FONTINFO(387,  98, 420, 140), // C
+  FONTINFO(422,  98, 453, 140), // D
+  FONTINFO(456,  98, 484, 140), // E
+  FONTINFO(2, 140,  30, 182), // F
+  FONTINFO(34, 140,  68, 182), // G
+  FONTINFO(70, 140, 108, 182), // H
+  FONTINFO(110, 140, 132, 182), // I
+  FONTINFO(134, 140, 162, 182), // J
+  FONTINFO(166, 140, 200, 182), // K
+  FONTINFO(204, 140, 230, 182), // L
+  FONTINFO(234, 140, 270, 182), // M
+  FONTINFO(274, 140, 300, 182), // N
+  FONTINFO(302, 140, 336, 182), // O
+
+  FONTINFO(340, 140, 374, 182), // P
+  FONTINFO(378, 140, 413, 182), // Q
+  FONTINFO(416, 140, 452, 182), // R
+  FONTINFO(455, 140, 480, 182), // S
+  FONTINFO(2, 182,  34, 224), // T
+  FONTINFO(36, 182,  66, 224), // U
+  FONTINFO(70, 182,  98, 224), // V
+  FONTINFO(100, 182, 146, 224), // W
+  FONTINFO(150, 182, 182, 224), // X
+  FONTINFO(186, 182, 218, 224), // Y
+  FONTINFO(222, 182, 249, 224), // Z
+  FONTINFO(412,   4, 437,  50), // {
+  FONTINFO(440,   4, 456,  50), // |
+  FONTINFO(461,   4, 487,  50), // }
+  FONTINFO(  2,  52,  37,  98), // ~
+  FONTINFO(  0,   4,   0,  50), // (del)
+
+  FONTINFO(  2, 223,  36,  264), // Egg
 };
 
 const FontInfo specialFontInfo[] = {
@@ -107,15 +141,12 @@ const FontInfo specialFontInfo[] = {
 };
 
 const FontInfo& GetAsciiFontInfo(int code) {
-  if (code >= 'a' && code <= 'z') {
-	code -= 'a' - 'A';
-  } else if (code < ' ' || code > '_') {
-	if (code > 0 && code <= 15) {
-	  return asciiFontInfo['_' - ' ' + code];
-	}
-    return dummyFontInfo;
+  // for the special characters(0x80-).
+  // it will be used for emoji.
+  if (code >= ' ' && code < 0x80 + EMOJIFONTID_Max) {
+	return asciiFontInfo[code - ' '];
   }
-  return asciiFontInfo[code - ' '];
+  return dummyFontInfo;
 }
 
 const FontInfo& GetSpecialFontInfo(SpecialFontId id) {
