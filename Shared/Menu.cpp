@@ -197,11 +197,7 @@ namespace Menu {
 	  }
 	}
 	c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
-	if (flags & FLAG_SHADOW) {
-	  const Color4B shadowColor(c.r / 4, c.g / 4, c.b / 4, c.a / 2);
-	  r.AddString(offset.x - w + 0.0075f, offset.y + 0.01f, scale, shadowColor, label);
-	}
-	r.AddString(offset.x - w, offset.y, scale, c, label);
+	r.AddString(offset.x - w, offset.y, scale, c, label, flags & FLAG_SHADOW ? Renderer::FONTOPTION_DROPSHADOW : Renderer::FONTOPTION_NONE);
   }
 
   /** Update a object and children.
