@@ -974,7 +974,7 @@ void Renderer::DrawFontFoo()
   const float th = static_cast<float>(fontTexture->Height());
   for (auto e : fontRenderingInfoList) {
 	if (e.options & FONTOPTION_OUTLINE) {
-	  glUniform4f(shader.fontOutlineInfo, 0.45f, 0.5f, 0.65f, 0.75f);
+	  glUniform4f(shader.fontOutlineInfo, 0.45f, 0.5f, 0.75f, 0.8f);
 	} else if (e.options & FONTOPTION_KEEPCOLOR) {
 	  glUniform4f(shader.fontOutlineInfo, 0.3f, 1.0f, -1.0f, 1.0f);
 	} else {
