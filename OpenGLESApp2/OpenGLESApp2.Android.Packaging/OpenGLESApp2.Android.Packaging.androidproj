@@ -85,6 +85,7 @@
     <Content Include="assets\Meshes\brokenegg.msh" />
     <Content Include="assets\Meshes\building00.msh" />
     <Content Include="assets\Meshes\building01.msh" />
+    <Content Include="assets\Meshes\CheckPoint.msh" />
     <Content Include="assets\Meshes\chickenegg.msh" />
     <Content Include="assets\Meshes\Coast.msh" />
     <Content Include="assets\Meshes\CoastTown.msh" />
@@ -146,6 +147,7 @@
     <Content Include="assets\Textures\Adreno\brokeneggNR.ktx" />
     <Content Include="assets\Textures\Adreno\building00NR.ktx" />
     <Content Include="assets\Textures\Adreno\building01NR.ktx" />
+    <Content Include="assets\Textures\Adreno\CheckPointNR.ktx" />
     <Content Include="assets\Textures\Adreno\chickenegg.ktx" />
     <Content Include="assets\Textures\Adreno\chickeneggNR.ktx" />
     <Content Include="assets\Textures\Adreno\EggPackNR.ktx" />
@@ -197,6 +199,7 @@
     <Content Include="assets\Textures\Common\block1NR.ktx" />
     <Content Include="assets\Textures\Common\building00.ktx" />
     <Content Include="assets\Textures\Common\building01.ktx" />
+    <Content Include="assets\Textures\Common\CheckPoint.ktx" />
     <Content Include="assets\Textures\Common\cloud.ktx" />
     <Content Include="assets\Textures\Common\coast.ktx" />
     <Content Include="assets\Textures\Common\coastNR.ktx" />
@@ -219,6 +222,7 @@
     <Content Include="assets\Textures\Others\brokeneggNR.ktx" />
     <Content Include="assets\Textures\Others\building00NR.ktx" />
     <Content Include="assets\Textures\Others\building01NR.ktx" />
+    <Content Include="assets\Textures\Others\CheckPointNR.ktx" />
     <Content Include="assets\Textures\Others\chickenegg.ktx" />
     <Content Include="assets\Textures\Others\chickeneggNR.ktx" />
     <Content Include="assets\Textures\Others\EggPackNR.ktx" />

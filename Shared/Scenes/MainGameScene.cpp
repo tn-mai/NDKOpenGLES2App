@@ -443,6 +443,7 @@ namespace SunnySideUp {
 	  , random(static_cast<uint32_t>(time(nullptr)))
 	  , playerMovement(0, 0, 0)
 	  , playerRotation(0, 0, 0)
+	  , prevPlayerPos(0, 10000, 0)
 	  , countDownTimer(countDownTimerInitialTime)
 	  , stopWatch(0)
 	  , warningTransparency(0)
@@ -608,6 +609,39 @@ namespace SunnySideUp {
 			}
 		  }
 		}
+
+		// add check points.
+		checkPointList.reserve(courseInfo.startHeight / 1000 + 1);
+		for (float height = static_cast<float>(courseInfo.startHeight) - 1100.0f; height > goalHeight + 500.0f; height -= 1000.0f) {
+		  auto itr = std::lower_bound(modelRoute.begin(), modelRoute.end(), height,
+			[](const Position3F& p, float h) { return p.y >= h; }
+		  );
+		  if (itr == modelRoute.end() || itr == modelRoute.begin()) {
+			continue;
+		  }
+		  const Position3F& pos0 = *(itr - 1); // higher equal pos1
+		  const Position3F& pos1 = *itr; // lower equal pos0
+		  const Vector3F axis((pos1 - pos0));
+		  Vector3F trans = Vector3F(pos0) + axis * ((pos0.y - height) / (pos0.y - pos1.y));
+		  if (trans.x < 0) {
+			trans.x += 20.0f;
+		  } else {
+			trans.x -= 20.0f;
+		  }
+		  if (trans.z < 0) {
+			trans.z += 20.0f;
+		  } else {
+			trans.z -= 20.0f;
+		  }
+
+		  auto obj = renderer.CreateObject("CheckPoint", Material(Color4B(200, 200, 200, 255), 0.0f, 0.0f), "default", ShadowCapability::Disable);
+		  Object& o = *obj;
+		  o.SetScale(Vector3F(30, 30, 30));
+		  o.SetTranslation(trans);
+		  pPartitioner->Insert(obj);
+		  checkPointList.push_back(CheckPoint(obj));
+		}
+
 #ifndef NDEBUG
 		const float actualGoalHeight = objFlyingPan->Position().y + static_cast<float>(goalHeight);
 		for (float height = static_cast<float>(courseInfo.startHeight); height > actualGoalHeight; height -= 50.0f) {
@@ -711,6 +745,7 @@ namespace SunnySideUp {
 	  audio.LoadSE("bound", "Audio/bound.wav");
 	  audio.LoadSE("success", "Audio/success.wav");
 	  audio.LoadSE("failure", "Audio/miss.wav");
+	  audio.LoadSE("wind", "Audio/wind.wav");
 	  audio.LoadSE("countdown_3", "Audio/countdown_3.wav");
 	  audio.LoadSE("countdown_2", "Audio/countdown_2.wav");
 	  audio.LoadSE("countdown_1", "Audio/countdown_1.wav");
@@ -920,6 +955,12 @@ namespace SunnySideUp {
 		playerRotation.z = std::min(0.5f, std::max(-0.5f, playerMovement.x * -0.05f));
 		objPlayer->SetRotation(playerRotation.x, playerRotation.y, playerRotation.z);
 #endif // __ANDROID__
+
+		if (DidPassCheckPoint()) {
+		  engine.GetAudio().PlaySE("wind", 1.0f);
+		  rigidCamera->accel += Normalize(rigidCamera->accel) * 75.0f;
+		  LOGI("Pass CheckPoint");
+		}
 	  }
 	  pPartitioner->Update(deltaTime);
 	  if (rigidCamera && rigidCamera->hasLatestCollision && rigidCamera->accel.LengthSq() > (2.0f * 2.0f)) {
@@ -1206,6 +1247,33 @@ namespace SunnySideUp {
 	template<typename T>
 	float RandomFloat(T n) { return static_cast<float>(std::uniform_int_distribution<>(0, static_cast<int>(n))(random)); }
 
+	struct CheckPoint {
+	  explicit CheckPoint(ObjectPtr& o) : obj(o), checked(false) {}
+	  ObjectPtr obj;
+	  bool checked;
+	};
+
+	bool DidPassCheckPoint() {
+	  const Position3F playerPos = objPlayer->Position();
+	  for (CheckPoint& e : checkPointList) {
+		if (!e.checked) {
+		  const Position3F targetPos = e.obj->Position();
+		  if (prevPlayerPos.y >= targetPos.y && playerPos.y < targetPos.y) {
+			const Position3F tmpPlayerPos = prevPlayerPos + (playerPos - prevPlayerPos) * ((prevPlayerPos.y - targetPos.y) / (prevPlayerPos.y - playerPos.y));
+			Vector3F distance = targetPos - tmpPlayerPos;
+			distance.y = 0;
+			if (distance.LengthSq() < 32.0f * 32.0f) {
+			  e.checked = true;
+			  prevPlayerPos = playerPos;
+			  return true;
+			}
+		  }
+		}
+	  }
+	  prevPlayerPos = playerPos;
+	  return false;
+	}
+
   private:
 	bool initialized;
 	bool hasTiltWarning;
@@ -1216,6 +1284,8 @@ namespace SunnySideUp {
 	ObjectPtr objFlyingPan;
 	Vector3F playerMovement;
 	Vector3F playerRotation;
+	Position3F prevPlayerPos;
+	std::vector<CheckPoint> checkPointList;
 	float countDownTimer;
 	float stopWatch;
 	float warningTransparency;

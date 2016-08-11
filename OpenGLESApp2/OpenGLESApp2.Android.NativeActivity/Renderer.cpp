@@ -1955,6 +1955,7 @@ void Renderer::InitMesh()
 	LoadFBX("Meshes/tower00.msh", "tower00", "tower00_nml", true);
 	LoadFBX("Meshes/CoastTown.msh", "building01", "building01_nml");
 	LoadFBX("Meshes/EggPack.msh", "EggPack", "EggPack_nml");
+	LoadFBX("Meshes/CheckPoint.msh", "checkpoint", "checkpoint_nml");
 
 	CreateSkyboxMesh();
 	CreateUnitBoxMesh();
@@ -2518,6 +2519,8 @@ void Renderer::InitTexture()
 	textureList.insert({ "titlelogo", Texture::LoadKTX("Textures/Common/titlelogo.ktx") });
 	textureList.insert({ "titlelogo_nml", Texture::LoadKTX("Textures/Common/titlelogoNR.ktx") });
 	textureList.insert({ "font", Texture::LoadKTX("Textures/Common/font.ktx") });
+	textureList.insert({ "checkpoint", Texture::LoadKTX("Textures/Common/CheckPoint.ktx") });
+	textureList.insert({ "checkpoint_nml", Texture::LoadKTX((texBaseDir + "CheckPointNR.ktx").c_str()) });
 }
 
 ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName, ShadowCapability sc)
