@@ -3,6 +3,7 @@
 #include "LevelInfo.h"
 #include "Scene.h"
 #include "Landscape.h"
+#include "../FontInfo.h"
 #include "../Audio.h"
 #include "../../OpenGLESApp2/OpenGLESApp2.Android.NativeActivity/Renderer.h"
 #include <boost/math/constants/constants.hpp>
@@ -1157,7 +1158,7 @@ namespace SunnySideUp {
 		}
 		{
 		  CommonData& commonData = *engine.GetCommonData<CommonData>();
-		  const std::string s(std::max(0, std::min(sizeOfEggPack, commonData.remainingEggs - 1)), '\1');
+		  const std::string s(std::max(0, std::min(sizeOfEggPack, commonData.remainingEggs - 1)), static_cast<char>(EMOJIFONTID_EGG));
 		  renderer.AddString(0.05f, 0.95f, numberFontScale, Color4B(255, 255, 255, 255), s.c_str(), uw);
 		}
 
