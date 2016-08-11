@@ -103,6 +103,9 @@ namespace Mai {
 
 	GLint cloudColor;
 
+	GLint fontOutlineInfo;
+	GLint fontDropShadowInfo;
+
 	GLint debug;
 
 	ShaderType type;
@@ -224,6 +227,17 @@ namespace Mai {
 	  FILTERMODE_FADEOUT, ///< fade out.
 	};
 
+	/**
+	* Font rendering options.
+	* @sa AddString()
+	*/
+	enum FontOption {
+	  FONTOPTION_NONE = 0x00,
+	  FONTOPTION_OUTLINE = 0x01,
+	  FONTOPTION_DROPSHADOW = 0x02,
+	  FONTOPTION_KEEPCOLOR = 0x04,
+	};
+
   public:
 	Renderer();
 	~Renderer();
@@ -241,7 +255,7 @@ namespace Mai {
 
 	void ClearDebugString() { debugStringList.clear(); }
 	void AddDebugString(int x, int y, const char* s) { debugStringList.push_back(DebugStringObject(x, y, s)); }
-	void AddString(float x, float y, float scale, const Color4B& color, const char*, float uw=0.0f);
+	void AddString(float x, float y, float scale, const Color4B& color, const char*, int = FONTOPTION_NONE, float uw=0.0f);
 	float GetStringWidth(const char*) const;
 	float GetStringHeight(const char*) const;
 
@@ -366,6 +380,7 @@ namespace Mai {
 	struct FontRenderingInfo {
 	  GLint first;
 	  GLsizei count;
+	  int options;
 	};
 	std::vector<FontRenderingInfo> fontRenderingInfoList;
 	int currentFontBufferNo;

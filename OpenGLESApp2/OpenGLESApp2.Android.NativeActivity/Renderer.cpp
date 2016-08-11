@@ -246,6 +246,8 @@ namespace {
 		s.lightDirForShadow = glGetUniformLocation(program, "lightDirForShadow");
 		s.matLightForShadow = glGetUniformLocation(program, "matLightForShadow");
 		s.cloudColor = glGetUniformLocation(program, "cloudColor");
+		s.fontOutlineInfo = glGetUniformLocation(program, "fontOutlineInfo");
+		s.fontDropShadowInfo = glGetUniformLocation(program, "fontDropShadowInfo");
 
 		s.debug = glGetUniformLocation(program, "debug");
 
@@ -882,9 +884,10 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   @param scale  rendering scale. 1.0 is actual font size.
   @param color  rendering color.
   @param str    pointer to rendering string.
+  @param options reidering options. @sa FontOption
   @param uw     width par character. if it is zero, each character width will be calculated automatically.
 */
-void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str, float uw) {
+void Renderer::AddString(float x, float y, float scale, const Color4B& color, const char* str, int options, float uw) {
   const size_t freeCount = MAX_FONT_RENDERING_COUNT - vboFontEnd / (sizeof(FontVertex) * 4);
   if (strlen(str) > freeCount) {
 	LOGI("buffer over in AddString: %s", str);
@@ -892,7 +895,7 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
   }
   std::vector<FontVertex> vertecies;
   Position2F curPos = Position2F(x, y) * Vector2F(2, -2) + Vector2F(-1, 1);
-  while (const char c = *(str++)) {
+  while (const int c = *reinterpret_cast<const uint8_t*>(str++)) {
 	const FontInfo& info = GetAsciiFontInfo(c);
 	const float fw = info.GetWidth() * viewport[2] / referenceViewportSize.x;
 	const float fh = info.GetHeight() * viewport[3] / referenceViewportSize.y;
@@ -908,7 +911,7 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
 	glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
 	glBufferSubData(GL_ARRAY_BUFFER, vboFontEnd, vertecies.size() * sizeof(FontVertex), &vertecies[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()) });
+	fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()), options });
 	vboFontEnd += vertecies.size() * sizeof(FontVertex);
   }
 }
@@ -946,9 +949,10 @@ void Renderer::DrawFontFoo()
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_CULL_FACE);
 
+  const Texture::TexturePtr fontTexture = textureList["font"];
   glUniform1i(shader.texDiffuse, 0);
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, textureList["font"]->TextureId());
+  glBindTexture(GL_TEXTURE_2D, fontTexture->TextureId());
 
   glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -966,7 +970,25 @@ void Renderer::DrawFontFoo()
   glVertexAttribPointer(VertexAttribLocation_Position, 2, GL_FLOAT, GL_FALSE, stride, offPosition);
   glVertexAttribPointer(VertexAttribLocation_TexCoord01, 2, GL_UNSIGNED_SHORT, GL_TRUE, stride, offTexCoord);
   glVertexAttribPointer(VertexAttribLocation_Color, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride, offColor);
+  const float tw = static_cast<float>(fontTexture->Width());
+  const float th = static_cast<float>(fontTexture->Height());
   for (auto e : fontRenderingInfoList) {
+	if (e.options & FONTOPTION_OUTLINE) {
+	  glUniform4f(shader.fontOutlineInfo, 0.45f, 0.5f, 0.65f, 0.75f);
+	} else if (e.options & FONTOPTION_KEEPCOLOR) {
+	  glUniform4f(shader.fontOutlineInfo, 0.3f, 1.0f, -1.0f, 1.0f);
+	} else {
+	  glUniform4f(shader.fontOutlineInfo, 0.6f, 0.7f, -1.0f, 1.0f);
+	}
+	if (e.options & FONTOPTION_DROPSHADOW) {
+	  if (e.options & FONTOPTION_OUTLINE) {
+		glUniform4f(shader.fontDropShadowInfo, -3.0f / tw, 3.0f / th, 0.45f, 0.55f);
+	  } else {
+		glUniform4f(shader.fontDropShadowInfo, -3.0f / tw, 3.0f / th, 0.6f, 0.7f);
+	  }
+	} else {
+	  glUniform4f(shader.fontDropShadowInfo, 0.0f, 0.0f, 0.6f, 0.7f);
+	}
 	glDrawArrays(GL_TRIANGLE_STRIP, e.first, e.count);
   }
   for (int i = 0; i < VertexAttribLocation_Max; ++i) {
