@@ -74,6 +74,7 @@
     <Content Include="assets\Audio\countdown_3.wav" />
     <Content Include="assets\Audio\countdown_go.wav" />
     <Content Include="assets\Audio\dive.mp3" />
+    <Content Include="assets\Audio\fryingegg.mp3" />
     <Content Include="assets\Audio\gameover.mp3" />
     <Content Include="assets\Audio\miss.wav" />
     <Content Include="assets\Audio\pagefeed.wav" />

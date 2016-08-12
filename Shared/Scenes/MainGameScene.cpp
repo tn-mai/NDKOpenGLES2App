@@ -1050,7 +1050,10 @@ namespace SunnySideUp {
 		const Vector3F v = objPlayer->Position() - objFlyingPan->Position();
 		const float distance = std::sqrt(v.x * v.x + v.z * v.z);
 		if (distance <= 1.25f * scale) {
-		  engine.GetAudio().PlaySE("success", 1.0f);
+		  AudioInterface& audio = engine.GetAudio();
+		  audio.PlayBGM("Audio/fryingegg.mp3", 1.0f);
+		  audio.SetBGMLoopFlag(false);
+		  audio.PlaySE("success", 1.0f);
 		  return SCENEID_SUCCESS;
 		}
 		engine.GetAudio().PlaySE("failure", 1.0f);
