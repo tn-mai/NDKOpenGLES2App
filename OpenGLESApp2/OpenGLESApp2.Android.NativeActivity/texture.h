@@ -25,7 +25,7 @@ namespace Texture {
 	TexturePtr CreateDummy2D();
 	TexturePtr CreateDummyNormal();
 	TexturePtr CreateDummyCubeMap();
-	TexturePtr LoadKTX(const char*, GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
+	TexturePtr LoadKTX(const char*, bool decompressing = false, GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
 }
 
 #endif // ETC1_HEADER_INCLUDED

@@ -5,6 +5,7 @@
 #include <android/log.h>
 #endif // __ANDROID__
 #include <vector>
+#include <algorithm>
 
 #ifdef __ANDROID__
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "texture.cpp", __VA_ARGS__))
@@ -109,7 +110,7 @@ namespace Texture {
 			if (texId) {
 				glDeleteTextures(1, &texId);
 				if (totalByteSize < byteSize) {
-					LOGW("Total texture size mismatch: total/current(0x%x/0x%x)", totalByteSize, byteSize);
+					LOGW("Total texture size mismatch: total/current(0x%llx/0x%x)", totalByteSize, byteSize);
 					totalByteSize = 0;
 				} else {
 					totalByteSize -= byteSize;
@@ -122,6 +123,210 @@ namespace Texture {
 		virtual GLsizei Width() const { return width; }
 		virtual GLsizei Height() const { return height; }
 	};
+
+	bool Color1555To888(uint16_t color1555, uint32_t* pColor888) {
+	  const uint32_t r = ((color1555 & 0x00007C00) >> 7) | ((color1555 & 0x00007000) >> 12);
+	  const uint32_t g = ((color1555 & 0x000003E0) >> 2) | ((color1555 & 0x00000380) >> 7);
+	  const uint32_t b = ((color1555 & 0x0000001F) << 3) | ((color1555 & 0x0000001C) >> 2);
+	  *pColor888 = (b << 16) | (g << 8) | r;
+
+	  return (color1555 & 0x8000) != 0;
+	}
+
+	void Color565To888(uint16_t color565, uint32_t* pColor888) {
+	  const uint32_t r = ((color565 & 0x0000F800) >> 8) | ((color565 & 0x0000E000) >> 13);
+	  const uint32_t g = ((color565 & 0x000007E0) >> 3) | ((color565 & 0x00000600) >> 9);
+	  const uint32_t b = ((color565 & 0x0000001F) << 3) | ((color565 & 0x0000001C) >> 2);
+	  *pColor888 = (b << 16) | (g << 8) | r;
+	}
+
+	template<uint32_t RightShift, uint32_t Mask = 0xff, typename R = uint32_t>
+	R Elem(uint32_t rgba) { return static_cast<R>((rgba >> RightShift) & Mask); }
+
+	void GetColors(uint16_t color0, uint16_t color1, uint32_t* col) {
+	  static int      iColorLow = 0;
+	  static int      iColorMedLow = 1;
+	  static int      iColorMedHigh = 2;
+	  static int      iColorHigh = 3;
+
+	  const bool hasBlackTrick = Color1555To888(color0, &col[iColorLow]);
+	  Color565To888(color1, &col[iColorHigh]);
+
+	  if (hasBlackTrick) {
+		col[iColorMedHigh] = col[iColorLow];
+
+		col[iColorMedLow] = static_cast<uint32_t>(std::max(Elem<16, 0xff, int32_t>(col[iColorMedHigh]) - Elem<18, 0x3f, int32_t>(col[iColorHigh]), 0)) << 16;
+		col[iColorMedLow] |= static_cast<uint32_t>(std::max(Elem<8, 0xff, int32_t>(col[iColorMedHigh]) - Elem<10, 0x3f, int32_t>(col[iColorHigh]), 0)) < 8;
+		col[iColorMedLow] |= static_cast<uint32_t>(std::max(Elem<0, 0xff, int32_t>(col[iColorMedHigh]) - Elem<2, 0x3f, int32_t>(col[iColorHigh]), 0));
+
+		col[iColorLow] = 0;
+	  } else {
+		col[iColorMedHigh] = (Elem<16>(col[iColorHigh]) * 5 + Elem<16>(col[iColorLow]) * 3) >> 3 << 16;
+		col[iColorMedHigh] |= (Elem<8>(col[iColorHigh]) * 5 + Elem<8>(col[iColorLow]) * 3) >> 3 << 8;
+		col[iColorMedHigh] |= (Elem<0>(col[iColorHigh]) * 5 + Elem<0>(col[iColorLow]) * 3) >> 3;
+
+		col[iColorMedLow] = (Elem<16>(col[iColorHigh]) * 3 + Elem<16>(col[iColorLow]) * 5) >> 3 << 16;
+		col[iColorMedLow] |= (Elem<8>(col[iColorHigh]) * 3 + Elem<8>(col[iColorLow]) * 5) >> 3 << 8;
+		col[iColorMedLow] |= (Elem<0>(col[iColorHigh]) * 3 + Elem<0>(col[iColorLow]) * 5) >> 3;
+	  }
+	}
+
+	struct ColorBlock {
+	  uint16_t color0;
+	  uint16_t color1;
+	  uint8_t pixels[4];
+
+	  void Get(uint32_t* rgba) const {
+		uint32_t col[4];
+		GetColors(color0, color1, col);
+		for (int y = 0; y < 4; ++y) {
+		  for (int x = 0; x < 4; ++x) {
+			const uint32_t bits = (pixels[y] & (0x03 << (x * 2))) >> (x * 2);
+			*(rgba++) = col[bits];
+		  }
+		}
+	  }
+	};
+
+	struct ExplicitAlphaBlock {
+	  uint8_t pixels[8];
+
+	  void Get(uint32_t* rgba) const {
+		for (int y = 0; y < 4; ++y) {
+		  for (int x = 0; x < 4; ++x) {
+			const uint32_t a = pixels[y * 2 + ((x / 2) & 1)] & (0x0f << ((x & 1) * 4));
+			*(rgba++) = a | (a << 4);
+		  }
+		}
+	  }
+	};
+
+	struct InterporatedAlphaBlock {
+	  uint8_t alpha0;
+	  uint8_t alpha1;
+	  uint8_t pixels[6];
+
+	  void GetCompressedAlphaRamp(uint8_t* result) const {
+		result[0] = alpha0;
+		result[1] = alpha1;
+
+		if (alpha0 > alpha1) {
+		  // 8-alpha block:  derive the other six alphas.
+		  // Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+		  result[2] = static_cast<uint8_t>((6 * alpha0 + 1 * alpha1 + 3) / 7);    // bit code 010
+		  result[3] = static_cast<uint8_t>((5 * alpha0 + 2 * alpha1 + 3) / 7);    // bit code 011
+		  result[4] = static_cast<uint8_t>((4 * alpha0 + 3 * alpha1 + 3) / 7);    // bit code 100
+		  result[5] = static_cast<uint8_t>((3 * alpha0 + 4 * alpha1 + 3) / 7);    // bit code 101
+		  result[6] = static_cast<uint8_t>((2 * alpha0 + 5 * alpha1 + 3) / 7);    // bit code 110
+		  result[7] = static_cast<uint8_t>((1 * alpha0 + 6 * alpha1 + 3) / 7);    // bit code 111
+		} else {
+		  // 6-alpha block.
+		  // Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+		  result[2] = static_cast<uint8_t>((4 * alpha0 + 1 * alpha1 + 2) / 5);  // Bit code 010
+		  result[3] = static_cast<uint8_t>((3 * alpha0 + 2 * alpha1 + 2) / 5);  // Bit code 011
+		  result[4] = static_cast<uint8_t>((2 * alpha0 + 3 * alpha1 + 2) / 5);  // Bit code 100
+		  result[5] = static_cast<uint8_t>((1 * alpha0 + 4 * alpha1 + 2) / 5);  // Bit code 101
+		  result[6] = 0;                                      // Bit code 110
+		  result[7] = 255;                                    // Bit code 111
+		}
+	  }
+
+	  void Get(uint32_t* rgba) const {
+		uint8_t ramp[8];
+		GetCompressedAlphaRamp(ramp);
+		for (int y = 0; y < 4; ++y) {
+		  for (int x = 0; x < 4; ++x) {
+			uint32_t index;
+			const uint32_t i = (y * 4 + x);
+			const uint32_t i0 = (i * 3) / 8;
+			const uint32_t i1 = (i * 3 + 2) / 8;
+			if (i0 == i1) {
+			  index = (pixels[i0] >> ((i * 3) % 8)) & 0x7;
+			} else {
+			  index = ((pixels[i0] | (pixels[i1] << 8)) >> ((i * 3) % 8)) & 0x7;
+			}
+			*(rgba++) = ramp[index];
+		  }
+		}
+	  }
+	};
+
+	struct ExplicitBlock {
+	  ExplicitAlphaBlock alpha;
+	  ColorBlock color;
+
+	  void Get(uint32_t* rgba) const {
+		uint32_t rgb[16];
+		color.Get(rgb);
+		uint32_t a[16];
+		alpha.Get(a);
+		for (int i = 0; i < 16; ++i) {
+		  rgba[i] = rgb[i] | (a[i] << 24);
+		}
+	  }
+	};
+
+	struct InterporatedBlock {
+	  InterporatedAlphaBlock alpha;
+	  ColorBlock color;
+
+	  void Get(uint32_t* rgba) const {
+		uint32_t rgb[16];
+		color.Get(rgb);
+		uint32_t a[16];
+		alpha.Get(a);
+		for (int i = 0; i < 16; ++i) {
+		  rgba[i] = rgb[i] | (a[i] << 24);
+		}
+	  }
+	};
+
+	/**
+	* Convert ATITC to RGBBA8888.
+	*
+	* @sa https://github.com/GPUOpen-Tools/Compressonator
+	*/
+	std::vector<uint32_t> DecompressATITC(const uint8_t* pImage, uint32_t w, uint32_t h, GLenum format) {
+	  std::vector<uint32_t> result;
+	  result.resize(w * h);
+	  const uint32_t xcount = w / 4;
+	  switch (format) {
+	  case GL_ATC_RGBA_EXPLICIT_ALPHA_AMD: {
+		const ExplicitBlock* p = reinterpret_cast<const ExplicitBlock*>(pImage);
+		for (uint32_t y = 0; y < h; y += 4) {
+		  for (uint32_t x = 0; x < w; x += 4) {
+			const ExplicitBlock& cur = p[(y / 4) * xcount + x / 4];
+			uint32_t rgba[16];
+			cur.Get(rgba);
+			for (uint32_t yy = 0; yy < 4; ++yy) {
+			  for (uint32_t xx = 0; xx < 4; ++xx) {
+				result[(y + yy) * w + (x + xx)] = rgba[yy * 4 + xx];
+			  }
+			}
+		  }
+		}
+		break;
+	  }
+	  case GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD: {
+		const InterporatedBlock* p = reinterpret_cast<const InterporatedBlock*>(pImage);
+		for (uint32_t y = 0; y < h; y += 4) {
+		  for (uint32_t x = 0; x < w; x += 4) {
+			const InterporatedBlock& cur = p[(y / 4) * xcount + x / 4];
+			uint32_t rgba[16];
+			cur.Get(rgba);
+			for (uint32_t yy = 0; yy < 4; ++yy) {
+			  for (uint32_t xx = 0; xx < 4; ++xx) {
+				result[(y + yy) * w + (x + xx)] = rgba[yy * 4 + xx];
+			  }
+			}
+		  }
+		}
+		break;
+	  }
+	  }
+	  return result;
+	}
+
 
 	/** 空のテクスチャを作成する.
 	*/
@@ -260,7 +465,7 @@ namespace Texture {
 
 	/** KTXファイルを読み込む.
 	*/
-	TexturePtr LoadKTX(const char* filename, GLint minFilter, GLint magFilter) {
+	TexturePtr LoadKTX(const char* filename, bool decompressing, GLint minFilter, GLint magFilter) {
 		auto file = Mai::FileSystem::Open(filename);
 		if (!file) {
 			LOGW("cannot open:'%s'", filename);
@@ -318,7 +523,12 @@ namespace Texture {
 			const GLenum target = tex.Target() == GL_TEXTURE_CUBE_MAP ? GL_TEXTURE_CUBE_MAP_POSITIVE_X : GL_TEXTURE_2D;
 			for (int faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
 				if (type == 0) {
+				  if (decompressing) {
+					std::vector<uint32_t> decompressedImage = DecompressATITC(pImage, curWidth, curHeight, tex.InternalFormat());
+					glTexImage2D(target + faceIndex, mipLevel, GL_RGBA, curWidth, curHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, decompressedImage.data());
+				  } else {
 					glCompressedTexImage2D(target + faceIndex, mipLevel, tex.InternalFormat(), curWidth, curHeight, 0, imageSize, pImage);
+				  }
 				} else {
 					glTexImage2D(target + faceIndex, mipLevel, tex.InternalFormat(), curWidth, curHeight, 0, format, type, pImage);
 				}
