@@ -2446,16 +2446,18 @@ void Renderer::InitTexture()
 	textureList.insert({ "dummy_nml", Texture::CreateDummyNormal() });
 	textureList.insert({ "ascii", Texture::LoadKTX("Textures/Common/ascii.ktx") });
 
+	const bool decompressing = texBaseDir != "Textures/Adreno/";
+
 #if 1
-	const std::string iblSourcePath = texBaseDir + "IBL/ibl_";
+	const std::string iblSourcePath = "Textures/IBL/Coast/ibl_";
 	for (char i = '1'; i <= '7'; ++i) {
-	  iblSpecularSourceList[TimeOfScene_Noon][i - '1'] = Texture::LoadKTX((iblSourcePath + "noon_" + i + ".ktx").c_str());
-	  iblSpecularSourceList[TimeOfScene_Sunset][i - '1'] = Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str());
-	  iblSpecularSourceList[TimeOfScene_Night][i - '1'] = Texture::LoadKTX((iblSourcePath + "night_" + i + ".ktx").c_str());
+	  iblSpecularSourceList[TimeOfScene_Noon][i - '1'] = Texture::LoadKTX((iblSourcePath + "noon_" + i + ".ktx").c_str(), decompressing);
+	  iblSpecularSourceList[TimeOfScene_Sunset][i - '1'] = Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str(), decompressing);
+	  iblSpecularSourceList[TimeOfScene_Night][i - '1'] = Texture::LoadKTX((iblSourcePath + "night_" + i + ".ktx").c_str(), decompressing);
 	}
-	iblDiffuseSourceList[TimeOfScene_Noon] = Texture::LoadKTX((iblSourcePath + "noonIrr.ktx").c_str());
-	iblDiffuseSourceList[TimeOfScene_Sunset] = Texture::LoadKTX((iblSourcePath + "sunsetIrr.ktx").c_str());
-	iblDiffuseSourceList[TimeOfScene_Night] = Texture::LoadKTX((iblSourcePath + "nightIrr.ktx").c_str());
+	iblDiffuseSourceList[TimeOfScene_Noon] = Texture::LoadKTX((iblSourcePath + "noonIrr.ktx").c_str(), decompressing);
+	iblDiffuseSourceList[TimeOfScene_Sunset] = Texture::LoadKTX((iblSourcePath + "sunsetIrr.ktx").c_str(), decompressing);
+	iblDiffuseSourceList[TimeOfScene_Night] = Texture::LoadKTX((iblSourcePath + "nightIrr.ktx").c_str(), decompressing);
 #else
 	textureList.insert({ "iblNoonHigh", Texture::LoadKTX((texBaseDir + "ibl_noonHigh.ktx").c_str()) });
 	textureList.insert({ "iblNoonLow", Texture::LoadKTX((texBaseDir + "ibl_noonLow.ktx").c_str()) });
