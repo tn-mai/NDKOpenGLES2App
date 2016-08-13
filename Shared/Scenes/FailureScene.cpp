@@ -55,6 +55,7 @@ namespace SunnySideUp {
 	const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 	r.SetShadowLight(Position3F(0, 0, 0) - shadowDir * 200.0f, shadowDir, 150, 250, Vector2F(3, 3 * 4));
 	r.DoesDrawSkybox(false);
+	r.LoadLandscape(LandscapeOfScene_Default, r.GetTimeOfScene());
 
 	{
 	  auto obj = r.CreateObject("landscape", Material(Color4B(255, 255, 255, 255), 0, 0), "solidmodel", ShadowCapability::Disable);

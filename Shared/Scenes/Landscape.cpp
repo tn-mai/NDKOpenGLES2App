@@ -22,6 +22,9 @@ namespace Landscape {
   * @return the object list that make up the landscape of coast.
   */
   ObjectList GetCoast(Renderer& renderer, const Vector3F& offset, float scale, ShadowCapability shadowCapability) {
+
+	renderer.LoadLandscape(LandscapeOfScene_Coast, renderer.GetTimeOfScene());
+
 	const Vector3F scale3(scale, scale, scale);
 	ObjectList objList;
 

@@ -90,6 +90,7 @@ namespace SunnySideUp {
 	const Vector3F shadowDir = GetSunRayDirection(r.GetTimeOfScene());
 	r.SetShadowLight(objList[0]->Position() - shadowDir * 200.0f, shadowDir, 160, 240, Vector2F(2.0, 1.0f * 4.0f));
 	r.DoesDrawSkybox(false);
+	r.LoadLandscape(LandscapeOfScene_Coast, r.GetTimeOfScene());
 
 	loaded = true;
 	status = STATUSCODE_RUNNABLE;

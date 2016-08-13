@@ -484,6 +484,7 @@ Vector3F GetSunRayDirection(TimeOfScene timeOfScene) {
 Renderer::Renderer()
   : isInitialized(false)
   , doesDrawSkybox(true)
+  , hasIBLTextures(false)
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
   , timeOfScene(TimeOfScene_Noon)
@@ -1244,7 +1245,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	const Vector4F lightPos(50, 50, 50, 1.0);
 	const Vector3F lightColor(7000.0f, 6000.0f, 5000.0f);
 #if 1
-	if (doesDrawSkybox) {
+	if (doesDrawSkybox && hasIBLTextures) {
 	  const Shader& shader = shaderList["skybox"];
 	  glUseProgram(shader.program);
 
@@ -1258,7 +1259,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][0]->TextureId());
+	  glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]->TextureId());
 	  glActiveTexture(GL_TEXTURE1);
 	  glBindTexture(GL_TEXTURE_2D, 0);
 	  glActiveTexture(GL_TEXTURE2);
@@ -1276,10 +1277,10 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	const GLuint cloudProgramId = shaderList["cloud"].program;
 	const GLuint seaProgramId = shaderList["sea"].program;
 	GLuint currentProgramId = 0;
-	const int iblSourceSize = iblSpecularSourceList[timeOfScene].size() - 1;
+	const int iblSourceSize = iblSpecularSourceList.size() - 1;
 	for (const ObjectPtr* itr = begin; itr != end; ++itr) {
 		const Object& obj = *itr->get();
-		if (!obj.IsValid() || obj.shadowCapability == ShadowCapability::ShadowOnly) {
+		if (!obj.IsValid() || obj.shadowCapability == ShadowCapability::ShadowOnly || !hasIBLTextures) {
 			continue;
 		}
 
@@ -1306,11 +1307,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 			// IBL用テクスチャを設定.
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][0]->TextureId());
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]->TextureId());
 			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][3]->TextureId());
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[3]->TextureId());
 			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblDiffuseSourceList[timeOfScene]->TextureId());
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblDiffuseSourceList->TextureId());
 
 			glActiveTexture(GL_TEXTURE5);
 			glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
@@ -1388,7 +1389,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			const float m = std::min(1.0f, std::max(0.0f, e.material.metallic.To<float>() - metallic));
 			const float r = std::min(1.0f, std::max(0.0f, e.material.roughness.To<float>() + roughness));
 			const int index = std::min(iblSourceSize, std::max(0, static_cast<int>(r * static_cast<float>(iblSourceSize) + 0.5f)));
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[timeOfScene][index]->TextureId());
+			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[index]->TextureId());
 			if (shader.program == seaProgramId) {
 			  glUniform3f(shader.materialMetallicAndRoughness, m, r, m > 0.5f ? animationTick * 0.25f : 0.0f);
 			} else {
@@ -2446,30 +2447,6 @@ void Renderer::InitTexture()
 	textureList.insert({ "dummy_nml", Texture::CreateDummyNormal() });
 	textureList.insert({ "ascii", Texture::LoadKTX("Textures/Common/ascii.ktx") });
 
-	const bool decompressing = texBaseDir != "Textures/Adreno/";
-
-#if 1
-	const std::string iblSourcePath = "Textures/IBL/Coast/ibl_";
-	for (char i = '1'; i <= '7'; ++i) {
-	  iblSpecularSourceList[TimeOfScene_Noon][i - '1'] = Texture::LoadKTX((iblSourcePath + "noon_" + i + ".ktx").c_str(), decompressing);
-	  iblSpecularSourceList[TimeOfScene_Sunset][i - '1'] = Texture::LoadKTX((iblSourcePath + "sunset_" + i + ".ktx").c_str(), decompressing);
-	  iblSpecularSourceList[TimeOfScene_Night][i - '1'] = Texture::LoadKTX((iblSourcePath + "night_" + i + ".ktx").c_str(), decompressing);
-	}
-	iblDiffuseSourceList[TimeOfScene_Noon] = Texture::LoadKTX((iblSourcePath + "noonIrr.ktx").c_str(), decompressing);
-	iblDiffuseSourceList[TimeOfScene_Sunset] = Texture::LoadKTX((iblSourcePath + "sunsetIrr.ktx").c_str(), decompressing);
-	iblDiffuseSourceList[TimeOfScene_Night] = Texture::LoadKTX((iblSourcePath + "nightIrr.ktx").c_str(), decompressing);
-#else
-	textureList.insert({ "iblNoonHigh", Texture::LoadKTX((texBaseDir + "ibl_noonHigh.ktx").c_str()) });
-	textureList.insert({ "iblNoonLow", Texture::LoadKTX((texBaseDir + "ibl_noonLow.ktx").c_str()) });
-	textureList.insert({ "iblNoonIrr", Texture::LoadKTX((texBaseDir + "ibl_noonIrr.ktx").c_str()) });
-	textureList.insert({ "iblSunsetHigh", Texture::LoadKTX((texBaseDir + "ibl_sunsetHigh.ktx").c_str()) });
-	textureList.insert({ "iblSunsetLow", Texture::LoadKTX((texBaseDir + "ibl_sunsetLow.ktx").c_str()) });
-	textureList.insert({ "iblSunsetIrr", Texture::LoadKTX((texBaseDir + "ibl_sunsetIrr.ktx").c_str()) });
-	textureList.insert({ "iblNightHigh", Texture::LoadKTX((texBaseDir + "ibl_nightHigh.ktx").c_str()) });
-	textureList.insert({ "iblNightLow", Texture::LoadKTX((texBaseDir + "ibl_nightLow.ktx").c_str()) });
-	textureList.insert({ "iblNightIrr", Texture::LoadKTX((texBaseDir + "ibl_nightIrr.ktx").c_str()) });
-#endif
-
 	textureList.insert({ "wood", Texture::LoadKTX((texBaseDir + "wood.ktx").c_str()) });
 	textureList.insert({ "wood_nml", Texture::LoadKTX((texBaseDir + "woodNR.ktx").c_str()) });
 	textureList.insert({ "Sphere", Texture::LoadKTX((texBaseDir + "sphere.ktx").c_str()) });
@@ -2523,6 +2500,45 @@ void Renderer::InitTexture()
 	textureList.insert({ "font", Texture::LoadKTX("Textures/Common/font.ktx") });
 	textureList.insert({ "checkpoint", Texture::LoadKTX("Textures/Common/CheckPoint.ktx") });
 	textureList.insert({ "checkpoint_nml", Texture::LoadKTX((texBaseDir + "CheckPointNR.ktx").c_str()) });
+
+	LoadLandscape(LandscapeOfScene_Default, TimeOfScene_Noon);
+}
+
+/**
+* Load the textures for IBL.
+*/
+void Renderer::LoadLandscape(LandscapeOfScene type, TimeOfScene time) {
+  static const char* const nameList[] = {
+	"Landscape",
+	"Coast",
+  };
+  static const char* const timeList[] = {
+	"noon",
+	"sunset",
+	"night",
+  };
+
+  UnloadLandscape();
+  const bool decompressing = texBaseDir != "Textures/Adreno/";
+  const std::string iblSourcePath = std::string("Textures/IBL/") + nameList[type] + "/ibl_";
+  for (char i = '1'; i <= '7'; ++i) {
+	iblSpecularSourceList[i - '1'] = Texture::LoadKTX((iblSourcePath + timeList[time] + "_" + i + ".ktx").c_str(), decompressing);
+  }
+  iblDiffuseSourceList = Texture::LoadKTX((iblSourcePath + timeList[time] + "Irr.ktx").c_str(), decompressing);
+
+  hasIBLTextures = true;
+}
+
+/**
+* Unload the textures for IBL.
+*/
+void Renderer::UnloadLandscape() {
+  hasIBLTextures = false;
+
+  for (char i = '1'; i <= '7'; ++i) {
+	iblSpecularSourceList[i - '1'].reset();
+  }
+  iblDiffuseSourceList.reset();
 }
 
 ObjectPtr Renderer::CreateObject(const char* meshName, const Material& m, const char* shaderName, ShadowCapability sc)

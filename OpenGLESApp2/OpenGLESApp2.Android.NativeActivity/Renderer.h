@@ -133,6 +133,12 @@ namespace Mai {
   static const size_t TimeOfScene_Count = 3;
   Vector3F GetSunRayDirection(TimeOfScene);
 
+  /// シーンの地形.
+  enum LandscapeOfScene {
+	LandscapeOfScene_Default,
+	LandscapeOfScene_Coast,
+  };
+
   /// 影を生成する能力の有無.
   enum class ShadowCapability : int8_t {
 	Disable, ///< Shadow passで描画されない.
@@ -249,6 +255,8 @@ namespace Mai {
 	void Unload();
 	void InitMesh();
 	void InitTexture();
+	void LoadLandscape(LandscapeOfScene, TimeOfScene);
+	void UnloadLandscape();
 
 	const Mesh::Mesh* GetMesh(const std::string& id) const;
 	const Shader* GetShader(const std::string& id) const;
@@ -344,6 +352,7 @@ namespace Mai {
   private:
 	bool isInitialized;
 	bool doesDrawSkybox;
+	bool hasIBLTextures;
 
 	EGLDisplay display;
 	EGLSurface surface;
@@ -403,8 +412,8 @@ namespace Mai {
 	std::map<std::string, Texture::TexturePtr> textureList;
 
 	static const size_t iblSourceRoughnessCount = 7;
-	std::array<std::array<Texture::TexturePtr, iblSourceRoughnessCount>, TimeOfScene_Count> iblSpecularSourceList;
-	std::array<Texture::TexturePtr, TimeOfScene_Count> iblDiffuseSourceList;
+	std::array<Texture::TexturePtr, iblSourceRoughnessCount> iblSpecularSourceList;
+	Texture::TexturePtr iblDiffuseSourceList;
 
 	std::vector<DebugStringObject> debugStringList;
   };
