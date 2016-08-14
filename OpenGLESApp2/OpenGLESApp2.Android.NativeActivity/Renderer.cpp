@@ -1305,21 +1305,24 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUniform1iv(shader.texIBL, 3, texIBLId);
 			glUniform1i(shader.texShadow, 5);
 
-			// IBL用テクスチャを設定.
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]->TextureId());
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[3]->TextureId());
-			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblDiffuseSourceList->TextureId());
-
-			glActiveTexture(GL_TEXTURE5);
-			glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 
 			if (shader.program == cloudProgramId) {
+				for (int i = 0; i < 4; ++i) {
+					glActiveTexture(GL_TEXTURE2 + i);
+					glBindTexture(GL_TEXTURE_2D, 0);
+				}
 				glDepthMask(GL_FALSE);
 				glDisable(GL_CULL_FACE);
 			} else {
+				// IBL用テクスチャを設定.
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]->TextureId());
+				glActiveTexture(GL_TEXTURE3);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[3]->TextureId());
+				glActiveTexture(GL_TEXTURE4);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, iblDiffuseSourceList->TextureId());
+				glActiveTexture(GL_TEXTURE5);
+				glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
 				glDepthMask(GL_TRUE);
 				glEnable(GL_CULL_FACE);
 			}
