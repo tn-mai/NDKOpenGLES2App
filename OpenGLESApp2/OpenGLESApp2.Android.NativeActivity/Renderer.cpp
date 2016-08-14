@@ -526,6 +526,16 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 	const uint16_t MAIN_RENDERING_PATH_WIDTH = static_cast<uint16_t>(std::max(256, isAdreno205 ? ((width * 8) / 10) : width));
 	const uint16_t FBO_MAIN_WIDTH = (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH);
 
+	int hdrScaleFactorList[] = { 4, 8, 16, 32, 64 };
+	for (int i = 4; i < 0; --i) {
+	  if (MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[4] < 8) {
+		break;
+	  }
+	  for (int j = i; j < 5; ++j) {
+		hdrScaleFactorList[j] /= 2;
+	  }
+	}
+
 	// This list should keep same order as a enumeration type of 'FBOIndex'.
 	const struct {
 		const char* name;
@@ -538,11 +548,11 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 		{ "fboSub", FBO_Sub, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
 		{ "fboShadow1", FBO_Shadow1, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
 		{ "fboHDR0", FBO_HDR0, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboHDR1", FBO_HDR1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboHDR2", FBO_HDR2, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 8), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 8) },
-		{ "fboHDR3", FBO_HDR3, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 16), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 16) },
-		{ "fboHDR4", FBO_HDR4, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 32), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 32) },
-		{ "fboHDR5", FBO_HDR5, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 64), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 64) },
+		{ "fboHDR1", FBO_HDR1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[0]), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[0]) },
+		{ "fboHDR2", FBO_HDR2, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[1]), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[1]) },
+		{ "fboHDR3", FBO_HDR3, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[2]), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[2]) },
+		{ "fboHDR4", FBO_HDR4, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[3]), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[3]) },
+		{ "fboHDR5", FBO_HDR5, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[4]), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[4]) },
 
 		// Alias
 		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT) },
@@ -884,6 +894,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureList["ascii"]->TextureId());
   glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
+  glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
   const Mesh::Mesh& mesh = meshList["ascii"];
   float x = pos.x;
   for (const char* p = str; *p; ++p) {
@@ -1579,8 +1590,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  glViewport(0, 0, fboInfoDest.width, fboInfoDest.height);
 
 		  const FBOInfo fboInfoSrc = GetFBOInfo(i);
+		  const float scale = fboInfoSrc.width / fboInfoDest.width > 2 ? 1.0f : 0.25f;
 		  glBindTexture(GL_TEXTURE_2D, textureList[fboInfoSrc.name]->TextureId());
-		  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.25f / fboInfoSrc.width, 0.25f / fboInfoSrc.height);
+		  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, scale / fboInfoSrc.width, scale / fboInfoSrc.height);
 		  mesh.Draw();
 		}
 	  }
@@ -1612,6 +1624,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mesh.Draw();
 		}
 	  } else {
+		glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
+		static const float colorLevel[] = { 0.975f, 0.925f, 0.85f, 0.75f, 0.625f };
 		for (int i = FBO_HDR5; i > FBO_HDR1; --i) {
 		  const FBOInfo fboInfoDest = GetFBOInfo(i - 1);
 		  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfoDest.p);
@@ -1619,7 +1633,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 		  const FBOInfo fboInfoSrc = GetFBOInfo(i);
 		  glBindTexture(GL_TEXTURE_2D, textureList[fboInfoSrc.name]->TextureId());
-		  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
+		  glUniform4f(shader.materialColor, colorLevel[i - FBO_HDR1], colorLevel[i - FBO_HDR1], colorLevel[i - FBO_HDR1], 1.0f);
 		  mesh.Draw();
 		}
 	  }
@@ -1766,6 +1780,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  mMV = mV * Matrix4x4::Translation(128, 128 + 8 + 56, 0) * mMV;
 	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mMV.f);
 
+	  glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
 	  glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
