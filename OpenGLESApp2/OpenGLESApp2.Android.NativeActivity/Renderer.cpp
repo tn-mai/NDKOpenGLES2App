@@ -485,6 +485,9 @@ Renderer::Renderer()
   : isInitialized(false)
   , doesDrawSkybox(true)
   , hasIBLTextures(false)
+  , isAdreno205(false)
+  , width(480 * 8 / 10)
+  , height(640 * 8 / 10)
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
   , timeOfScene(TimeOfScene_Noon)
@@ -514,17 +517,17 @@ Renderer::~Renderer()
 Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 {
 	static const float baseAspectRatio = 9.0f / 16.0f;
-	static const uint16_t MAIN_RENDERING_PATH_HEIGHT = 640;
+	const uint16_t MAIN_RENDERING_PATH_HEIGHT = isAdreno205 ? ((height * 8) / 10) : height;
 	static const uint16_t SHADOWMAP_MAIN_WIDTH = 256;
 	static const uint16_t SHADOWMAP_MAIN_HEIGHT = 1024;
-	static const uint16_t FBO_MAIN_HEIGHT = (MAIN_RENDERING_PATH_HEIGHT > SHADOWMAP_MAIN_HEIGHT ? MAIN_RENDERING_PATH_HEIGHT : SHADOWMAP_MAIN_HEIGHT);
+	const uint16_t FBO_MAIN_HEIGHT = (MAIN_RENDERING_PATH_HEIGHT > SHADOWMAP_MAIN_HEIGHT ? MAIN_RENDERING_PATH_HEIGHT : SHADOWMAP_MAIN_HEIGHT);
 
-	static float aspectRatio = static_cast<float>(viewport[2]) / static_cast<float>(viewport[3]);
-	static uint16_t MAIN_RENDERING_PATH_WIDTH = static_cast<uint16_t>(std::max(256.0f, std::min(1920.0f, 360.0f / baseAspectRatio * aspectRatio + 0.5f)));
-	static uint16_t FBO_MAIN_WIDTH = (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH);
+	const float aspectRatio = static_cast<float>(viewport[2]) / static_cast<float>(viewport[3]);
+	const uint16_t MAIN_RENDERING_PATH_WIDTH = static_cast<uint16_t>(std::max(256, isAdreno205 ? ((width * 8) / 10) : width));
+	const uint16_t FBO_MAIN_WIDTH = (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH);
 
 	// This list should keep same order as a enumeration type of 'FBOIndex'.
-	static struct {
+	const struct {
 		const char* name;
 		FBOIndex index;
 		uint16_t width;
@@ -589,6 +592,17 @@ void Renderer::Initialize(const Window& window)
 	}
 	eglQuerySurface(display, surface, EGL_WIDTH, &width);
 	eglQuerySurface(display, surface, EGL_HEIGHT, &height);
+
+	{
+	  const char* pRendererName = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+	  LOGI("GL_VENDOR: %s", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+	  LOGI("GL_RENDERER: %s", pRendererName);
+	  LOGI("GL_VERSION: %s", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+	  isAdreno205 = std::strcmp(pRendererName, "Adreno (TM) 205") == 0;
+	  if (isAdreno205) {
+		LOGI("Detect Adreno 205");
+	  }
+	}
 
 #define	LOG_SHADER_INFO(s) { \
 		GLint tmp; \
@@ -697,6 +711,7 @@ void Renderer::Initialize(const Window& window)
 	InitNVFenceExtention(hasNVfenceExtension);
 
 	glGetIntegerv(GL_VIEWPORT, viewport);
+	LOGI("viewport: %dx%d", viewport[2], viewport[3]);
 
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -708,12 +723,15 @@ void Renderer::Initialize(const Window& window)
 	std::ostringstream  additionalDefineList;
 	{
 	  const FBOInfo fboMainInternalInfo = GetFBOInfo(FBO_Main_Internal);
+	  LOGI("FBO MAIN INTERNAL: %dx%d", fboMainInternalInfo.width, fboMainInternalInfo.height);
 	  additionalDefineList << "#define FBO_MAIN_WIDTH (" << fboMainInternalInfo.width << ".0)\n";
 	  additionalDefineList << "#define FBO_MAIN_HEIGHT (" << fboMainInternalInfo.height << ".0)\n";
 	  const FBOInfo fboShadowInfo = GetFBOInfo(FBO_Shadow);
+	  LOGI("FBO SHADOW: %dx%d", fboShadowInfo.width, fboShadowInfo.height);
 	  additionalDefineList << "#define SHADOWMAP_MAIN_WIDTH (" << fboShadowInfo.width << ".0)\n";
 	  additionalDefineList << "#define SHADOWMAP_MAIN_HEIGHT (" << fboShadowInfo.height << ".0)\n";
 	  const FBOInfo fboMainInfo = GetFBOInfo(FBO_Main);
+	  LOGI("FBO MAIN: %dx%d", fboMainInfo.width, fboMainInfo.height);
 	  additionalDefineList << "#define MAIN_RENDERING_PATH_WIDTH (" << fboMainInfo.width << ".0)\n";
 	  additionalDefineList << "#define MAIN_RENDERING_PATH_HEIGHT (" << fboMainInfo.height << ".0)\n";
 	}

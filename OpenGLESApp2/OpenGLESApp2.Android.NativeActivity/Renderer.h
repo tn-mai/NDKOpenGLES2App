@@ -353,6 +353,7 @@ namespace Mai {
 	bool isInitialized;
 	bool doesDrawSkybox;
 	bool hasIBLTextures;
+	bool isAdreno205; ///< Adreno 205 has only poor pixel fill rate. Thus, we must reduce the scale of render buffer.
 
 	EGLDisplay display;
 	EGLSurface surface;
