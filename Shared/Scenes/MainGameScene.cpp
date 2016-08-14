@@ -329,11 +329,12 @@ namespace SunnySideUp {
 	@param goal    The last control point.
 	@param count   The number of the control point with 'start' and 'goal'.
 	@param random  The random number generator.
+	@param level   The game level. This changes the control point allocation radius.
 
 	@return B-Spline curve. It will contain the 'numOfSegments' elements.
   */
   template<typename R>
-  std::vector<Vector3F> CreateControlPoints(const Position3F& start, const Position3F& goal, int count, R& random) {
+  std::vector<Vector3F> CreateControlPoints(const Position3F& start, const Position3F& goal, int count, R& random, int level) {
 	count = std::max(4, count);
 	std::vector<Vector3F> v;
 	v.reserve(count);
@@ -342,6 +343,7 @@ namespace SunnySideUp {
 	Position3F center(0, 0, 0);
 	std::uniform_real_distribution<float> tgen(0.0f, 360.0f);
 	float range = 25.0f;
+	const float additionalRange = level * level * level;
 	for (int i = 1; i < count - 1; ++i) {
 	  const Position3F p = start + distance * static_cast<float>(i) / static_cast<float>(count - 1);
 	  const float theta = degreeToRadian(tgen(random));
@@ -353,9 +355,9 @@ namespace SunnySideUp {
 	  const float cr = std::normal_distribution<float>(1.0f, 1.0f)(random);
 	  center = Position3F(tx, 0, tz) + centerVector * cr;
 	  if (i < count / 2) {
-		range = 150.0f;
+		range = 150.0f + additionalRange;
 	  } else {
-		range = 50.0f;
+		range = 50.0f + additionalRange * 0.5f;
 	  }
 	}
 	v.emplace_back(goal.x, goal.y, goal.z);
@@ -367,6 +369,7 @@ namespace SunnySideUp {
     @param start   The start point of the route.
 	@param goal    The end(goal) point of the route.
 	@param random  The random number generator.
+	@param level   The game level. This changes the control point allocation radius.
 
 	@return The model route.
 
@@ -375,9 +378,9 @@ namespace SunnySideUp {
 	Then, generate more points at equal intervals on the curve.
   */
   template<typename R>
-  std::vector<Position3F> CreateModelRoute(const Position3F& start, const Position3F& goal, R& random) {
+  std::vector<Position3F> CreateModelRoute(const Position3F& start, const Position3F& goal, R& random, int level) {
 	const int length = std::abs(static_cast<int>(goal.y - start.y));
-	const std::vector<Vector3F> controlPoints = CreateControlPoints(start, goal, (length + 499) / 500 + 2, random);
+	const std::vector<Vector3F> controlPoints = CreateControlPoints(start, goal, (length + 499) / 500 + 2, random, level);
 	return CreateBSpline(controlPoints, (length + 99) / 100);
   }
 
@@ -545,7 +548,7 @@ namespace SunnySideUp {
 	  const Position3F startPosition(5, static_cast<float>(courseInfo.startHeight), 4.5f);
 	  {
 		static const size_t posListSize = 5;
-		const std::vector<Position3F> modelRoute = CreateModelRoute(startPosition, objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random);
+		const std::vector<Position3F> modelRoute = CreateModelRoute(startPosition, objFlyingPan->Position() + Vector3F(0, static_cast<float>(goalHeight), 0), random, level);
 		const auto end = modelRoute.end() - 2;
 		std::normal_distribution<float> normalDistributer(0, 2);
 		const float step = static_cast<float>(unitObstructsSize) * std::max(1.0f, (4.0f - static_cast<float>(courseInfo.difficulty) * 0.5f));
