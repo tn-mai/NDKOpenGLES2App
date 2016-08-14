@@ -353,7 +353,7 @@ namespace Texture {
 		totalByteSize += tex.byteSize;
 
 		glBindTexture(tex.Target(), 0);
-		LOGI("Load %s(ID:%x)(TOTAL:%lld).", "Empty2D", tex.texId, totalByteSize);
+		LOGI("Load %s %dx%d (ID:%x)(TOTAL:%lld).", "Empty2D", w, h, tex.texId, totalByteSize);
 		return p;
 	}
 
