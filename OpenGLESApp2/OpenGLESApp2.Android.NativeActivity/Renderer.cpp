@@ -1692,6 +1692,38 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  Local::glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
 	}
 
+#if 0
+	{
+	  const Shader& shader = shaderList["default2D"];
+	  glUseProgram(shader.program);
+	  glBlendFunc(GL_ONE, GL_ZERO);
+
+	  int32_t viewport[4];
+	  glGetIntegerv(GL_VIEWPORT, viewport);
+	  const Matrix4x4 mP = { {
+		  2.0f / viewport[2], 0,                  0,                                    0,
+		  0,                  -2.0f / viewport[3], 0,                                    0,
+		  0,                  0,                  -2.0f / (500.0f - 0.1f),              0,
+		  -1.0f,              1.0f,              -((500.0f + 0.1f) / (500.0f - 0.1f)), 1,
+		} };
+	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mP.f);
+	  Matrix4x4 mV = LookAt(Position3F(0, 0, 10), Position3F(0, 0, 0), Vector3F(0, 1, 0));
+	  Matrix4x4 mMV = Matrix4x4::Unit();
+	  mMV.Scale(128.0f, 128.0f, 0.0f);
+	  mMV = mV * Matrix4x4::Translation(128, 128 + 8 + 56, 0) * mMV;
+	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mMV.f);
+
+	  glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
+	  glUniform1i(shader.texDiffuse, 0);
+	  glActiveTexture(GL_TEXTURE0);
+	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	  glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
+	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
+	  meshList["board2D"].Draw();
+	}
+#endif
+
 	DrawFontFoo();
 
 #ifndef NDEBUG
@@ -1758,36 +1790,6 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		DrawFont(Position2F(e.pos.x, e.pos.y), e.str.c_str());
 	  }
 	}
-
-#if 0
-	{
-	  const Shader& shader = shaderList["default2D"];
-	  glUseProgram(shader.program);
-	  glBlendFunc(GL_ONE, GL_ZERO);
-
-	  int32_t viewport[4];
-	  glGetIntegerv(GL_VIEWPORT, viewport);
-	  const Matrix4x4 mP = { {
-		  2.0f / viewport[2], 0,                  0,                                    0,
-		  0,                  -2.0f / viewport[3], 0,                                    0,
-		0,                  0,                  -2.0f / (500.0f - 0.1f),              0,
-		-1.0f,              1.0f,              -((500.0f + 0.1f) / (500.0f - 0.1f)), 1,
-		} };
-	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mP.f);
-	  Matrix4x4 mV = LookAt(Position3F(0, 0, 10), Position3F(0, 0, 0), Vector3F(0, 1, 0));
-	  Matrix4x4 mMV = Matrix4x4::Unit();
-	  mMV.Scale(128.0f, 128.0f, 0.0f);
-	  mMV = mV * Matrix4x4::Translation(128, 128 + 8 + 56, 0) * mMV;
-	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, mMV.f);
-
-	  glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
-	  glUniform1i(shader.texDiffuse, 0);
-	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
-	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
-	  meshList["board2D"].Draw();
-	}
-#endif
 #endif // NDEBUG
 
 	// テクスチャのバインドを解除.
