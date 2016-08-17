@@ -174,7 +174,7 @@ namespace {
 				buf.resize(infoLen);
 				if (static_cast<int>(buf.size()) >= infoLen) {
 					glGetShaderInfoLog(shader, infoLen, NULL, &buf[0]);
-					LOGE("Could not compile shader %d:\n%s\n", shaderType, &buf[0]);
+					LOGE("Could not compile shader %s:\n%s", path, &buf[0]);
 				}
 				glDeleteShader(shader);
 				return 0;
@@ -217,7 +217,7 @@ namespace {
 					char* buf = (char*)malloc(bufLength);
 					if (buf) {
 						glGetProgramInfoLog(program, bufLength, NULL, buf);
-						LOGE("Could not link program:\n%s\n", buf);
+						LOGE("Could not link program %s:\n%s\n", name, buf);
 						free(buf);
 					}
 				}
