@@ -23,7 +23,7 @@ void main()
   gl_FragColor.rgb *= dynamicRangeFactor; // Note that this paramter should be the inversed value of the other shader.
 
 #ifdef USE_HDR_BLOOM
-  gl_FragColor.rgb += texture2D(texSource[2], texCoord.zw).rgb;
+  gl_FragColor.rgb += texture2D(texSource[2], texCoord.zw).rgb * 0.5;
 
   // tone mapping.
 #if 0 // @ref HDRRenderingInOpenGL.pdf
