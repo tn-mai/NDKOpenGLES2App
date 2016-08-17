@@ -1099,8 +1099,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	static const int FENCE_ID_COLOR_PATH = 2;
 	static const int FENCE_ID_HDR_PATH = 3;
 	static const int FENCE_ID_FINAL_PATH = 4;
-	GLuint fences[5];
-	Local::glGenFencesNV(5, fences);
+	static const size_t fenceCount = 5;
+	GLuint fences[fenceCount];
+	Local::glGenFencesNV(fenceCount, fences);
 
 	// shadow path.
 	const Vector3F shadowUp = (Dot(shadowLightDir, Vector3F(0, 1, 0)) > 0.99f) ? Vector3F(0, 0, -1) : Vector3F(0, 1, 0);
@@ -1785,9 +1786,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 #ifndef NDEBUG
 	// パフォーマンス計測.
 	{
-	  int64_t fenceTimes[6];
+	  int64_t fenceTimes[fenceCount + 1];
 	  fenceTimes[0] = GetCurrentTime();
-	  for (int i = 0; i < 5; ++i) {
+	  for (int i = 0; i < fenceCount; ++i) {
 		Local::glFinishFenceNV(fences[i]);
 		fenceTimes[i + 1] = GetCurrentTime();
 	  }
@@ -1798,11 +1799,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  // Thus, discard this error, tentatively.
 	  glGetError();
 
-	  int64_t diffTimes[6];
-	  for (int i = 0; i < 5; ++i) {
+	  int64_t diffTimes[fenceCount + 1];
+	  for (int i = 0; i < fenceCount; ++i) {
 		diffTimes[i] = std::max<int64_t>(fenceTimes[i + 1] - fenceTimes[i], 0);
 	  }
-	  diffTimes[5] = std::accumulate(diffTimes, diffTimes + 5, static_cast<int64_t>(0));
+	  diffTimes[fenceCount] = std::accumulate(diffTimes, diffTimes + fenceCount, static_cast<int64_t>(0));
 	  static const char* const fenceNameList[] = {
 		"SHADOW:",
 		"FILTER:",
@@ -1812,7 +1813,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		"TOTAL :",
 	  };
 	  static const float targetTime = 1000000000.0f / 30.0f;
-	  for (int i = 0; i < 6; ++i) {
+	  for (int i = 0; i < fenceCount + 1; ++i) {
 		std::string s(fenceNameList[i]);
 		const int percentage = static_cast<int>((static_cast<float>(diffTimes[i]) * 1000.0f) / targetTime);// totalTime;
 		s += '0' + percentage / 1000;
