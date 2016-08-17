@@ -584,12 +584,12 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 	const uint16_t FBO_MAIN_WIDTH = (MAIN_RENDERING_PATH_WIDTH > SHADOWMAP_MAIN_WIDTH ? MAIN_RENDERING_PATH_WIDTH : SHADOWMAP_MAIN_WIDTH);
 
 	int hdrScaleFactorList[] = { 4, 8, 16, 32, 64 };
-	for (int i = 4; i < 0; --i) {
-	  if (MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[4] < 8) {
+	for (int i = 1; i < 5; ++i) {
+	  if (MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[4] < 8) {
 		break;
 	  }
 	  for (int j = i; j < 5; ++j) {
-		hdrScaleFactorList[j] /= 2;
+		hdrScaleFactorList[j] *= 2;
 	  }
 	}
 
