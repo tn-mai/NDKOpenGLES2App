@@ -21,6 +21,35 @@
 namespace Mai {
 
 static const Vector2F referenceViewportSize(480, 800);
+//#define SSU_ENABLE_DISPLAY_LOG
+#ifdef SSU_ENABLE_DISPLAY_LOG
+static bool hasDebugLog = false;
+static int debugLogIndex = 0;
+static char debugLogBuffer[16][256];
+# ifdef __ANDROID__
+#	define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "Mai.Renderer", __VA_ARGS__))
+#	define LOGE(...) ( \
+	  (void)snprintf(debugLogBuffer[(debugLogIndex++) % 16], 255, __VA_ARGS__), \
+	  (void)__android_log_print(ANDROID_LOG_ERROR, "Mai.Renderer", __VA_ARGS__), \
+	  hasDebugLog = true \
+	)
+# else
+#	define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#	define LOGE(...) ( \
+	  (void)snprintf(debugLogBuffer[(debugLogIndex++) % 16], 255, __VA_ARGS__), \
+	  (void)printf(__VA_ARGS__), (void)printf("\n"), \
+	  hasDebugLog = true \
+	)
+# endif // __ANDROID__
+#else
+# ifdef __ANDROID__
+#	define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "Mai.Renderer", __VA_ARGS__))
+#	define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "Mai.Renderer", __VA_ARGS__))
+# else
+#	define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+#	define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
+# endif // __ANDROID__
+#endif // SSU_ENABLE_DISPLAY_LOG
 
 #ifdef __ANDROID__
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
@@ -1725,6 +1754,21 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 #endif
 
 	DrawFontFoo();
+
+#ifdef SSU_ENABLE_DISPLAY_LOG
+	if (hasDebugLog) {
+	  const float x = viewport[2] * 0.025f;
+	  const float y = viewport[3] * 0.025f;
+	  int lines = 0;
+	  for (int i = 0; i < 16; ++i) {
+		const std::vector<std::string> vs = split<std::string>(debugLogBuffer[i], '\n', [](const std::string& s) { return s; });
+		for (const std::string& e : vs) {
+		  DrawFont(Position2F(x, y + 16.0f * lines), e.c_str());
+		  ++lines;
+		}
+	  }
+	}
+#endif // SSU_ENABLE_DISPLAY_LOG
 
 #ifndef NDEBUG
 	// パフォーマンス計測.
