@@ -597,7 +597,7 @@ void Renderer::Initialize(const Window& window)
 	};
 	context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
 	if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
-		LOGI("Unable to eglMakeCurrent");
+		LOGE("Unable to eglMakeCurrent");
 		return;
 	}
 	eglQuerySurface(display, surface, EGL_WIDTH, &width);
