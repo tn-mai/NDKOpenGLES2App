@@ -1180,8 +1180,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glBindFramebuffer(GL_FRAMEBUFFER, *fboShadowInfo.p);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
-		glBlendFunc(GL_ONE, GL_ZERO);
+		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
+		glBlendFunc(GL_ONE, GL_ZERO);
 
 		glViewport(0, 0, fboShadowInfo.width, fboShadowInfo.height);
 		glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
@@ -1288,8 +1289,9 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	glViewport(0, 0, fboMainInfo.width, fboMainInfo.height);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glClearColor(0.2f, 0.4f, 0.8f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1548,8 +1550,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindFramebuffer(GL_FRAMEBUFFER, *fboSubInfo.p);
 	  glViewport(0, 0, fboSubInfo.width, fboSubInfo.height);
 	  glDisable(GL_DEPTH_TEST);
+	  glDisable(GL_CULL_FACE);
 	  glBlendFunc(GL_ONE, GL_ZERO);
-	  glCullFace(GL_BACK);
 
 	  const Shader& shader = shaderList["reduceLum"];
 	  glUseProgram(shader.program);
@@ -1671,16 +1673,14 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mesh.Draw();
 		}
 	  } else {
-		glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
-		static const float colorLevel[] = { 0.975f, 0.925f, 0.85f, 0.75f, 0.625f };
+		glUniform4f(shader.materialColor, 0.5f, 0.5f, 0.5f, 1.0f);
 		for (int i = FBO_HDR5; i > FBO_HDR1; --i) {
 		  const FBOInfo fboInfoDest = GetFBOInfo(i - 1);
 		  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfoDest.p);
 		  glViewport(0, 0, fboInfoDest.width, fboInfoDest.height);
-
 		  const FBOInfo fboInfoSrc = GetFBOInfo(i);
 		  glBindTexture(GL_TEXTURE_2D, textureList[fboInfoSrc.name]->TextureId());
-		  glUniform4f(shader.materialColor, colorLevel[i - FBO_HDR1], colorLevel[i - FBO_HDR1], colorLevel[i - FBO_HDR1], 1.0f);
+		  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
 		  mesh.Draw();
 		}
 	  }
@@ -1694,8 +1694,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	  glViewport(0, 0, width, height);
 	  glDisable(GL_DEPTH_TEST);
+	  glDisable(GL_CULL_FACE);
 	  glDepthFunc(GL_ALWAYS);
-	  glCullFace(GL_BACK);
 
 	  glEnableVertexAttribArray(VertexAttribLocation_Position);
 	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
