@@ -20,7 +20,6 @@
 
 namespace Mai {
 
-static const Vector2F referenceViewportSize(480, 800);
 //#define SSU_ENABLE_DISPLAY_LOG
 #ifdef SSU_ENABLE_DISPLAY_LOG
 static bool hasDebugLog = false;
@@ -59,6 +58,7 @@ static char debugLogBuffer[16][256];
 #define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
 #endif // __ANDROID__
 
+static const Vector2F referenceViewportSize(480, 800);
 static const size_t vboBufferSize = sizeof(Vertex) * 1024 * 11;
 static const size_t iboBufferSize = sizeof(GLushort) * 1024 * 10 * 3;
 #define MAX_FONT_RENDERING_COUNT 512
