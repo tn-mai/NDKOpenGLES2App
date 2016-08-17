@@ -104,8 +104,9 @@ namespace Texture {
 		uint16_t width;
 		uint16_t height;
 		uint32_t byteSize;
+		uint8_t mipCount;
 
-		Texture() : texId(0) {}
+		Texture() : texId(0), mipCount(1) {}
 		virtual ~Texture() {
 			if (texId) {
 				glDeleteTextures(1, &texId);
@@ -122,6 +123,7 @@ namespace Texture {
 		virtual GLenum Target() const { return target; }
 		virtual GLsizei Width() const { return width; }
 		virtual GLsizei Height() const { return height; }
+		virtual GLint MipCount() const { return mipCount; }
 	};
 
 	bool Color1555To888(uint16_t color1555, uint32_t* pColor888) {
@@ -495,6 +497,7 @@ namespace Texture {
 		tex.height = GetValue(&header.pixelHeight, endianness);
 		tex.target = faceCount == 6 ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
 		tex.byteSize = 0;
+		tex.mipCount = static_cast<uint8_t>(mipCount ? mipCount : 1);
 
 		const uint32_t off = GetValue(&header.bytesOfKeyValueData, endianness);
 		file->Seek(file->Position() + off);
@@ -504,7 +507,7 @@ namespace Texture {
 		std::vector<uint8_t> data;
 		GLsizei curWidth = tex.Width();
 		GLsizei curHeight = tex.Height();
-		for (int mipLevel = 0; mipLevel < (mipCount ? mipCount : 1); ++mipLevel) {
+		for (int mipLevel = 0; mipLevel < tex.mipCount; ++mipLevel) {
 			uint32_t imageSize;
 			result = file->Read(&imageSize, 4);
 			if (result < 0) {

@@ -314,6 +314,31 @@ namespace {
 	  return m;
 	}
 
+	/**
+	* Set the texture environments.
+	*
+	* @param id    The texture id(GL_TEXTURE0, GL_TEXTURE1, ...).
+	* @param type  The texture type(GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP).
+	* @param tex   The pointer object to texture.
+	*/
+	void SetTexture(GLenum id, GLenum type, const Texture::TexturePtr& tex) {
+	  glActiveTexture(id);
+	  glBindTexture(type, tex->TextureId());
+	  glTexParameteri(type, GL_TEXTURE_MIN_FILTER, Texture::CorrectFilter(tex->MipCount(), GL_NEAREST_MIPMAP_LINEAR));
+	  glTexParameteri(type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+
+	/**
+	* Reset the texture enviromnent.
+	*
+	* @param id  The texture id(GL_TEXTURE0, GL_TEXTURE1, ...).
+	* @param type  The texture type(GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP).
+	*/
+	void ResetTexture(GLenum id, GLenum type) {
+	  glActiveTexture(id);
+	  glBindTexture(type, 0);
+	}
+
 } // unnamed namespace
 
 Matrix4x4 LookAt(const Position3F& eyePos, const Position3F& targetPos, const Vector3F& upVector)
@@ -923,8 +948,7 @@ void Renderer::DrawFont(const Position2F& pos, const char* str)
   glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mP.f);
   Matrix4x4 mV = LookAt(Position3F(0, 0, 10), Position3F(0, 0, 0), Vector3F(0, 1, 0));
   glUniform1i(shader.texDiffuse, 0);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, textureList["ascii"]->TextureId());
+  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["ascii"]);
   glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
   glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
   const Mesh::Mesh& mesh = meshList["ascii"];
@@ -1013,8 +1037,7 @@ void Renderer::DrawFontFoo()
 
   const Texture::TexturePtr fontTexture = textureList["font"];
   glUniform1i(shader.texDiffuse, 0);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, fontTexture->TextureId());
+  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, fontTexture);
 
   glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1178,11 +1201,10 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 #ifdef USE_ALPHA_TEST_IN_SHADOW_RENDERING
 			{
 			  const Mesh::Mesh& mesh = *obj.GetMesh();
-			  glActiveTexture(GL_TEXTURE0);
 			  if (mesh.texDiffuse) {
-				glBindTexture(GL_TEXTURE_2D, mesh.texDiffuse->TextureId());
+				SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, mesh.texDiffuse);
 			  } else {
-				glBindTexture(GL_TEXTURE_2D, 0);
+				ResetTexture(GL_TEXTURE0, GL_TEXTURE_2D);
 			  }
 			}
 #endif // USE_ALPHA_TEST_IN_SHADOW_RENDERING
@@ -1251,8 +1273,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, Matrix4x4::Unit().f);
 
 		glUniform1i(shader.texShadow, 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
+		SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboMain"]);
 
 		meshList["board2D"].Draw();
 		LOG_GL_ERROR("Shadow");
@@ -1323,18 +1344,12 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, m.f);
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]->TextureId());
-	  glActiveTexture(GL_TEXTURE1);
-	  glBindTexture(GL_TEXTURE_2D, 0);
-	  glActiveTexture(GL_TEXTURE2);
-	  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	  glActiveTexture(GL_TEXTURE3);
-	  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	  glActiveTexture(GL_TEXTURE4);
-	  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	  glActiveTexture(GL_TEXTURE5);
-	  glBindTexture(GL_TEXTURE_2D, 0);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]);
+	  ResetTexture(GL_TEXTURE1, GL_TEXTURE_2D);
+	  ResetTexture(GL_TEXTURE2, GL_TEXTURE_CUBE_MAP);
+	  ResetTexture(GL_TEXTURE3, GL_TEXTURE_CUBE_MAP);
+	  ResetTexture(GL_TEXTURE4, GL_TEXTURE_CUBE_MAP);
+	  ResetTexture(GL_TEXTURE5, GL_TEXTURE_2D);
 	  meshList["skybox"].Draw();
 	  Local::glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
 	  LOG_GL_ERROR("Sky");
@@ -1374,21 +1389,16 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 			if (shader.program == cloudProgramId) {
 				for (int i = 0; i < 4; ++i) {
-					glActiveTexture(GL_TEXTURE2 + i);
-					glBindTexture(GL_TEXTURE_2D, 0);
+					ResetTexture(GL_TEXTURE2 + i, GL_TEXTURE_2D);
 				}
 				glDepthMask(GL_FALSE);
 				glDisable(GL_CULL_FACE);
 			} else {
 				// IBL用テクスチャを設定.
-				glActiveTexture(GL_TEXTURE2);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]->TextureId());
-				glActiveTexture(GL_TEXTURE3);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[3]->TextureId());
-				glActiveTexture(GL_TEXTURE4);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, iblDiffuseSourceList->TextureId());
-				glActiveTexture(GL_TEXTURE5);
-				glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
+				SetTexture(GL_TEXTURE2, GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[0]);
+				SetTexture(GL_TEXTURE3, GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[3]);
+				SetTexture(GL_TEXTURE4, GL_TEXTURE_CUBE_MAP, iblDiffuseSourceList);
+				SetTexture(GL_TEXTURE5, GL_TEXTURE_2D, textureList["fboShadow1"]);
 				glDepthMask(GL_TRUE);
 				glEnable(GL_CULL_FACE);
 			}
@@ -1418,17 +1428,15 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 		const Mesh::Mesh& mesh = *obj.GetMesh();
 		{
-			glActiveTexture(GL_TEXTURE0);
 			if (mesh.texDiffuse) {
-				glBindTexture(GL_TEXTURE_2D, mesh.texDiffuse->TextureId());
+				SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, mesh.texDiffuse);
 			} else {
-				glBindTexture(GL_TEXTURE_2D, 0);
+				ResetTexture(GL_TEXTURE0, GL_TEXTURE_2D);
 			}
-			glActiveTexture(GL_TEXTURE1);
 			if (mesh.texNormal) {
-				glBindTexture(GL_TEXTURE_2D, mesh.texNormal->TextureId());
+				SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, mesh.texNormal);
 			} else {
-				glBindTexture(GL_TEXTURE_2D, 0);
+				ResetTexture(GL_TEXTURE1, GL_TEXTURE_2D);
 			}
 		}
 
@@ -1453,12 +1461,11 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 			glUniform3f(shader.eyePos, invEye.x, invEye.y, invEye.z);
 		  }
 		}
-		glActiveTexture(GL_TEXTURE2);
 		for (auto& e : mesh.materialList) {
 			const float m = std::min(1.0f, std::max(0.0f, e.material.metallic.To<float>() - metallic));
 			const float r = std::min(1.0f, std::max(0.0f, e.material.roughness.To<float>() + roughness));
 			const int index = std::min(iblSourceSize, std::max(0, static_cast<int>(r * static_cast<float>(iblSourceSize) + 0.5f)));
-			glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[index]->TextureId());
+			SetTexture(GL_TEXTURE2, GL_TEXTURE_CUBE_MAP, iblSpecularSourceList[index]);
 			if (shader.program == seaProgramId) {
 			  glUniform3f(shader.materialMetallicAndRoughness, m, r, m > 0.5f ? animationTick * 0.25f : 0.0f);
 			} else {
@@ -1552,8 +1559,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboMain"]);
 	  meshList["board2D"].Draw();
 	}
 	// fboSub ->(hdrdiff)-> fboHDR[1]
@@ -1571,8 +1577,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform2f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].range, 1.0f / (1.0f - iblDynamicRangeArray[timeOfScene].range));
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboSub"]);
 	  meshList["board2D"].Draw();
 	}
 
@@ -1587,6 +1592,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
+	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	  const Mesh::Mesh& mesh = meshList["board2D"];
 
 	  if (useWideBloom) {
@@ -1647,6 +1654,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  glUniform1i(shader.texDiffuse, 0);
 	  glActiveTexture(GL_TEXTURE0);
+	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	  glBlendFunc(GL_ONE, GL_ONE);
 	  const Mesh::Mesh& mesh = meshList["board2D"];
@@ -1712,17 +1721,14 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  static const int texSource[] = { 0, 1, 2 };
 	  glUniform1iv(shader.texSource, 3, texSource);
-	  glActiveTexture(GL_TEXTURE0);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
-	  glActiveTexture(GL_TEXTURE1);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboSub"]->TextureId());
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboMain"]);
+	  SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, textureList["fboSub"]);
 
 #ifdef USE_HDR_BLOOM
-	  glActiveTexture(GL_TEXTURE2);
 	  if (useWideBloom) {
-		glBindTexture(GL_TEXTURE_2D, textureList["fboHDR0"]->TextureId());
+		SetTexture(GL_TEXTURE2, GL_TEXTURE_2D, textureList["fboHDR0"]);
 	  } else {
-		glBindTexture(GL_TEXTURE_2D, textureList["fboHDR1"]->TextureId());
+		SetTexture(GL_TEXTURE2, GL_TEXTURE_2D, textureList["fboHDR1"]);
 	  }
 #endif // USE_HDR_BLOOM
 
@@ -1755,10 +1761,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
 	  glUniform1i(shader.texDiffuse, 0);
-	  glActiveTexture(GL_TEXTURE0);
-	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	  glBindTexture(GL_TEXTURE_2D, textureList["fboShadow1"]->TextureId());
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboShadow1"]);
 	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
 	  meshList["board2D"].Draw();
 	}
@@ -1858,18 +1861,12 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 #endif // NDEBUG
 
 	// テクスチャのバインドを解除.
-	glActiveTexture(GL_TEXTURE5);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	ResetTexture(GL_TEXTURE5, GL_TEXTURE_2D);
+	ResetTexture(GL_TEXTURE4, GL_TEXTURE_CUBE_MAP);
+	ResetTexture(GL_TEXTURE3, GL_TEXTURE_CUBE_MAP);
+	ResetTexture(GL_TEXTURE2, GL_TEXTURE_CUBE_MAP);
+	ResetTexture(GL_TEXTURE1, GL_TEXTURE_2D);
+	ResetTexture(GL_TEXTURE0, GL_TEXTURE_2D);
 
 	// バッファオブジェクトのバインドを解除.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

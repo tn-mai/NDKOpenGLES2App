@@ -17,6 +17,7 @@ namespace Texture {
 		virtual GLenum Target() const = 0;
 		virtual GLsizei Width() const = 0;
 		virtual GLsizei Height() const = 0;
+		virtual GLint MipCount() const = 0;
 	};
 
 	typedef std::shared_ptr<ITexture> TexturePtr;
@@ -26,6 +27,8 @@ namespace Texture {
 	TexturePtr CreateDummyNormal();
 	TexturePtr CreateDummyCubeMap();
 	TexturePtr LoadKTX(const char*, bool decompressing = false, GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
+
+	GLint CorrectFilter(int mipCount, GLint filter);
 }
 
 #endif // ETC1_HEADER_INCLUDED
