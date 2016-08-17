@@ -1764,6 +1764,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 #endif
 
 	DrawFontFoo();
+	LOG_GL_ERROR("Font Foo");
 
 #ifdef SSU_ENABLE_DISPLAY_LOG
 	if (hasDebugLog) {
@@ -1777,6 +1778,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  ++lines;
 		}
 	  }
+	  LOG_GL_ERROR("Debug Log");
 	}
 #endif // SSU_ENABLE_DISPLAY_LOG
 
@@ -1789,6 +1791,13 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		Local::glFinishFenceNV(fences[i]);
 		fenceTimes[i + 1] = GetCurrentTime();
 	  }
+
+	  // Discard the error from glFinishFenceNV.
+	  // In ANGLE, glFinishFenceNV return 0x502 sometimes.
+	  // I'm conserned but don't know this cause.
+	  // Thus, discard this error, tentatively.
+	  glGetError();
+
 	  int64_t diffTimes[6];
 	  for (int i = 0; i < 5; ++i) {
 		diffTimes[i] = std::max<int64_t>(fenceTimes[i + 1] - fenceTimes[i], 0);
@@ -1844,6 +1853,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		DrawFont(Position2F(e.pos.x, e.pos.y), e.str.c_str());
 	  }
 	}
+	LOG_GL_ERROR("Information");
 #endif // NDEBUG
 
 	// テクスチャのバインドを解除.
@@ -1863,6 +1873,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	// バッファオブジェクトのバインドを解除.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	LOG_GL_ERROR("End");
 }
 
 void Renderer::Update(float dTime, const Position3F& pos, const Vector3F& dir, const Vector3F& up)
