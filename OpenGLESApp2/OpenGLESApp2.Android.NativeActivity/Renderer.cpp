@@ -1260,8 +1260,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glBindFramebuffer(GL_FRAMEBUFFER, *fboShadow1Info.p);
 		glViewport(0, 0, fboShadow1Info.width, fboShadow1Info.height);
 		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
 		glBlendFunc(GL_ONE, GL_ZERO);
-		glCullFace(GL_NONE);
 
 		const Shader& shader = shaderList["bilinear4x4"];
 		glUseProgram(shader.program);
