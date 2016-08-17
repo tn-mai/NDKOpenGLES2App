@@ -50,13 +50,16 @@ static char debugLogBuffer[16][256];
 # endif // __ANDROID__
 #endif // SSU_ENABLE_DISPLAY_LOG
 
-#ifdef __ANDROID__
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
-#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#ifndef NDEBUG
+#define LOG_GL_ERROR(str) { \
+  const GLenum result = glGetError(); \
+  if (result != GL_NO_ERROR) { \
+	LOGE("Error:" str "(0x%04x)", result); \
+  } \
+}
 #else
-#define LOGI(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
-#define LOGE(...) ((void)printf(__VA_ARGS__), (void)printf("\n"))
-#endif // __ANDROID__
+#define LOG_GL_ERROR(str)
+#endif // NDEBUG
 
 static const Vector2F referenceViewportSize(480, 800);
 static const size_t vboBufferSize = sizeof(Vertex) * 1024 * 11;
@@ -1075,6 +1078,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  return;
 	}
 
+	LOG_GL_ERROR("Begin");
+
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
@@ -1249,6 +1254,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glBindTexture(GL_TEXTURE_2D, textureList["fboMain"]->TextureId());
 
 		meshList["board2D"].Draw();
+		LOG_GL_ERROR("Shadow");
 	}
 #endif
 #endif
@@ -1330,6 +1336,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glBindTexture(GL_TEXTURE_2D, 0);
 	  meshList["skybox"].Draw();
 	  Local::glSetFenceNV(fences[FENCE_ID_COLOR_PATH], GL_ALL_COMPLETED_NV);
+	  LOG_GL_ERROR("Sky");
 	}
 
 	const GLuint cloudProgramId = shaderList["cloud"].program;
@@ -1461,6 +1468,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	}
 	glDepthMask(GL_TRUE);
 	glEnable(GL_CULL_FACE);
+	LOG_GL_ERROR("Color");
 
 #ifdef SHOW_TANGENT_SPACE
 	static bool showTangentSpace = true;
@@ -1666,6 +1674,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		  mesh.Draw();
 		}
 	  }
+	  LOG_GL_ERROR("Bloom");
 	}
 #endif // USE_HDR_BLOOM
 	Local::glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
@@ -1719,6 +1728,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  meshList["board2D"].Draw();
 
 	  Local::glSetFenceNV(fences[FENCE_ID_FINAL_PATH], GL_ALL_COMPLETED_NV);
+	  LOG_GL_ERROR("Final");
 	}
 
 #if 0
