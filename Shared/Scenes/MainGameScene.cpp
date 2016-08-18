@@ -1009,7 +1009,7 @@ namespace SunnySideUp {
 		//				}
 		//			}
 	  }
-
+	  renderer.SetBlurScale(1.0f + std::max(0.0f, std::abs(rigidCamera->accel.y) - 100.0f) * 0.001f);
 #if 0
 	  static float roughness = 1.0f;
 	  static float step = 0.005;

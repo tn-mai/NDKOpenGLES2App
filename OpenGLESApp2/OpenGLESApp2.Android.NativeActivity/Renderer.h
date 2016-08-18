@@ -300,6 +300,7 @@ namespace Mai {
 	Vector2F GetShadowMapScale() const { return shadowScale; }
 	bool DoesDrawSkybox() const { return doesDrawSkybox; }
 	void DoesDrawSkybox(bool b) { doesDrawSkybox = b; }
+	void SetBlurScale(float f) { blurScale = f; }
 
   private:
 	/** The index for identifying each FBO.
@@ -310,6 +311,7 @@ namespace Mai {
 	  // Entity
 	  FBO_Main_Internal, ///< Internal only. Use FBO_Main or FBO_Shadow instead of this.
 	  FBO_Sub, /// It has 1/4 reduced size from FBO_Main.
+	  FBO_Previous, ///< the copy of previouse image.
 	  FBO_Shadow1, ///< For bluring shadow.
 	  FBO_HDR0, ///< For HDR bloom effect.
 	  FBO_HDR1, ///< For HDR bloom effect.
@@ -361,6 +363,8 @@ namespace Mai {
 	int32_t width;
 	int32_t height;
 	GLint viewport[4];
+
+	float blurScale;
 
 	std::string texBaseDir;
 

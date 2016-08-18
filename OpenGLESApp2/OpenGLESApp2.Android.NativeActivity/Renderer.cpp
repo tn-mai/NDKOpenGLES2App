@@ -545,6 +545,7 @@ Renderer::Renderer()
   , isAdreno205(false)
   , width(480 * 8 / 10)
   , height(640 * 8 / 10)
+  , blurScale(1.0f)
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
   , timeOfScene(TimeOfScene_Noon)
@@ -604,6 +605,7 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 		// Entity
 		{ "fboMain", FBO_Main_Internal, FBO_MAIN_WIDTH, FBO_MAIN_HEIGHT },
 		{ "fboSub", FBO_Sub, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboPrevious", FBO_Previous, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
 		{ "fboShadow1", FBO_Shadow1, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
 		{ "fboHDR0", FBO_HDR0, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
 		{ "fboHDR1", FBO_HDR1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[0]), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[0]) },
@@ -1690,6 +1692,72 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 #endif // USE_HDR_BLOOM
 	Local::glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
 
+	{
+	  const FBOInfo fboInfo = GetFBOInfo(FBO_Sub);
+	  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfo.p);
+	  glViewport(0, 0, fboInfo.width, fboInfo.height);
+	  glDisable(GL_DEPTH_TEST);
+	  glDisable(GL_CULL_FACE);
+	  glDepthFunc(GL_ALWAYS);
+	  glBlendFunc(GL_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
+	  glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+	  glEnableVertexAttribArray(VertexAttribLocation_Position);
+	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
+	  glDisableVertexAttribArray(VertexAttribLocation_Normal);
+	  glDisableVertexAttribArray(VertexAttribLocation_Tangent);
+	  glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
+	  glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
+	  glDisableVertexAttribArray(VertexAttribLocation_Weight);
+	  glDisableVertexAttribArray(VertexAttribLocation_BoneID);
+
+	  const Shader& shader = shaderList["default2D"];
+	  glUseProgram(shader.program);
+
+	  Matrix4x4 mtx = Matrix4x4::Unit();
+	  mtx.Scale(1.0, -1.0f, 1.0f);
+	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
+	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, Matrix4x4::Unit().f);
+	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
+
+	  glUniform1i(shader.texDiffuse, 0);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Previous).name]);
+	  const Mesh::Mesh& mesh = meshList["board2D"];
+	  mesh.Draw();
+	}
+	{
+	  const FBOInfo fboInfo = GetFBOInfo(FBO_Previous);
+	  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfo.p);
+	  glViewport(0, 0, fboInfo.width, fboInfo.height);
+	  glDisable(GL_DEPTH_TEST);
+	  glDisable(GL_CULL_FACE);
+	  glDepthFunc(GL_ALWAYS);
+	  glBlendFunc(GL_ONE, GL_ZERO);
+
+	  glEnableVertexAttribArray(VertexAttribLocation_Position);
+	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
+	  glDisableVertexAttribArray(VertexAttribLocation_Normal);
+	  glDisableVertexAttribArray(VertexAttribLocation_Tangent);
+	  glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
+	  glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
+	  glDisableVertexAttribArray(VertexAttribLocation_Weight);
+	  glDisableVertexAttribArray(VertexAttribLocation_BoneID);
+
+	  const Shader& shader = shaderList["default2D"];
+	  glUseProgram(shader.program);
+
+	  Matrix4x4 mtx = Matrix4x4::Unit();
+	  mtx.Scale(blurScale, -blurScale, 1.0f);
+	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
+	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, Matrix4x4::Unit().f);
+	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
+
+	  glUniform1i(shader.texDiffuse, 0);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub).name]);
+	  const Mesh::Mesh& mesh = meshList["board2D"];
+	  mesh.Draw();
+	}
+
 	// final path.
 	{
 	  glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1711,7 +1779,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUseProgram(shader.program);
 	  glBlendFunc(GL_ONE, GL_ZERO);
 
-	  glUniform1f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].inverse);
+	  glUniform2f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].inverse, std::max(0.0f, blurScale - 1.0f) * 50.0f);
 
 	  Matrix4x4 mtx = Matrix4x4::Unit();
 	  mtx.Scale(1.0f, -1.0f, 1.0f);
@@ -1723,7 +1791,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  static const int texSource[] = { 0, 1, 2 };
 	  glUniform1iv(shader.texSource, 3, texSource);
 	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Main).name]);
-	  SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub).name]);
+	  SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Previous).name]);
 
 #ifdef USE_HDR_BLOOM
 	  if (useWideBloom) {

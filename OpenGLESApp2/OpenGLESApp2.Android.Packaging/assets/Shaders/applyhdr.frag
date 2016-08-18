@@ -1,6 +1,6 @@
 uniform sampler2D texSource[3]; // 0:main color, 1:1/4 color, 2:hdr factor.
 uniform lowp vec4 materialColor; // for filter color.
-uniform lowp float dynamicRangeFactor;
+uniform lowp vec2 dynamicRangeFactor; // x:dynamic range factor, y:blur factor.
 
 varying mediump vec4 texCoord; // xy for main. zw for other.
 
@@ -20,7 +20,10 @@ const mediump float Gamma = 2.2;
 void main()
 {
   gl_FragColor = texture2D(texSource[0], texCoord.xy);
-  gl_FragColor.rgb *= dynamicRangeFactor; // Note that this paramter should be the inversed value of the other shader.
+  gl_FragColor.rgb *= dynamicRangeFactor.x; // Note that this paramter should be the inversed value of the other shader.
+  if (dynamicRangeFactor.y > 0.0) {
+	gl_FragColor.rgb += texture2D(texSource[1], texCoord.zw).rgb * dynamicRangeFactor.y;
+  }
 
 #ifdef USE_HDR_BLOOM
   gl_FragColor.rgb += texture2D(texSource[2], texCoord.zw).rgb * 0.5;
