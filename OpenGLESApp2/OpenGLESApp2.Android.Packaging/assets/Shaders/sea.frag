@@ -14,9 +14,6 @@ varying mediump vec3 eyeVectorW;
 varying mediump vec4 texCoord;
 varying mediump vec3 posForShadow;
 
-#define G1(dottedFactor, k) \
-  (dottedFactor / (dottedFactor * (1.0 - k) + k))
-
 // [FGS]
 // F0 : fresnel refrectance of material.
 //      dielectric = 0.017-0.067(the average to 0.04)
@@ -27,16 +24,12 @@ varying mediump vec3 posForShadow;
 // reference:
 //   http://d.hatena.ne.jp/hanecci/20130727/p2
 //   https://seblagarde.wordpress.com/2011/08/17/hello-world/
-#define CalcF0(ret, col, metallic) \
-  lowp float isMetal = step(235.0 / 255.0, metallic); \
-  ret = isMetal * col * metallic + (1.0 - isMetal) * metallic;
+#define CalcF0(ret, col, metallic) lowp float isMetal = step(235.0 / 255.0, metallic); ret = isMetal * col * metallic + (1.0 - isMetal) * metallic
 
 #if 0
-#define FresnelSchlick(F0, dotEH) \
-  (F0 + (1.0 - F0) * exp2((-5.55473 * dotEH - 6.98316) * dotEH))
+#define FresnelSchlick(F0, dotEH) (F0 + (1.0 - F0) * exp2((-5.55473 * dotEH - 6.98316) * dotEH))
 #else
-#define FresnelSchlick(F0, dotEH) \
-  (F0 + (1.0 - F0) * exp2(-8.656170 * dotEH))
+#define FresnelSchlick(F0, dotEH) (F0 + (1.0 - F0) * exp2(-8.656170 * dotEH))
 #endif
 
 /**
