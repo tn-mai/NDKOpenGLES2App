@@ -1275,7 +1275,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 		glUniformMatrix4fv(shader.matView, 1, GL_FALSE, Matrix4x4::Unit().f);
 
 		glUniform1i(shader.texShadow, 0);
-		SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboMain"]);
+		SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Main).name]);
 
 		meshList["board2D"].Draw();
 		LOG_GL_ERROR("Shadow");
@@ -1562,7 +1562,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboMain"]);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Main).name]);
 	  meshList["board2D"].Draw();
 	}
 	// fboSub ->(hdrdiff)-> fboHDR[1]
@@ -1580,7 +1580,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform2f(shader.dynamicRangeFactor, iblDynamicRangeArray[timeOfScene].range, 1.0f / (1.0f - iblDynamicRangeArray[timeOfScene].range));
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboSub"]);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub).name]);
 	  meshList["board2D"].Draw();
 	}
 
@@ -1722,8 +1722,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  static const int texSource[] = { 0, 1, 2 };
 	  glUniform1iv(shader.texSource, 3, texSource);
-	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboMain"]);
-	  SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, textureList["fboSub"]);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Main).name]);
+	  SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub).name]);
 
 #ifdef USE_HDR_BLOOM
 	  if (useWideBloom) {
