@@ -310,8 +310,8 @@ namespace Mai {
 	enum FBOIndex {
 	  // Entity
 	  FBO_Main_Internal, ///< Internal only. Use FBO_Main or FBO_Shadow instead of this.
-	  FBO_Sub, /// It has 1/4 reduced size from FBO_Main.
-	  FBO_Previous, ///< the copy of previouse image.
+	  FBO_Sub0, /// It has 1/4 reduced size from FBO_Main.
+	  FBO_Sub1, /// It has 1/4 reduced size from FBO_Main.
 	  FBO_Shadow1, ///< For bluring shadow.
 	  FBO_HDR0, ///< For HDR bloom effect.
 	  FBO_HDR1, ///< For HDR bloom effect.
@@ -323,6 +323,8 @@ namespace Mai {
 	  // Alias
 	  FBO_Main, ///< For rendering color.
 	  FBO_Shadow, /// For rendering shadow.
+	  FBO_Sub, /// Sub buffer in the current frame. It is selected either FBO_Sub0 and FBO_Sub1 by isOddFrame.
+	  FBO_Sub_Previous, /// Sub buffer in the previouse frame. It is selected either FBO_Sub0 and FBO_Sub1 by isOddFrame.
 
 	  FBO_Begin = FBO_Main_Internal, ///< The index of first fbo entity.
 	  FBO_End = FBO_HDR5 + 1, ///< The next index of last fbo entity.
@@ -364,6 +366,7 @@ namespace Mai {
 	int32_t height;
 	GLint viewport[4];
 
+	int isOddFrame;
 	float blurScale;
 
 	std::string texBaseDir;
@@ -397,7 +400,6 @@ namespace Mai {
 	  int options;
 	};
 	std::vector<FontRenderingInfo> fontRenderingInfoList;
-	int currentFontBufferNo;
 
 	float animationTick;
 

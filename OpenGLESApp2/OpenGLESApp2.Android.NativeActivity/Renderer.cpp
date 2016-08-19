@@ -545,6 +545,7 @@ Renderer::Renderer()
   , isAdreno205(false)
   , width(480 * 8 / 10)
   , height(640 * 8 / 10)
+  , isOddFrame(0)
   , blurScale(1.0f)
   , texBaseDir("Textures/Others/")
   , random(static_cast<uint32_t>(time(nullptr)))
@@ -555,7 +556,6 @@ Renderer::Renderer()
   ,	shadowFar(2000)
   , shadowScale(1, 1)
   , depth(0)
-  , currentFontBufferNo(0)
   , animationTick(0.0)
   , filterMode(FILTERMODE_NONE)
   , filterColor(0, 0, 0, 0)
@@ -604,8 +604,8 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 	} fboNameList[] = {
 		// Entity
 		{ "fboMain", FBO_Main_Internal, FBO_MAIN_WIDTH, FBO_MAIN_HEIGHT },
-		{ "fboSub", FBO_Sub, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
-		{ "fboPrevious", FBO_Previous, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboSub0", FBO_Sub0, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
+		{ "fboSub1", FBO_Sub1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
 		{ "fboShadow1", FBO_Shadow1, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
 		{ "fboHDR0", FBO_HDR0, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / 4), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / 4) },
 		{ "fboHDR1", FBO_HDR1, static_cast<uint16_t>(MAIN_RENDERING_PATH_WIDTH / hdrScaleFactorList[0]), static_cast<uint16_t>(MAIN_RENDERING_PATH_HEIGHT / hdrScaleFactorList[0]) },
@@ -619,6 +619,11 @@ Renderer::FBOInfo Renderer::GetFBOInfo(int id) const
 		{ "fboMain", FBO_Main_Internal, static_cast<uint16_t>(SHADOWMAP_MAIN_WIDTH), static_cast<uint16_t>(SHADOWMAP_MAIN_HEIGHT) },
 	};
 
+	if (id == FBO_Sub) {
+	  id = isOddFrame ? FBO_Sub1 : FBO_Sub0;
+	} else if (id == FBO_Sub_Previous) {
+	  id = isOddFrame ? FBO_Sub0 : FBO_Sub1;
+	}
 	GLuint* p = const_cast<GLuint*>(&fbo[fboNameList[id].index]);
 	return { fboNameList[id].name, fboNameList[id].width, fboNameList[id].height, p };
 }
@@ -850,7 +855,7 @@ void Renderer::Initialize(const Window& window)
 		  glBufferData(GL_ARRAY_BUFFER, sizeof(FontVertex) * 4/*rectangle*/ * MAX_FONT_RENDERING_COUNT, 0, GL_DYNAMIC_DRAW);
 		}
 		vboFontEnd = 0;
-		currentFontBufferNo = 0;
+		isOddFrame = 0;
 		fontRenderingInfoList.clear();
 		fontRenderingInfoList.reserve(MAX_FONT_RENDERING_COUNT / 8);
 
@@ -896,7 +901,7 @@ void Renderer::Initialize(const Window& window)
 		}
 	}
 
-	for (int i = FBO_Sub; i < FBO_End; ++i) {
+	for (int i = FBO_Sub0; i < FBO_End; ++i) {
 		const FBOInfo e = GetFBOInfo(i);
 		const auto& tex = *textureList[e.name];
 		glGenFramebuffers(1, e.p);
@@ -997,7 +1002,7 @@ void Renderer::AddString(float x, float y, float scale, const Color4B& color, co
 	curPos.x += w;
   }
   if (!vertecies.empty()) {
-	glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
+	glBindBuffer(GL_ARRAY_BUFFER, vboFont[isOddFrame]);
 	glBufferSubData(GL_ARRAY_BUFFER, vboFontEnd, vertecies.size() * sizeof(FontVertex), &vertecies[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	fontRenderingInfoList.push_back({ static_cast<GLint>(vboFontEnd / sizeof(FontVertex)), static_cast<GLsizei>(vertecies.size()), options });
@@ -1042,7 +1047,7 @@ void Renderer::DrawFontFoo()
   glUniform1i(shader.texDiffuse, 0);
   SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, fontTexture);
 
-  glBindBuffer(GL_ARRAY_BUFFER, vboFont[currentFontBufferNo]);
+  glBindBuffer(GL_ARRAY_BUFFER, vboFont[isOddFrame]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
   for (int i = 0; i < VertexAttribLocation_Max; ++i) {
@@ -1692,6 +1697,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 #endif // USE_HDR_BLOOM
 	Local::glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
 
+	// Make blur.
 	{
 	  const FBOInfo fboInfo = GetFBOInfo(FBO_Sub);
 	  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfo.p);
@@ -1699,40 +1705,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glDisable(GL_DEPTH_TEST);
 	  glDisable(GL_CULL_FACE);
 	  glDepthFunc(GL_ALWAYS);
-	  glBlendFunc(GL_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
-	  glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-	  glEnableVertexAttribArray(VertexAttribLocation_Position);
-	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
-	  glDisableVertexAttribArray(VertexAttribLocation_Normal);
-	  glDisableVertexAttribArray(VertexAttribLocation_Tangent);
-	  glEnableVertexAttribArray(VertexAttribLocation_TexCoord01);
-	  glVertexAttribPointer(VertexAttribLocation_TexCoord01, 4, GL_UNSIGNED_SHORT, GL_FALSE, stride, offTexCoord01);
-	  glDisableVertexAttribArray(VertexAttribLocation_Weight);
-	  glDisableVertexAttribArray(VertexAttribLocation_BoneID);
-
-	  const Shader& shader = shaderList["default2D"];
-	  glUseProgram(shader.program);
-
-	  Matrix4x4 mtx = Matrix4x4::Unit();
-	  mtx.Scale(1.0, -1.0f, 1.0f);
-	  glUniformMatrix4fv(shader.matProjection, 1, GL_FALSE, mtx.f);
-	  glUniformMatrix4fv(shader.matView, 1, GL_FALSE, Matrix4x4::Unit().f);
-	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
-
-	  glUniform1i(shader.texDiffuse, 0);
-	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Previous).name]);
-	  const Mesh::Mesh& mesh = meshList["board2D"];
-	  mesh.Draw();
-	}
-	{
-	  const FBOInfo fboInfo = GetFBOInfo(FBO_Previous);
-	  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfo.p);
-	  glViewport(0, 0, fboInfo.width, fboInfo.height);
-	  glDisable(GL_DEPTH_TEST);
-	  glDisable(GL_CULL_FACE);
-	  glDepthFunc(GL_ALWAYS);
-	  glBlendFunc(GL_ONE, GL_ZERO);
+	  glBlendFunc(GL_ONE, GL_CONSTANT_ALPHA);
+	  glBlendColor(1.0f, 1.0f, 1.0f, 0.5f);
 
 	  glEnableVertexAttribArray(VertexAttribLocation_Position);
 	  glVertexAttribPointer(VertexAttribLocation_Position, 3, GL_FLOAT, GL_FALSE, stride, offPosition);
@@ -1753,7 +1727,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
 
 	  glUniform1i(shader.texDiffuse, 0);
-	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub).name]);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub_Previous).name]);
 	  const Mesh::Mesh& mesh = meshList["board2D"];
 	  mesh.Draw();
 	}
@@ -1791,7 +1765,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	  static const int texSource[] = { 0, 1, 2 };
 	  glUniform1iv(shader.texSource, 3, texSource);
 	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Main).name]);
-	  SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Previous).name]);
+	  SetTexture(GL_TEXTURE1, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub_Previous).name]);
 
 #ifdef USE_HDR_BLOOM
 	  if (useWideBloom) {
@@ -1830,7 +1804,8 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 
 	  glUniform4f(shader.materialColor, 1.0f, 1.0f, 1.0f, 1.0f);
 	  glUniform1i(shader.texDiffuse, 0);
-	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboShadow1"]);
+//	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList["fboShadow1"]);
+	  SetTexture(GL_TEXTURE0, GL_TEXTURE_2D, textureList[GetFBOInfo(FBO_Sub).name]);
 	  glUniform4f(shader.unitTexCoord, 1.0f, 1.0f, 0.0f, 0.0f);
 	  meshList["board2D"].Draw();
 	}
@@ -2028,7 +2003,7 @@ void Renderer::Unload()
 
 void Renderer::Swap()
 {
-	currentFontBufferNo ^= 1;
+	isOddFrame ^= 1;
 	vboFontEnd = 0;
 	fontRenderingInfoList.clear();
 	eglSwapBuffers(display, surface);

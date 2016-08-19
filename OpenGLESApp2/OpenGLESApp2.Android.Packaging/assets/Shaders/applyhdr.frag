@@ -20,10 +20,10 @@ const mediump float Gamma = 2.2;
 void main()
 {
   gl_FragColor = texture2D(texSource[0], texCoord.xy);
-  gl_FragColor.rgb *= dynamicRangeFactor.x; // Note that this paramter should be the inversed value of the other shader.
   if (dynamicRangeFactor.y > 0.0) {
 	gl_FragColor.rgb += texture2D(texSource[1], texCoord.zw).rgb * dynamicRangeFactor.y;
   }
+  gl_FragColor.rgb *= dynamicRangeFactor.x; // Note that this paramter should be the inversed value of the other shader.
 
 #ifdef USE_HDR_BLOOM
   gl_FragColor.rgb += texture2D(texSource[2], texCoord.zw).rgb * 0.5;
