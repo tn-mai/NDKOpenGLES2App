@@ -1698,7 +1698,7 @@ void Renderer::Render(const ObjectPtr* begin, const ObjectPtr* end)
 	Local::glSetFenceNV(fences[FENCE_ID_HDR_PATH], GL_ALL_COMPLETED_NV);
 
 	// Make blur.
-	{
+	if (blurScale > 1.0f) {
 	  const FBOInfo fboInfo = GetFBOInfo(FBO_Sub);
 	  glBindFramebuffer(GL_FRAMEBUFFER, *fboInfo.p);
 	  glViewport(0, 0, fboInfo.width, fboInfo.height);
