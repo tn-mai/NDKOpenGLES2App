@@ -76,7 +76,8 @@ namespace Menu {
 
   /** Handle a click event.
 
-    @param currentPosition  A position that was used by a click.
+	@param engine      The reference to the game engine object.
+	@param currentPosition  A position that was used by a click.
 	@param button           A button type that was used by a click.
 
 	@retval true  The event was consumed.
@@ -92,6 +93,42 @@ namespace Menu {
 	return false;
   }
 
+  /** Handle a button down event.
+
+	@param engine      The reference to the game engine object.
+	@param currentPos  A position that was used by a click.
+	@param button      A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool MenuItem::OnMouseButtonDown(Engine& engine, const Vector2F& currentPos, MouseButton button) {
+	if (buttonHandler) {
+	  if (buttonHandler(currentPos, button, ButtonAction::Down)) {
+		return true;
+	  }
+	}
+	return false;
+  }
+
+  /** Handle a button up event.
+
+	@param engine      The reference to the game engine object.
+	@param currentPos  A position that was used by a click.
+	@param button      A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool MenuItem::OnMouseButtonUp(Engine& engine, const Vector2F& currentPos, MouseButton button) {
+	if (buttonHandler) {
+	  if (buttonHandler(currentPos, button, ButtonAction::Up)) {
+		return true;
+	  }
+	}
+	return false;
+  }
+
   /** Handle a move event.
 
 	@param currentPos  A current mouse cursor or swiping position.
@@ -101,7 +138,7 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool MenuItem::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState state) {
+  bool MenuItem::OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState state) {
 	if (mouseMoveHandler) {
 	  return mouseMoveHandler(currentPos, startPos, state);
 	}
@@ -197,6 +234,11 @@ namespace Menu {
 	  }
 	}
 	c.a = static_cast<uint8_t>(c.a * alpha * GetAlpha());
+	if (flags & FLAG_BUTTON_DOWN) {
+	  c.r = static_cast<uint8_t>(std::min(255, (c.r * 3) / 2));
+	  c.g = static_cast<uint8_t>(std::min(255, (c.g * 3) / 2));
+	  c.b = static_cast<uint8_t>(std::min(255, (c.b * 3) / 2));
+	}
 	const int options =
 	  (flags & FLAG_SHADOW ? Renderer::FONTOPTION_DROPSHADOW : Renderer::FONTOPTION_NONE) |
 	  (flags & FLAG_OUTLINE ? Renderer::FONTOPTION_OUTLINE : Renderer::FONTOPTION_NONE);
@@ -216,6 +258,54 @@ namespace Menu {
 		scaleTick -= 2.0f;
 	  }
 	}
+  }
+
+  /** Handle a button down event.
+
+	@param engine      The reference to the game engine object.
+	@param currentPos  A position that was used by a click.
+	@param button      A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool TextMenuItem::OnMouseButtonDown(Engine& engine, const Vector2F& currentPos, MouseButton button) {
+	if (flags & FLAG_BUTTON) {
+	  flags |= FLAG_BUTTON_DOWN;
+	}
+	return MenuItem::OnMouseButtonDown(engine, currentPos, button);
+  }
+
+  /** Handle a button up event.
+
+	@param engine      The reference to the game engine object.
+	@param currentPos  A position that was used by a click.
+	@param button      A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool TextMenuItem::OnMouseButtonUp(Engine& engine, const Vector2F& currentPos, MouseButton button) {
+	if (flags & FLAG_BUTTON) {
+	  flags &= ~FLAG_BUTTON_DOWN;
+	}
+	return MenuItem::OnMouseButtonUp(engine, currentPos, button);
+  }
+
+  /** Handle a click event.
+
+  @param engine      The reference to the game engine object.
+  @param currentPosition  A position that was used by a click.
+  @param button           A button type that was used by a click.
+
+  @retval true  The event was consumed.
+  @retval false The event was not consumed.
+  */
+  bool TextMenuItem::OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button) {
+	if (flags & FLAG_BUTTON) {
+	  flags &= ~FLAG_BUTTON_DOWN;
+	}
+	return MenuItem::OnClick(engine, currentPos, button);
   }
 
   /** Set text.
@@ -369,7 +459,7 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool CarouselMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
+  bool CarouselMenu::OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
 	switch (state) {
 	case MouseMoveState::Begin:
 	  moveY = currentPos.y - dragStartPoint.y;
@@ -517,7 +607,7 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool SwipableMenu::OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
+  bool SwipableMenu::OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state) {
 	switch (state) {
 	case MouseMoveState::Begin:
 	  /* FALLTHROUGH */
@@ -660,6 +750,49 @@ namespace Menu {
 	return false;
   }
 
+  /** Handle a button down event.
+
+	@param engine      The reference to the game engine object.
+	@param currentPos  A position that was used by a click.
+	@param button      A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool Menu::OnMouseButtonDown(Engine& engine, const Vector2F& currentPos, MouseButton button) {
+	const auto re = items.rend();
+	for (auto ri = items.rbegin(); ri != re; ++ri) {
+	  if ((*ri)->OnRegion(currentPos)) {
+		pActiveItem = *ri;
+		return (*ri)->OnMouseButtonDown(engine, currentPos, button);
+	  }
+	}
+	return false;
+  }
+
+  /** Handle a button up event.
+
+	@param engine      The reference to the game engine object.
+	@param currentPos  A position that was used by a click.
+	@param button      A button type that was used by a click.
+
+	@retval true  The event was consumed.
+	@retval false The event was not consumed.
+  */
+  bool Menu::OnMouseButtonUp(Engine& engine, const Vector2F& currentPos, MouseButton button) {
+	if (pActiveItem) {
+	  Pointer p(std::move(pActiveItem));
+	  return p->OnMouseButtonUp(engine, currentPos, button);
+	}
+	const auto re = items.rend();
+	for (auto ri = items.rbegin(); ri != re; ++ri) {
+	  if ((*ri)->OnRegion(currentPos)) {
+		return (*ri)->OnMouseButtonUp(engine, currentPos, button);
+	  }
+	}
+	return false;
+  }
+
   /** Handle a move event.
 
 	@param currentPos  A current mouse cursor or swiping position.
@@ -669,11 +802,18 @@ namespace Menu {
 	@retval true  The event was consumed.
 	@retval false The event was not consumed.
   */
-  bool Menu::OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState state) {
+  bool Menu::OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState state) {
+	if (pActiveItem) {
+	  if (!pActiveItem->OnRegion(currentPos)) {
+		Pointer p(std::move(pActiveItem));
+		return p->OnMouseButtonUp(engine, currentPos, MOUSEBUTTON_UNKNOWN);
+	  }
+	  return pActiveItem->OnMouseMove(engine, currentPos, startPos, state);
+	}
 	const auto re = items.rend();
 	for (auto ri = items.rbegin(); ri != re; ++ri) {
 	  if ((*ri)->OnRegion(currentPos)) {
-		return (*ri)->OnMouseMove(currentPos, startPos, state);
+		return (*ri)->OnMouseMove(engine, currentPos, startPos, state);
 	  }
 	}
 	return false;
@@ -702,7 +842,7 @@ namespace Menu {
 		case MouseMoveState::Moving: mouseMoveState = MouseMoveState::Moving; break;
 		case MouseMoveState::End: mouseMoveState = MouseMoveState::Begin; break;
 		}
-		return MenuItem::Pointer(pActiveItem)->OnMouseMove(currentPos, dragStartPoint, mouseMoveState);
+		return MenuItem::Pointer(pActiveItem)->OnMouseMove(engine, currentPos, dragStartPoint, mouseMoveState);
 	  }
 	  break;
 	case Event::EVENT_MOUSE_BUTTON_PRESSED: {
@@ -714,6 +854,7 @@ namespace Menu {
 		for (auto ri = items.rbegin(); ri != re; ++ri) {
 		  if ((*ri)->OnRegion(currentPos)) {
 			pActiveItem = *ri;
+			MenuItem::Pointer(pActiveItem)->OnMouseButtonDown(engine, currentPos, e.MouseButton.Button);
 			return true;
 		  }
 		}
@@ -742,8 +883,9 @@ namespace Menu {
 	  const Vector2F currentPos = GetDeviceIndependentPositon(e.MouseButton.X, e.MouseButton.Y, windowWidth, windowHeight);
 	  if (pActiveItem) {
 		MenuItem::Pointer p(std::move(pActiveItem));
+		p->OnMouseButtonUp(engine, currentPos, e.MouseButton.Button);
 		mouseMoveState = MouseMoveState::End;
-		if (p->OnMouseMove(currentPos, dragStartPoint, mouseMoveState)) {
+		if (p->OnMouseMove(engine, currentPos, dragStartPoint, mouseMoveState)) {
 		  return true;
 		}
 	  }
@@ -766,7 +908,6 @@ namespace Menu {
 	items.clear();
 	mouseMoveState = MouseMoveState::End;
   }
-
 } // namespace Menu
 
 } // namespace Mai

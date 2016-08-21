@@ -36,19 +36,29 @@ namespace Menu {
 	End, ///< End mouse cursor moving.
   };
 
+  /** Button action type.
+  */
+  enum class ButtonAction {
+	Down,
+	Up,
+  };
+
   /** The base class of any menu item.
   */
   struct MenuItem {
 	typedef std::shared_ptr<MenuItem> Pointer;
 	typedef std::function<bool(const Vector2F&, MouseButton)> ClickEventHandler;
 	typedef std::function<bool(const Vector2F&, const Vector2F&, MouseMoveState)> MoveEventHandler;
+	typedef std::function<bool(const Vector2F&, MouseButton, ButtonAction)> ButtonEventHandler;
 
 	MenuItem();
 	virtual ~MenuItem() = 0;
 	virtual void Draw(Renderer&, Vector2F, float) const {}
 	virtual void Update(Engine&, float) {}
 	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
+	virtual bool OnMouseButtonDown(Engine& engine, const Vector2F& currentPos, MouseButton button);
+	virtual bool OnMouseButtonUp(Engine& engine, const Vector2F& currentPos, MouseButton button);
+	virtual bool OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
 
 	void SetRegion(const Vector2F& pos, const Vector2F& size);
 	bool OnRegion(const Vector2F& pos) const;
@@ -57,6 +67,7 @@ namespace Menu {
 	Vector2F lt, wh; ///< Active area.
 	ClickEventHandler clickHandler;
 	MoveEventHandler mouseMoveHandler;
+	ButtonEventHandler buttonHandler;
 	bool isActive;
   };
   inline MenuItem::~MenuItem() = default;
@@ -68,12 +79,18 @@ namespace Menu {
 	static const uint8_t FLAG_ALPHA_ANIMATION = 0x02;
 	static const uint8_t FLAG_SHADOW = 0x04;
 	static const uint8_t FLAG_OUTLINE = 0x08;
+	static const uint8_t FLAG_BUTTON = 0x10;
+	static const uint8_t FLAG_BUTTON_DOWN = 0x20;
 
 	TextMenuItem(const char* str, const Vector2F& p, float s, int flg = FLAG_SHADOW);
 	TextMenuItem(const char* str, const Vector2F& p, float s, Color4B c, int flg = FLAG_SHADOW);
 	virtual ~TextMenuItem() {}
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(Engine&, float tick);
+	virtual bool OnMouseButtonDown(Engine& engine, const Vector2F& currentPos, MouseButton button);
+	virtual bool OnMouseButtonUp(Engine& engine, const Vector2F& currentPos, MouseButton button);
+	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
+
 	void SetText(const char*);
 	const char* GetText() const;
 	int GetFlag() const;
@@ -100,7 +117,7 @@ namespace Menu {
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(Engine& engine, float tick);
 	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState);
+	virtual bool OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState);
 
 	void Add(MenuItem::Pointer p);
 	void Clear();
@@ -127,7 +144,7 @@ namespace Menu {
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(Engine& engine, float tick);
 	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state);
+	virtual bool OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& dragStartPoint, MouseMoveState state);
 
 	void Add(int viewNo, MenuItem::Pointer p);
 	size_t ViewCount() const;
@@ -155,7 +172,9 @@ namespace Menu {
 	virtual void Draw(Renderer& r, Vector2F offset, float alpha) const;
 	virtual void Update(Engine& engine, float tick);
 	virtual bool OnClick(Engine& engine, const Vector2F& currentPos, MouseButton button);
-	virtual bool OnMouseMove(const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
+	virtual bool OnMouseButtonDown(Engine& engine, const Vector2F& currentPos, MouseButton button);
+	virtual bool OnMouseButtonUp(Engine& engine, const Vector2F& currentPos, MouseButton button);
+	virtual bool OnMouseMove(Engine& engine, const Vector2F& currentPos, const Vector2F& startPos, MouseMoveState);
 
 	bool ProcessWindowEvent(Engine& engine, const Event& e);
 	void Add(MenuItem::Pointer p);

@@ -176,7 +176,7 @@ namespace SunnySideUp {
 			}
 		  }
 
-		  std::shared_ptr<Menu::TextMenuItem> pReturnItem(new Menu::TextMenuItem("RETURN", Vector2F(0.25f, 0.9f), 1.0f));
+		  std::shared_ptr<Menu::TextMenuItem> pReturnItem(new Menu::TextMenuItem("RETURN", Vector2F(0.25f, 0.9f), 1.0f, Menu::TextMenuItem::FLAG_BUTTON | Menu::TextMenuItem::FLAG_SHADOW));
 		  pReturnItem->color = Color4B(240, 64, 32, 255);
 		  pReturnItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
 			rootMenu.Clear();
@@ -186,12 +186,12 @@ namespace SunnySideUp {
 		  };
 		  pRecordView->Add(pReturnItem);
 
-		  std::shared_ptr<Menu::TextMenuItem> pClearItem(new Menu::TextMenuItem("CLEAR", Vector2F(0.75f, 0.9f), 1.0f));
+		  std::shared_ptr<Menu::TextMenuItem> pClearItem(new Menu::TextMenuItem("CLEAR", Vector2F(0.75f, 0.9f), 1.0f, Menu::TextMenuItem::FLAG_BUTTON | Menu::TextMenuItem::FLAG_SHADOW));
 		  pClearItem->color = Color4B(32, 64, 240, 255);
 		  pClearItem->clickHandler = [this, &engine](const Vector2F&, MouseButton) -> bool {
 			std::shared_ptr<Menu::TextMenuItem> pLabelItem(new Menu::TextMenuItem("CLARE RECORD?", Vector2F(0.5f, 0.25f), 1.0f));
 			pLabelItem->color = Color4B(32, 64, 240, 255);
-			std::shared_ptr<Menu::TextMenuItem> pYesItem(new Menu::TextMenuItem(" YES ", Vector2F(0.5f, 0.4f), 2.0f));
+			std::shared_ptr<Menu::TextMenuItem> pYesItem(new Menu::TextMenuItem(" YES ", Vector2F(0.5f, 0.4f), 2.0f, Menu::TextMenuItem::FLAG_BUTTON | Menu::TextMenuItem::FLAG_SHADOW));
 			pYesItem->clickHandler = [this, &engine](const Vector2F&, MouseButton) -> bool {
 			  SaveData::DeleteAll(engine.GetWindow());
 			  char  buf[] = "0-0 --:--.---";
@@ -221,7 +221,7 @@ namespace SunnySideUp {
 			  rootMenu.inputDisableTimer = 0.25f;
 			  return true;
 			};
-			std::shared_ptr<Menu::TextMenuItem> pNoItem(new Menu::TextMenuItem(" NO ", Vector2F(0.5f, 0.6f), 2.0f));
+			std::shared_ptr<Menu::TextMenuItem> pNoItem(new Menu::TextMenuItem(" NO ", Vector2F(0.5f, 0.6f), 2.0f, Menu::TextMenuItem::FLAG_BUTTON | Menu::TextMenuItem::FLAG_SHADOW));
 			pNoItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
 			  rootMenu.Clear();
 			  rootMenu.Add(pRecordView);
@@ -260,7 +260,7 @@ namespace SunnySideUp {
 		  }
 		  pLevelSelect->Add(pCarouselMenu);
 
-		  std::shared_ptr<Menu::TextMenuItem> pRecordItem(new Menu::TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f));
+		  std::shared_ptr<Menu::TextMenuItem> pRecordItem(new Menu::TextMenuItem("RECORD", Vector2F(0.25f, 0.9f), 1.0f, Menu::TextMenuItem::FLAG_BUTTON | Menu::TextMenuItem::FLAG_SHADOW));
 		  pRecordItem->color = Color4B(240, 64, 32, 255);
 		  pRecordItem->clickHandler = [this](const Vector2F&, MouseButton) -> bool {
 			rootMenu.Clear();
