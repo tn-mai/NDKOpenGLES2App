@@ -27,5 +27,6 @@ Once published your app, you have to use a same keystore file continuously.
   key.alias.password=password/of/alias/used/for/generating/your/keystore  
 
 <img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/TitleNoon.jpg" width="50%" /><img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/MainGameSunset.jpg" width="50%" />
-<img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/FailureNoon.jpg" width="50%" /><img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/SuccessNoon.jpg" width="50%" />
-<img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/SuccessSunset.jpg" width="50%" />
+<img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/FailureNoon.jpg" width="50%" /><img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/SuccessNoon2.jpg" width="50%" />
+<img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/SuccessSunset2.jpg" width="50%" /><img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/SuccessNoon_OverMedium4.jpg" width="50%" />
+<img src="https://github.com/tn-mai/NDKOpenGLES2App/blob/master/ScreenShot/SuccessNoon.jpg" width="50%" />
